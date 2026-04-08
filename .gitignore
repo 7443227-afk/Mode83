@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Local environment inside badge83
+badge83/.venv/
+badge83/**/__pycache__/
+
+# Generated badge data
+badge83/data/issued/*.json
+!badge83/data/issued/.gitkeep
