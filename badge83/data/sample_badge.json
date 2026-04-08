@@ -1,0 +1,24 @@
+{
+  "id": "urn:uuid:11111111-2222-3333-4444-555555555555",
+  "type": "Assertion",
+  "recipient": {
+    "name": "Alice Martin",
+    "email": "alice@example.com"
+  },
+  "issuedOn": "2026-04-08T10:00:00+00:00",
+  "badge": {
+    "id": "https://mode83.example/badges/badge-83",
+    "name": "Badge 83",
+    "description": "Badge pédagogique pour démontrer les digital credentials.",
+    "issuer": {
+      "id": "https://mode83.example/issuers/main",
+      "name": "MODE83",
+      "url": "https://mode83.example"
+    }
+  },
+  "issuer": {
+    "id": "https://mode83.example/issuers/main",
+    "name": "MODE83",
+    "url": "https://mode83.example"
+  }
+}
