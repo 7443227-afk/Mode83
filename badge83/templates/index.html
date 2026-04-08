@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Badge 83</title>
+  </head>
+  <body>
+    <h1>Badge 83</h1>
+    <p>Mini projet pédagogique pour émission et vérification de badge.</p>
+
+    <h2>1) Émettre un badge</h2>
+    <form method="post" action="/issue">
+      <label>Nom <input type="text" name="name" required /></label>
+      <label>Email <input type="email" name="email" required /></label>
+      <button type="submit">Émettre</button>
+    </form>
+
+    <h2>2) Vérifier un badge</h2>
+    <form method="get" action="/verify/">
+      <label>Badge ID <input type="text" name="badge_id" /></label>
+      <button type="submit">Vérifier</button>
+    </form>
+
+    <h2>Résultat</h2>
+    <pre>En attente d'action...</pre>
+  </body>
+</html>
