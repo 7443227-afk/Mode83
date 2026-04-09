@@ -7,12 +7,25 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "issued"
 
 
 def verify_badge(badge_id: str) -> dict:
-    """Vérifie si un badge existe et retourne son état avec ses données."""
+    """Vérifie si une Assertion Open Badges 2.0 existe et retourne son état avec ses données."""
     badge_path = DATA_DIR / f"{badge_id}.json"
     if not badge_path.exists():
-        return {"valid": False, "badge": None}
+        return {"valid": False, "assertion": None}
 
     with badge_path.open("r", encoding="utf-8") as file:
         badge_data = json.load(file)
 
-    return {"valid": True, "badge": badge_data}
+    if badge_data.get("type") != "Assertion":
+        return {"valid": False, "assertion": None}
+
+    return {
+        "valid": True,
+        "assertion": badge_data,
+        "summary": {
+            "assertion_id": badge_id,
+            "badge_name": badge_data.get("badge", {}).get("name"),
+            "issuer_name": badge_data.get("issuer", {}).get("name"),
+            "recipient_name": badge_data.get("recipient", {}).get("name"),
+            "issued_on": badge_data.get("issuedOn"),
+        },
+    }

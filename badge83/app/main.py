@@ -19,13 +19,20 @@ async def index(request: Request):
 
 @app.post("/issue")
 async def issue(name: str = Form(...), email: str = Form(...)):
-    """Reçoit les informations utilisateur et émet un badge."""
+    """Reçoit les informations utilisateur et émet une Assertion Open Badges."""
     badge = issue_badge(name=name, email=email)
     return {"status": "issued", "badge": badge}
 
 
 @app.get("/verify/{badge_id}")
 async def verify(badge_id: str):
-    """Vérifie l'existence d'un badge via son identifiant."""
+    """Vérifie l'existence d'une Assertion Open Badges via son identifiant."""
+    result = verify_badge(badge_id=badge_id)
+    return result
+
+
+@app.get("/verify")
+async def verify_query(badge_id: str):
+    """Permet la vérification via query string (?badge_id=...)."""
     result = verify_badge(badge_id=badge_id)
     return result

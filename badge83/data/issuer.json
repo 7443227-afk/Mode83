@@ -1,0 +1,10 @@
+{
+  "@context": "https://w3id.org/openbadges/v2",
+  "id": "https://mode83.example/issuers/main",
+  "type": "Issuer",
+  "name": "MODE83",
+  "url": "https://mode83.example",
+  "email": "contact@mode83.example",
+  "description": "Profil de l'émetteur MODE83 pour l'émission de badges Open Badges 2.0.",
+  "image": "https://mode83.example/assets/mode83-badge.png"
+}

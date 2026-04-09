@@ -1,0 +1,12 @@
+{
+  "@context": "https://w3id.org/openbadges/v2",
+  "id": "https://mode83.example/badges/blockchain-foundations",
+  "type": "BadgeClass",
+  "name": "MODE83 Fondamentaux Blockchain",
+  "description": "Badge Open Badges émis par MODE83 pour la validation du parcours de formation Blockchain.",
+  "image": "https://mode83.example/assets/mode83-badge.png",
+  "criteria": {
+    "narrative": "L'apprenant a validé les exigences pédagogiques et les activités d'évaluation prévues par MODE83."
+  },
+  "issuer": "https://mode83.example/issuers/main"
+}

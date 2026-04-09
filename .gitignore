@@ -1,6 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
+badge.sh
 
 # Local environment inside badge83
 badge83/.venv/
