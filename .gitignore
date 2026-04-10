@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 badge.sh
+*.code-workspace
 
 # Local environment inside badge83
 badge83/.venv/

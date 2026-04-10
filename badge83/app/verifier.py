@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.baker import unbake_badge
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "issued"
 
 
@@ -27,5 +29,29 @@ def verify_badge(badge_id: str) -> dict:
             "issuer_name": badge_data.get("issuer", {}).get("name"),
             "recipient_name": badge_data.get("recipient", {}).get("name"),
             "issued_on": badge_data.get("issuedOn"),
+        },
+    }
+
+
+def verify_baked_badge(png_data: bytes) -> dict:
+    """Extrait l'assertion d'un PNG baked et la vérifie."""
+    try:
+        assertion = unbake_badge(png_data)
+    except (ValueError, Exception) as exc:
+        return {"valid": False, "error": str(exc), "assertion": None}
+
+    if assertion.get("type") != "Assertion":
+        return {"valid": False, "error": "Not a valid Open Badges Assertion", "assertion": None}
+
+    badge_id = assertion.get("id", "unknown")
+    return {
+        "valid": True,
+        "assertion": assertion,
+        "summary": {
+            "assertion_id": badge_id,
+            "badge_name": assertion.get("badge", {}).get("name"),
+            "issuer_name": assertion.get("issuer", {}).get("name"),
+            "recipient_name": assertion.get("recipient", {}).get("name"),
+            "issued_on": assertion.get("issuedOn"),
         },
     }

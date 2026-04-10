@@ -20,8 +20,8 @@
         <div class="col-12 col-md-6">
           <div class="card shadow-sm h-100">
             <div class="card-body">
-              <h2 class="h5 mb-3">Émettre une assertion Open Badge</h2>
-          <form id="issueForm" method="post" action="/issue">
+              <h2 class="h5 mb-3">Émettre une assertion Open Badge (JSON)</h2>
+              <form id="issueForm" method="post" action="/issue">
                 <div class="mb-3">
                   <label for="name" class="form-label">Nom</label>
                   <input id="name" type="text" name="name" class="form-control" required />
@@ -30,8 +30,8 @@
                   <label for="email" class="form-label">Email</label>
                   <input id="email" type="email" name="email" class="form-control" required />
                 </div>
-                <button type="submit" class="btn btn-primary">Émettre</button>
-          </form>
+                <button type="submit" class="btn btn-primary">Émettre (JSON)</button>
+              </form>
             </div>
           </div>
         </div>
@@ -39,8 +39,43 @@
         <div class="col-12 col-md-6">
           <div class="card shadow-sm h-100">
             <div class="card-body">
-              <h2 class="h5 mb-3">Vérifier une assertion</h2>
-          <form id="verifyForm" method="get" action="/verify">
+              <h2 class="h5 mb-3">Émettre un badge baked (PNG)</h2>
+              <form id="issueBakedForm">
+                <div class="mb-3">
+                  <label for="bakedName" class="form-label">Nom</label>
+                  <input id="bakedName" type="text" name="name" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                  <label for="bakedEmail" class="form-label">Email</label>
+                  <input id="bakedEmail" type="email" name="email" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                  <label for="badgeImage" class="form-label">Image PNG à baker <span class="text-muted">(optionnel)</span></label>
+                  <input
+                    type="file"
+                    id="badgeImage"
+                    name="badge_image"
+                    class="form-control"
+                    accept=".png"
+                  />
+                  <div class="form-text">
+                    Sélectionnez votre propre image PNG ou utilisez le badge par défaut
+                    (<a href="/badge.png" target="_blank">télécharger badge.png</a>).
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-success">Émettre (PNG baked)</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="row g-4 mb-4">
+        <div class="col-12 col-md-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <h2 class="h5 mb-3">Vérifier une assertion (par ID)</h2>
+              <form id="verifyForm" method="get" action="/verify">
                 <div class="mb-3">
                   <label for="badgeId" class="form-label">Badge ID</label>
                   <input
@@ -51,8 +86,30 @@
                     placeholder="Entrez un identifiant"
                   />
                 </div>
-                <button type="submit" class="btn btn-outline-primary">Vérifier</button>
-          </form>
+                <button type="submit" class="btn btn-outline-primary">Vérifier (ID)</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <h2 class="h5 mb-3">Vérifier un badge baked (PNG)</h2>
+              <form id="verifyBakedForm">
+                <div class="mb-3">
+                  <label for="badgeFile" class="form-label">Fichier PNG baked</label>
+                  <input
+                    type="file"
+                    id="badgeFile"
+                    name="badge"
+                    class="form-control"
+                    accept=".png"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn btn-outline-success">Vérifier (PNG)</button>
+              </form>
             </div>
           </div>
         </div>
@@ -68,7 +125,9 @@
 
     <script>
       const issueForm = document.getElementById('issueForm');
+      const issueBakedForm = document.getElementById('issueBakedForm');
       const verifyForm = document.getElementById('verifyForm');
+      const verifyBakedForm = document.getElementById('verifyBakedForm');
       const badgeIdInput = document.getElementById('badgeId');
       const resultBox = document.getElementById('result');
 
@@ -93,10 +152,65 @@
         }
       });
 
+      issueBakedForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const fileInput = document.getElementById('badgeImage');
+        const file = fileInput.files[0];
+
+        const formData = new FormData();
+        formData.append('name', document.getElementById('bakedName').value);
+        formData.append('email', document.getElementById('bakedEmail').value);
+        if (file) {
+          formData.append('badge_image', file);
+        }
+
+        const response = await fetch('/issue-baked', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'badge-baked.png';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          showResult({ status: 'baked', message: 'Badge PNG téléchargé avec succès.' });
+        } else {
+          const err = await response.json().catch(() => ({ detail: response.statusText }));
+          showResult({ status: 'error', message: err.detail || 'Erreur lors de la génération du badge.' });
+        }
+      });
+
       verifyForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const badgeId = badgeIdInput.value.trim();
         const response = await fetch(`/verify?badge_id=${encodeURIComponent(badgeId)}`);
+        const data = await response.json();
+        showResult(data);
+      });
+
+      verifyBakedForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const fileInput = document.getElementById('badgeFile');
+        const file = fileInput.files[0];
+        if (!file) {
+          showResult({ error: 'Aucun fichier sélectionné.' });
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('badge', file);
+
+        const response = await fetch('/verify-baked', {
+          method: 'POST',
+          body: formData,
+        });
+
         const data = await response.json();
         showResult(data);
       });

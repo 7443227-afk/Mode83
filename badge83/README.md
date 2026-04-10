@@ -8,8 +8,10 @@ Il permet d'émettre et de vérifier des assertions conformes au modèle Open Ba
 ## Fonctionnalités
 
 - Émettre une assertion Open Badge (`POST /issue`) à partir de `name` et `email`.
-- Vérifier une assertion (`GET /verify/{id}`) à partir de son identifiant.
-- Stocker les assertions en JSON dans `data/issued/`.
+- Émettre un badge **baked** dans un PNG (`POST /issue-baked`) — l'assertion JSON est injectée dans l'image via un chunk `tEXt` conforme au standard Open Badges.
+- Vérifier une assertion par ID (`GET /verify/{id}` ou `GET /verify?badge_id=...`).
+- Vérifier un badge baked depuis un fichier PNG uploadé (`POST /verify-baked`) — extraction automatique de l'assertion depuis le chunk `openbadges`.
+- Stocker les assertions en JSON dans `data/issued/` et les PNG baked dans `data/baked/`.
 - Fournir des fichiers MODE83 de référence pour `Issuer` et `BadgeClass`.
 - Refuser les anciens badges JSON non conformes au format `Assertion` Open Badges 2.0.
 
@@ -21,12 +23,17 @@ mode83/
     ├── app/
     │   ├── main.py
     │   ├── issuer.py
-    │   └── verifier.py
+    │   ├── verifier.py
+    │   ├── baker.py          # Baking / unbaking PNG (tEXt chunk)
+    │   └── models.py
     ├── data/
     │   ├── issuer.json
     │   ├── badgeclass.json
-    │   └── issued/
+    │   ├── badge.png           # Image de base pour le baking
+    │   ├── issued/             # Assertions JSON
+    │   └── baked/              # Badges PNG baked
     ├── templates/
+    │   └── index.html
     ├── requirements.txt
     └── README.md
 ```
@@ -62,9 +69,15 @@ Une fois le serveur démarré, ouvrir dans le navigateur :
 Tests rapides d'API :
 
 ```bash
-curl http://127.0.0.1:8000/
+# Vérification par ID
 curl http://127.0.0.1:8000/verify/test-id
 curl "http://127.0.0.1:8000/verify?badge_id=test-id"
+
+# Émission d'un badge baked (télécharge un PNG)
+curl -X POST -F "name=Alice" -F "email=alice@example.org" http://127.0.0.1:8000/issue-baked --output badge.png
+
+# Vérification d'un badge baked (upload PNG)
+curl -X POST -F "badge=@badge.png" http://127.0.0.1:8000/verify-baked
 ```
 
 Réponse attendue pour un badge inexistant :
@@ -90,5 +103,21 @@ Les champs de structure restent ceux attendus par le standard Open Badges 2.0, m
 
 ## Remarques
 
-- Le projet fonctionne sans base de données : les badges sont stockés dans des fichiers JSON.
-- Cette version constitue une base de travail vers la conformité Open Badges 2.0, mais n'implémente pas encore la signature/baking PNG ni la validation officielle complète.
+- Le projet fonctionne sans base de données : les badges sont stockés dans des fichiers JSON (`data/issued/`) et PNG baked (`data/baked/`).
+- **Badge Baking** : l'assertion JSON est injectée dans le PNG via un chunk `tEXt` avec le mot-clé `openbadges`, conformément au standard Open Badges 2.0. Le PNG reste visuellement identique à l'original.
+- Le chunk `openbadges` est unique : re-baker le même PNG ne duplique pas les données.
+- La vérification d'un badge baked se fait en extrayant le chunk `openbadges` du PNG ; aucune connexion réseau n'est requise.
+
+## Roadmap
+
+| Étape | Statut | Description |
+|-------|--------|-------------|
+| Émission d'assertions JSON | ✅ Implémenté | `POST /issue` |
+| Badge Baking PNG | ✅ Implémenté | `POST /issue-baked` avec chunk `tEXt openbadges` |
+| Vérification par ID | ✅ Implémenté | `GET /verify/{id}` |
+| Vérification PNG baked | ✅ Implémenté | `POST /verify-baked` |
+| Interface web | ✅ Implémenté | Page unique avec formulaires d'émission et vérification |
+| Endpoints hébergés (HostedBadge) | 🔲 Planifié | Servir les assertions, l'issuer et le BadgeClass via des URLs HTTP publiques pour validation externe |
+| Signature JWS (SignedBadge) | 🔲 Planifié | Chiffrer les assertions avec une clé privée, vérification par clé publique |
+| Ancrage blockchain | 🔲 Planifié | Enregistrer les empreintes d'assertions sur une blockchain pour preuve d'immutabilité |
+| Validation IMS officielle | 🔲 Planifié | Passer le badge par le validateur <https://validator.openbadges.org> |
