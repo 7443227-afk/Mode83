@@ -115,6 +115,45 @@
         </div>
       </section>
 
+      <section class="row g-4 mb-4">
+        <div class="col-12">
+          <div class="card shadow-sm border-primary">
+            <div class="card-body">
+              <h2 class="h5 mb-3">🌐 Vérification en ligne (HostedBadge)</h2>
+              <p class="text-muted mb-3">
+                Vérifiez un badge en résolvant ses URLs publiques.
+                Collez une URL d'assertion ou uploadez un badge baked — chaque ressource référencée
+                sera interrogée pour valider la chaîne complète (Assertion → BadgeClass → Issuer).
+              </p>
+              <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-7">
+                  <label for="assertionUrl" class="form-label">URL d'assertion</label>
+                  <input
+                    type="url"
+                    id="assertionUrl"
+                    class="form-control"
+                    placeholder="http://127.0.0.1:8000/assertions/<uuid>"
+                  />
+                </div>
+                <div class="col-12 col-md-5 d-flex gap-2">
+                  <button id="verifyOnlineBtn" class="btn btn-primary">Vérifier par URL</button>
+                  <span class="align-self-center text-muted">ou</span>
+                  <label for="verifyOnlineFile" class="btn btn-outline-success mb-0">
+                    Charger un PNG baked
+                  </label>
+                  <input
+                    type="file"
+                    id="verifyOnlineFile"
+                    class="form-control d-none"
+                    accept=".png"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5 mb-3">Résultat JSON</h2>
@@ -130,6 +169,11 @@
       const verifyBakedForm = document.getElementById('verifyBakedForm');
       const badgeIdInput = document.getElementById('badgeId');
       const resultBox = document.getElementById('result');
+
+      // Online verification elements
+      const verifyOnlineBtn = document.getElementById('verifyOnlineBtn');
+      const verifyOnlineFile = document.getElementById('verifyOnlineFile');
+      const assertionUrlInput = document.getElementById('assertionUrl');
 
       function showResult(data) {
         resultBox.textContent = JSON.stringify(data, null, 2);
@@ -213,6 +257,50 @@
 
         const data = await response.json();
         showResult(data);
+      });
+
+      // --- Online verification (HostedBadge) ---
+
+      verifyOnlineBtn.addEventListener('click', async () => {
+        const url = assertionUrlInput.value.trim();
+        if (!url) {
+          showResult({ error: 'Veuillez entrer une URL d\'assertion.' });
+          return;
+        }
+
+        showResult({ status: 'loading', message: 'Résolution de la chaîne en cours...' });
+
+        const formData = new FormData();
+        formData.append('assertion_url', url);
+
+        const response = await fetch('/verify-online', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+        showResult(data);
+      });
+
+      verifyOnlineFile.addEventListener('change', async () => {
+        const file = verifyOnlineFile.files[0];
+        if (!file) return;
+
+        showResult({ status: 'loading', message: 'Extraction et vérification en cours...' });
+
+        const formData = new FormData();
+        formData.append('badge_file', file);
+
+        const response = await fetch('/verify-online', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+        showResult(data);
+
+        // Clear input so same file can be re-selected
+        verifyOnlineFile.value = '';
       });
     </script>
   </body>

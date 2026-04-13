@@ -20,14 +20,28 @@ def verify_badge(badge_id: str) -> dict:
     if badge_data.get("type") != "Assertion":
         return {"valid": False, "assertion": None}
 
+    badge_ref = badge_data.get("badge", "")
+    issuer_ref = badge_data.get("issuer", "")
+
+    # Handle both URL references (string) and embedded objects (dict)
+    if isinstance(badge_ref, str):
+        badge_name = badge_ref.split("/")[-1].replace("-", " ").title()
+    else:
+        badge_name = badge_ref.get("name", "unknown")
+
+    if isinstance(issuer_ref, str):
+        issuer_name = issuer_ref.split("/")[-1].replace("-", " ").title()
+    else:
+        issuer_name = issuer_ref.get("name", "unknown")
+
     return {
         "valid": True,
         "assertion": badge_data,
         "summary": {
             "assertion_id": badge_id,
-            "badge_name": badge_data.get("badge", {}).get("name"),
-            "issuer_name": badge_data.get("issuer", {}).get("name"),
-            "recipient_name": badge_data.get("recipient", {}).get("name"),
+            "badge_name": badge_name,
+            "issuer_name": issuer_name,
+            "recipient_name": badge_data.get("recipient", {}).get("name", "unknown"),
             "issued_on": badge_data.get("issuedOn"),
         },
     }
@@ -44,14 +58,28 @@ def verify_baked_badge(png_data: bytes) -> dict:
         return {"valid": False, "error": "Not a valid Open Badges Assertion", "assertion": None}
 
     badge_id = assertion.get("id", "unknown")
+    badge_ref = assertion.get("badge", "")
+    issuer_ref = assertion.get("issuer", "")
+
+    # Handle both URL references (string) and embedded objects (dict)
+    if isinstance(badge_ref, str):
+        badge_name = badge_ref.split("/")[-1].replace("-", " ").title()
+    else:
+        badge_name = badge_ref.get("name", "unknown")
+
+    if isinstance(issuer_ref, str):
+        issuer_name = issuer_ref.split("/")[-1].replace("-", " ").title()
+    else:
+        issuer_name = issuer_ref.get("name", "unknown")
+
     return {
         "valid": True,
         "assertion": assertion,
         "summary": {
             "assertion_id": badge_id,
-            "badge_name": assertion.get("badge", {}).get("name"),
-            "issuer_name": assertion.get("issuer", {}).get("name"),
-            "recipient_name": assertion.get("recipient", {}).get("name"),
+            "badge_name": badge_name,
+            "issuer_name": issuer_name,
+            "recipient_name": assertion.get("recipient", {}).get("name", "unknown"),
             "issued_on": assertion.get("issuedOn"),
         },
     }
