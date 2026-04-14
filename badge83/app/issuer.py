@@ -16,12 +16,12 @@ ISSUER_TEMPLATE = BASE_DIR / "issuer_template.json"
 BADGECLASS_TEMPLATE = BASE_DIR / "badgeclass_template.json"
 BADGE_PNG = BASE_DIR / "badge.png"
 
-# Base URL for public endpoints (must match the value in main.py)
+# URL de base pour les endpoints publics (doit correspondre à main.py)
 BASE_URL = os.environ.get("BADGE83_BASE_URL", "http://127.0.0.1:8000")
 
 
 def _load_template(path: Path) -> dict:
-    """Load a JSON template and replace ${BASE_URL} with the actual value."""
+    """Charge un template JSON et remplace ${BASE_URL} par la valeur réelle."""
     content = path.read_text(encoding="utf-8")
     content = content.replace("${BASE_URL}", BASE_URL)
     return json.loads(content)
@@ -37,7 +37,7 @@ def _recipient_identity(email: str) -> str:
 
 
 def issue_badge(name: str, email: str) -> dict:
-    """Crée une Assertion Open Badges minimale, l'enregistre en JSON, puis la retourne."""
+    """Crée une assertion Open Badges minimale, l'enregistre en JSON, puis la retourne."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     issuer = _load_template(ISSUER_TEMPLATE)
     badgeclass = _load_template(BADGECLASS_TEMPLATE)
@@ -82,7 +82,7 @@ def issue_badge(name: str, email: str) -> dict:
 
 
 def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> dict:
-    """Crée une Assertion Open Badges, la bake dans un PNG et la sauvegarde.
+    """Crée une assertion Open Badges, la bake dans un PNG et la sauvegarde.
 
     Si *png_data* est fourni (upload), il est utilisé comme base.
     Sinon, le PNG par défaut ``data/badge.png`` est utilisé.
@@ -123,12 +123,12 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         "issuer": issuer_url,
     }
 
-    # Save JSON assertion
+    # Sauvegarde de l'assertion JSON
     badge_path = DATA_DIR / f"{assertion_id}.json"
     with badge_path.open("w", encoding="utf-8") as file:
         json.dump(assertion, file, ensure_ascii=False, indent=2)
 
-    # Bake into PNG
+    # Baking dans le PNG
     if png_data:
         baked_png = bake_badge_from_bytes(png_data, assertion)
     else:

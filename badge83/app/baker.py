@@ -1,12 +1,12 @@
 """
-Open Badges PNG Baking / Unbaking utilities.
+Utilitaires de baking / unbaking PNG pour Open Badges.
 
-Baking  = embedding assertion JSON into a PNG as a PNG text chunk
-          with the keyword ``openbadges`` (per Open Badges specification).
+Baking  = injection d'une assertion JSON dans un PNG via un chunk texte
+          avec le mot-clé ``openbadges`` (selon la spécification Open Badges).
 
-We prefer ``iTXt`` for baking because it supports UTF-8 text explicitly and
-is handled more reliably by stricter validators. For backward compatibility,
-unbaking still accepts legacy ``tEXt`` chunks.
+Nous préférons ``iTXt`` pour le baking car il gère explicitement le texte UTF-8
+et est interprété plus fiablement par les validateurs stricts. Pour la
+rétrocompatibilité, l'unbaking accepte toujours les anciens chunks ``tEXt``.
 """
 
 from __future__ import annotations
@@ -17,24 +17,24 @@ import zlib
 from pathlib import Path
 from typing import Any
 
-# PNG signature: 8 bytes
+# Signature PNG : 8 octets
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
-# Keyword used in the PNG text chunk per Open Badges spec
+# Mot-clé utilisé dans le chunk texte PNG selon la spécification Open Badges
 OB_KEYWORD = "openbadges"
 
 
 # ---------------------------------------------------------------------------
-# Baking — embed JSON into a PNG
+# Baking — injection du JSON dans un PNG
 # ---------------------------------------------------------------------------
 
 def _make_text_chunk(keyword: str, text: str) -> bytes:
-    """Build a legacy PNG ``tEXt`` chunk.
+    """Construit un chunk PNG ``tEXt`` hérité.
 
-    Format:  length (4B) | type (4B) | keyword | NUL | text | CRC (4B)
+    Format :  length (4B) | type (4B) | keyword | NUL | text | CRC (4B)
 
-    Kept for backward compatibility/reference only. New badges are baked using
-    ``iTXt`` via :func:`_make_itxt_chunk`.
+    Conservé uniquement pour référence/rétrocompatibilité. Les nouveaux badges
+    sont bakés via ``iTXt`` avec :func:`_make_itxt_chunk`.
     """
     payload = keyword.encode("latin-1") + b"\x00" + text.encode("utf-8")
     chunk_type = b"tEXt"
@@ -43,21 +43,21 @@ def _make_text_chunk(keyword: str, text: str) -> bytes:
 
 
 def _make_itxt_chunk(keyword: str, text: str) -> bytes:
-    """Build a PNG ``iTXt`` chunk using UTF-8 text.
+    """Construit un chunk PNG ``iTXt`` avec du texte UTF-8.
 
-    iTXt format:
-      keyword\x00 compression_flag compression_method language_tag\x00
-      translated_keyword\x00 text
+    Format iTXt :
+      keyword\\x00 compression_flag compression_method language_tag\\x00
+      translated_keyword\\x00 text
 
-    We store uncompressed UTF-8 text with empty language/translation fields.
+    Le texte UTF-8 est stocké non compressé avec les champs langue/traduction vides.
     """
     payload = (
         keyword.encode("latin-1")
-        + b"\x00"                # keyword terminator
-        + b"\x00"                # compression flag: 0 = uncompressed
-        + b"\x00"                # compression method
-        + b"\x00"                # empty language tag
-        + b"\x00"                # empty translated keyword
+        + b"\x00"                # terminateur du mot-clé
+        + b"\x00"                # flag de compression : 0 = non compressé
+        + b"\x00"                # méthode de compression
+        + b"\x00"                # tag de langue vide
+        + b"\x00"                # mot-clé traduit vide
         + text.encode("utf-8")
     )
     chunk_type = b"iTXt"
@@ -66,17 +66,17 @@ def _make_itxt_chunk(keyword: str, text: str) -> bytes:
 
 
 def _insert_chunk_before_iend(png_data: bytes, chunk: bytes) -> bytes:
-    """Insert *chunk* just before the ``IEND`` chunk of a PNG.
+    """Insère *chunk* juste avant le chunk ``IEND`` d'un PNG.
 
-    If no ``IEND`` is found the chunk is simply appended.
+    Si aucun ``IEND`` n'est trouvé, le chunk est simplement ajouté à la fin.
     """
     iend_marker = b"IEND"
-    # Search for the chunk type field "IEND"
+    # Recherche du champ type "IEND"
     idx = png_data.rfind(iend_marker)
     if idx == -1:
         return png_data + chunk
-    # The 4 bytes before IEND are its length field; we insert our chunk right
-    # before the length field of IEND.
+    # Les 4 octets avant IEND sont son champ length ; on insère notre chunk
+    # juste avant ce champ length.
     insert_pos = idx - 4
     if insert_pos < 0:
         return png_data + chunk
@@ -84,13 +84,13 @@ def _insert_chunk_before_iend(png_data: bytes, chunk: bytes) -> bytes:
 
 
 def _remove_existing_ob_chunk(png_data: bytes) -> bytes:
-    """Remove any existing ``openbadges`` text chunk from *png_data*.
+    """Supprime tout chunk texte ``openbadges`` existant de *png_data*.
 
-    Walks through all chunks and removes any ``tEXt`` or ``iTXt`` chunk whose
-    keyword matches ``openbadges``.
+    Parcourt tous les chunks et retire tout chunk ``tEXt`` ou ``iTXt`` dont
+    le mot-clé correspond à ``openbadges``.
     """
     if png_data[:8] != PNG_SIGNATURE:
-        raise ValueError("Not a valid PNG file (bad signature)")
+        raise ValueError("Fichier PNG invalide (signature incorrecte)")
 
     result = bytearray(png_data[:8])
     pos = 8
@@ -137,13 +137,13 @@ def _remove_existing_ob_chunk(png_data: bytes) -> bytes:
 
 
 def bake_badge(png_path: Path | str, assertion: dict[str, Any]) -> bytes:
-    """Embed *assertion* JSON into the PNG at *png_path*.
+    """Injecte le JSON de l'*assertion* dans le PNG à *png_path*.
 
-    Returns the raw bytes of the baked PNG.
+    Retourne les octets bruts du PNG baké.
     """
     png_path = Path(png_path)
     if not png_path.exists():
-        raise FileNotFoundError(f"Badge PNG not found: {png_path}")
+        raise FileNotFoundError(f"Image PNG introuvable : {png_path}")
 
     png_data = png_path.read_bytes()
     png_data = _remove_existing_ob_chunk(png_data)
@@ -155,9 +155,10 @@ def bake_badge(png_path: Path | str, assertion: dict[str, Any]) -> bytes:
 
 
 def bake_badge_from_bytes(png_data: bytes, assertion: dict[str, Any]) -> bytes:
-    """Embed *assertion* JSON into raw PNG *png_data* (bytes).
+    """Injecte le JSON de l'*assertion* dans un PNG brut *png_data* (octets).
 
-    Useful when the PNG is provided from memory / upload rather than disk.
+    Utile lorsque le PNG est fourni en mémoire / via un upload plutôt que
+    depuis le disque.
     """
     png_data = _remove_existing_ob_chunk(png_data)
     assertion_json = json.dumps(assertion, ensure_ascii=False, separators=(",", ":"))
@@ -166,13 +167,13 @@ def bake_badge_from_bytes(png_data: bytes, assertion: dict[str, Any]) -> bytes:
 
 
 # ---------------------------------------------------------------------------
-# Unbaking — extract JSON from a baked PNG
+# Unbaking — extraction du JSON depuis un PNG baké
 # ---------------------------------------------------------------------------
 
 def _extract_text_from_itxt(data: bytes) -> tuple[str, str] | None:
-    """Parse an ``iTXt`` chunk payload and return ``(keyword, text)``.
+    """Analyse le payload d'un chunk ``iTXt`` et retourne ``(keyword, text)``.
 
-    Returns ``None`` if the payload is malformed.
+    Retourne ``None`` si le payload est malformé.
     """
     keyword_end = data.find(b"\x00")
     if keyword_end == -1:
@@ -220,16 +221,16 @@ def _extract_text_from_itxt(data: bytes) -> tuple[str, str] | None:
 
 
 def unbake_badge(png_data: bytes) -> dict[str, Any]:
-    """Extract the Open Badges assertion JSON from a baked PNG.
+    """Extrait le JSON de l'assertion Open Badges depuis un PNG baké.
 
-    *png_data* can be raw bytes or a file path.
-    Returns the parsed assertion dict.
+    *png_data* peut être des octets bruts ou un chemin de fichier.
+    Retourne le dictionnaire d'assertion parsé.
     """
     if isinstance(png_data, (str, Path)):
         png_data = Path(png_data).read_bytes()
 
     if png_data[:8] != PNG_SIGNATURE:
-        raise ValueError("Not a valid PNG file (bad signature)")
+        raise ValueError("Fichier PNG invalide (signature incorrecte)")
 
     pos = 8
     while pos + 8 <= len(png_data):
@@ -259,4 +260,4 @@ def unbake_badge(png_data: bytes) -> dict[str, Any]:
 
         pos = chunk_end
 
-    raise ValueError("No Open Badges assertion found in this PNG")
+    raise ValueError("Aucune assertion Open Badges trouvée dans ce PNG")
