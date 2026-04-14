@@ -33,7 +33,7 @@ def _load_json(path: Path) -> dict:
 
 
 def _recipient_identity(email: str) -> str:
-    return sha256(email.strip().lower().encode("utf-8")).hexdigest()
+    return "sha256$" + sha256(email.strip().lower().encode("utf-8")).hexdigest()
 
 
 def issue_badge(name: str, email: str) -> dict:
@@ -59,12 +59,11 @@ def issue_badge(name: str, email: str) -> dict:
             "type": "email",
             "hashed": True,
             "identity": _recipient_identity(email),
-            "plaintext_email": email,
-            "name": name,
         },
         "issuedOn": issued_on,
         "verification": {
-            "type": "HostedBadge"
+            "type": "HostedBadge",
+            "url": assertion_url,
         },
         "badge": badge_url,
         "issuer": issuer_url,
@@ -114,12 +113,11 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
             "type": "email",
             "hashed": True,
             "identity": _recipient_identity(email),
-            "plaintext_email": email,
-            "name": name,
         },
         "issuedOn": issued_on,
         "verification": {
-            "type": "HostedBadge"
+            "type": "HostedBadge",
+            "url": assertion_url,
         },
         "badge": badge_url,
         "issuer": issuer_url,

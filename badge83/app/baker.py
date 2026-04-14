@@ -1,10 +1,12 @@
 """
 Open Badges PNG Baking / Unbaking utilities.
 
-Baking  = embedding assertion JSON into a PNG as a ``tEXt`` chunk
+Baking  = embedding assertion JSON into a PNG as a PNG text chunk
           with the keyword ``openbadges`` (per Open Badges specification).
 
-Unbaking = extracting that JSON back out of a baked PNG.
+We prefer ``iTXt`` for baking because it supports UTF-8 text explicitly and
+is handled more reliably by stricter validators. For backward compatibility,
+unbaking still accepts legacy ``tEXt`` chunks.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ from typing import Any
 # PNG signature: 8 bytes
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
-# Keyword used in the PNG tEXt chunk per Open Badges spec
+# Keyword used in the PNG text chunk per Open Badges spec
 OB_KEYWORD = "openbadges"
 
 
@@ -27,12 +29,38 @@ OB_KEYWORD = "openbadges"
 # ---------------------------------------------------------------------------
 
 def _make_text_chunk(keyword: str, text: str) -> bytes:
-    """Build a PNG ``tEXt`` chunk.
+    """Build a legacy PNG ``tEXt`` chunk.
 
     Format:  length (4B) | type (4B) | keyword | NUL | text | CRC (4B)
+
+    Kept for backward compatibility/reference only. New badges are baked using
+    ``iTXt`` via :func:`_make_itxt_chunk`.
     """
     payload = keyword.encode("latin-1") + b"\x00" + text.encode("utf-8")
     chunk_type = b"tEXt"
+    crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
+    return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
+
+
+def _make_itxt_chunk(keyword: str, text: str) -> bytes:
+    """Build a PNG ``iTXt`` chunk using UTF-8 text.
+
+    iTXt format:
+      keyword\x00 compression_flag compression_method language_tag\x00
+      translated_keyword\x00 text
+
+    We store uncompressed UTF-8 text with empty language/translation fields.
+    """
+    payload = (
+        keyword.encode("latin-1")
+        + b"\x00"                # keyword terminator
+        + b"\x00"                # compression flag: 0 = uncompressed
+        + b"\x00"                # compression method
+        + b"\x00"                # empty language tag
+        + b"\x00"                # empty translated keyword
+        + text.encode("utf-8")
+    )
+    chunk_type = b"iTXt"
     crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
     return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
 
@@ -56,9 +84,10 @@ def _insert_chunk_before_iend(png_data: bytes, chunk: bytes) -> bytes:
 
 
 def _remove_existing_ob_chunk(png_data: bytes) -> bytes:
-    """Remove any existing ``openbadges`` tEXt chunk from *png_data*.
+    """Remove any existing ``openbadges`` text chunk from *png_data*.
 
-    Walks through all chunks and skips the first one whose keyword matches.
+    Walks through all chunks and removes any ``tEXt`` or ``iTXt`` chunk whose
+    keyword matches ``openbadges``.
     """
     if png_data[:8] != PNG_SIGNATURE:
         raise ValueError("Not a valid PNG file (bad signature)")
@@ -80,14 +109,24 @@ def _remove_existing_ob_chunk(png_data: bytes) -> bytes:
 
         should_skip = False
 
-        if chunk_type == b"tEXt" and not ob_removed:
+        if chunk_type in (b"tEXt", b"iTXt"):
             data = png_data[pos + 8:pos + 8 + length]
-            nul_idx = data.find(b"\x00")
-            if nul_idx != -1:
-                kw = data[:nul_idx].decode("latin-1")
-                if kw == OB_KEYWORD:
-                    should_skip = True
-                    ob_removed = True
+
+            if chunk_type == b"tEXt":
+                nul_idx = data.find(b"\x00")
+                if nul_idx != -1:
+                    kw = data[:nul_idx].decode("latin-1")
+                    if kw == OB_KEYWORD:
+                        should_skip = True
+                        ob_removed = True
+
+            elif chunk_type == b"iTXt":
+                nul_idx = data.find(b"\x00")
+                if nul_idx != -1:
+                    kw = data[:nul_idx].decode("latin-1")
+                    if kw == OB_KEYWORD:
+                        should_skip = True
+                        ob_removed = True
 
         if not should_skip:
             result.extend(png_data[chunk_start:chunk_end])
@@ -109,8 +148,8 @@ def bake_badge(png_path: Path | str, assertion: dict[str, Any]) -> bytes:
     png_data = png_path.read_bytes()
     png_data = _remove_existing_ob_chunk(png_data)
 
-    assertion_json = json.dumps(assertion, ensure_ascii=False, indent=2)
-    chunk = _make_text_chunk(OB_KEYWORD, assertion_json)
+    assertion_json = json.dumps(assertion, ensure_ascii=False, separators=(",", ":"))
+    chunk = _make_itxt_chunk(OB_KEYWORD, assertion_json)
 
     return _insert_chunk_before_iend(png_data, chunk)
 
@@ -121,14 +160,64 @@ def bake_badge_from_bytes(png_data: bytes, assertion: dict[str, Any]) -> bytes:
     Useful when the PNG is provided from memory / upload rather than disk.
     """
     png_data = _remove_existing_ob_chunk(png_data)
-    assertion_json = json.dumps(assertion, ensure_ascii=False, indent=2)
-    chunk = _make_text_chunk(OB_KEYWORD, assertion_json)
+    assertion_json = json.dumps(assertion, ensure_ascii=False, separators=(",", ":"))
+    chunk = _make_itxt_chunk(OB_KEYWORD, assertion_json)
     return _insert_chunk_before_iend(png_data, chunk)
 
 
 # ---------------------------------------------------------------------------
 # Unbaking — extract JSON from a baked PNG
 # ---------------------------------------------------------------------------
+
+def _extract_text_from_itxt(data: bytes) -> tuple[str, str] | None:
+    """Parse an ``iTXt`` chunk payload and return ``(keyword, text)``.
+
+    Returns ``None`` if the payload is malformed.
+    """
+    keyword_end = data.find(b"\x00")
+    if keyword_end == -1:
+        return None
+
+    try:
+        keyword = data[:keyword_end].decode("latin-1")
+    except UnicodeDecodeError:
+        return None
+
+    rest = data[keyword_end + 1:]
+    if len(rest) < 3:
+        return None
+
+    compression_flag = rest[0]
+    compression_method = rest[1]
+    rest = rest[2:]
+
+    lang_end = rest.find(b"\x00")
+    if lang_end == -1:
+        return None
+    rest = rest[lang_end + 1:]
+
+    translated_end = rest.find(b"\x00")
+    if translated_end == -1:
+        return None
+    text_bytes = rest[translated_end + 1:]
+
+    if compression_flag == 1:
+        if compression_method != 0:
+            return None
+        try:
+            text_bytes = zlib.decompress(text_bytes)
+        except zlib.error:
+            return None
+    elif compression_flag != 0:
+        return None
+
+    try:
+        text = text_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+    return keyword, text
+
 
 def unbake_badge(png_data: bytes) -> dict[str, Any]:
     """Extract the Open Badges assertion JSON from a baked PNG.
@@ -158,6 +247,14 @@ def unbake_badge(png_data: bytes) -> dict[str, Any]:
                 kw = data[:nul_idx].decode("latin-1")
                 if kw == OB_KEYWORD:
                     text = data[nul_idx + 1:].decode("utf-8")
+                    return json.loads(text)
+
+        elif chunk_type == b"iTXt":
+            data = png_data[pos + 8:pos + 8 + length]
+            parsed = _extract_text_from_itxt(data)
+            if parsed is not None:
+                kw, text = parsed
+                if kw == OB_KEYWORD:
                     return json.loads(text)
 
         pos = chunk_end
