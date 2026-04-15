@@ -1,12 +1,13 @@
 """
 Utilitaires de baking / unbaking PNG pour Open Badges.
 
-Baking  = injection d'une assertion JSON dans un PNG via un chunk texte
-          avec le mot-clé ``openbadges`` (selon la spécification Open Badges).
+Baking = injection d'une assertion JSON dans un PNG via un chunk texte
+avec le mot-clé ``openbadges`` (selon la spécification Open Badges).
 
-Nous préférons ``iTXt`` pour le baking car il gère explicitement le texte UTF-8
-et est interprété plus fiablement par les validateurs stricts. Pour la
-rétrocompatibilité, l'unbaking accepte toujours les anciens chunks ``tEXt``.
+Pour maximiser la compatibilité avec les validateurs externes Open Badges 2.0,
+les nouveaux badges sont désormais bakés via un chunk ``tEXt``. L'unbaking
+reste compatible avec ``tEXt`` et ``iTXt`` afin de continuer à lire les badges
+déjà émis avec l'ancien format.
 """
 
 from __future__ import annotations
@@ -32,9 +33,6 @@ def _make_text_chunk(keyword: str, text: str) -> bytes:
     """Construit un chunk PNG ``tEXt`` hérité.
 
     Format :  length (4B) | type (4B) | keyword | NUL | text | CRC (4B)
-
-    Conservé uniquement pour référence/rétrocompatibilité. Les nouveaux badges
-    sont bakés via ``iTXt`` avec :func:`_make_itxt_chunk`.
     """
     payload = keyword.encode("latin-1") + b"\x00" + text.encode("utf-8")
     chunk_type = b"tEXt"
@@ -149,7 +147,7 @@ def bake_badge(png_path: Path | str, assertion: dict[str, Any]) -> bytes:
     png_data = _remove_existing_ob_chunk(png_data)
 
     assertion_json = json.dumps(assertion, ensure_ascii=False, separators=(",", ":"))
-    chunk = _make_itxt_chunk(OB_KEYWORD, assertion_json)
+    chunk = _make_text_chunk(OB_KEYWORD, assertion_json)
 
     return _insert_chunk_before_iend(png_data, chunk)
 
@@ -162,7 +160,7 @@ def bake_badge_from_bytes(png_data: bytes, assertion: dict[str, Any]) -> bytes:
     """
     png_data = _remove_existing_ob_chunk(png_data)
     assertion_json = json.dumps(assertion, ensure_ascii=False, separators=(",", ":"))
-    chunk = _make_itxt_chunk(OB_KEYWORD, assertion_json)
+    chunk = _make_text_chunk(OB_KEYWORD, assertion_json)
     return _insert_chunk_before_iend(png_data, chunk)
 
 
