@@ -197,10 +197,10 @@ Contrôles observés :
 
 Le PNG produit par Badge83 est cohérent avec la façon dont `openbadges-validator-core` traite une image baked :
 
-- ✅ **format binaire PNG valide** ;
-- ✅ **métadonnée Open Badges présente** dans un chunk texte `openbadges` ;
-- ✅ **assertion extraite sous forme de JSON valide** ;
-- ✅ **assertion Open Badges 2.0 hosted** exploitable ensuite par le pipeline JSON-LD du validateur.
+- Oui / **format binaire PNG valide** ;
+- Oui / **métadonnée Open Badges présente** dans un chunk texte `openbadges` ;
+- Oui / **assertion extraite sous forme de JSON valide** ;
+- Oui / **assertion Open Badges 2.0 hosted** exploitable ensuite par le pipeline JSON-LD du validateur.
 
 ### Point d'attention
 

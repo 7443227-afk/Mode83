@@ -128,12 +128,12 @@ Badge PNG (baked)
 
 | Test | Résultat |
 |------|----------|
-| `GET /issuers/main` → JSON avec URLs résolues | ✅ |
-| `GET /badges/blockchain-foundations` → JSON avec URLs résolues | ✅ |
-| `GET /assertions/<uuid>` → assertion valide | ✅ |
-| `POST /issue` → assertion avec URLs publiques | ✅ |
-| `POST /issue-baked` → PNG baked avec assertion URLs | ✅ |
-| `POST /verify-baked` → vérification réussie | ✅ |
+| `GET /issuers/main` → JSON avec URLs résolues | Oui / |
+| `GET /badges/blockchain-foundations` → JSON avec URLs résolues | Oui / |
+| `GET /assertions/<uuid>` → assertion valide | Oui / |
+| `POST /issue` → assertion avec URLs publiques | Oui / |
+| `POST /issue-baked` → PNG baked avec assertion URLs | Oui / |
+| `POST /verify-baked` → vérification réussie | Oui / |
 
 ---
 

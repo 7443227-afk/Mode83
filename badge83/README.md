@@ -162,13 +162,13 @@ Voir [`docs/CHANGELOG-130426.md`](docs/CHANGELOG-130426.md) pour les modificatio
 
 | Étape | Statut | Description |
 |-------|--------|-------------|
-| Émission d'assertions JSON | ✅ Implémenté | `POST /issue` |
-| Badge Baking PNG | ✅ Implémenté | `POST /issue-baked` avec chunk `tEXt openbadges` |
-| Vérification par ID | ✅ Implémenté | `GET /verify/{id}` |
-| Vérification PNG baked | ✅ Implémenté | `POST /verify-baked` |
-| Interface web | ✅ Implémenté | Page unique avec formulaires d'émission et vérification |
-| Endpoints hébergés (HostedBadge) | ✅ Implémenté | URLs publiques pour Issuer, BadgeClass et Assertions |
+| Émission d'assertions JSON | Implémenté | `POST /issue` |
+| Badge Baking PNG | Implémenté | `POST /issue-baked` avec chunk `tEXt openbadges` |
+| Vérification par ID | Implémenté | `GET /verify/{id}` |
+| Vérification PNG baked | Implémenté | `POST /verify-baked` |
+| Interface web | Implémenté | Page unique avec formulaires d'émission et vérification |
+| Endpoints hébergés (HostedBadge) | Implémenté | URLs publiques pour Issuer, BadgeClass et Assertions |
 | Signature JWS (SignedBadge) | 🔲 Planifié | Chiffrer les assertions avec une clé privée, vérification par clé publique |
 | Ancrage blockchain | 🔲 Planifié | Enregistrer les empreintes d'assertions sur une blockchain pour preuve d'immutabilité |
-| Validation avec `openbadges-validator-core` | ✅ Validé | Test de conformité réussi sur un badge MODE83 hébergé |
+| Validation avec `openbadges-validator-core` | Validé | Test de conformité réussi sur un badge MODE83 hébergé |
 | Validation IMS officielle | 🔲 À poursuivre | Vérifications complémentaires sur l'infrastructure publique / HTTPS |

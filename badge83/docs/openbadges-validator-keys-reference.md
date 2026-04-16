@@ -45,20 +45,20 @@ Source : `ClassValidators(OBClasses.Assertion)`.
 
 | Clé | Statut validator | Type attendu | Rôle | Présence dans Badge83 |
 |-----|------------------|--------------|------|------------------------|
-| `id` | obligatoire | IRI | Identifiant de l'assertion | ✅ oui |
-| `type` | obligatoire | RDF type contenant `Assertion` | Type de l'objet | ✅ oui |
-| `recipient` | obligatoire | ID / objet `IdentityObject` | Destinataire du badge | ✅ oui |
-| `badge` | obligatoire | ID / URL / objet `BadgeClass` | Référence du badge | ✅ oui |
-| `verification` | obligatoire | ID / objet `VerificationObjectAssertion` | Mode de vérification | ✅ oui |
-| `issuedOn` | obligatoire | datetime | Date d'émission | ✅ oui |
-| `expires` | optionnelle | datetime | Date d'expiration | ❌ non |
-| `image` | optionnelle | ID | Image spécifique à l'assertion | ❌ non |
-| `narrative` | optionnelle | markdown text | Texte additionnel | ❌ non |
-| `evidence` | optionnelle | ID ou liste d'ID | Preuves associées | ❌ non |
-| `@language` | optionnelle | language tag | Langue par défaut | ❌ non |
-| `version` | optionnelle | texte ou nombre | Version Open Badges | ❌ non |
-| `related` | optionnelle | ID ou liste d'ID | Ressources liées | ❌ non |
-| `endorsement` | optionnelle | ID ou liste d'ID | Endorsements | ❌ non |
+| `id` | obligatoire | IRI | Identifiant de l'assertion | oui |
+| `type` | obligatoire | RDF type contenant `Assertion` | Type de l'objet | oui |
+| `recipient` | obligatoire | ID / objet `IdentityObject` | Destinataire du badge | oui |
+| `badge` | obligatoire | ID / URL / objet `BadgeClass` | Référence du badge | oui |
+| `verification` | obligatoire | ID / objet `VerificationObjectAssertion` | Mode de vérification | oui |
+| `issuedOn` | obligatoire | datetime | Date d'émission | oui |
+| `expires` | optionnelle | datetime | Date d'expiration | non |
+| `image` | optionnelle | ID | Image spécifique à l'assertion | non |
+| `narrative` | optionnelle | markdown text | Texte additionnel | non |
+| `evidence` | optionnelle | ID ou liste d'ID | Preuves associées | non |
+| `@language` | optionnelle | language tag | Langue par défaut | non |
+| `version` | optionnelle | texte ou nombre | Version Open Badges | non |
+| `related` | optionnelle | ID ou liste d'ID | Ressources liées | non |
+| `endorsement` | optionnelle | ID ou liste d'ID | Endorsements | non |
 
 ### Lecture
 
@@ -80,10 +80,10 @@ Source : `ClassValidators(OBClasses.IdentityObject)`.
 
 | Clé | Statut validator | Type attendu | Rôle | Présence dans Badge83 |
 |-----|------------------|--------------|------|------------------------|
-| `type` | obligatoire | RDF type parmi `id`, `email`, `url`, `telephone` | Type d'identifiant du destinataire | ✅ oui (`email`) |
-| `identity` | obligatoire | chaîne, avec contraintes si `hashed=true` | Valeur d'identité ou hash | ✅ oui |
-| `hashed` | obligatoire | booléen | Indique si `identity` est haché | ✅ oui |
-| `salt` | optionnelle | texte | Sel cryptographique | ✅ oui |
+| `type` | obligatoire | RDF type parmi `id`, `email`, `url`, `telephone` | Type d'identifiant du destinataire | oui (`email`) |
+| `identity` | obligatoire | chaîne, avec contraintes si `hashed=true` | Valeur d'identité ou hash | oui |
+| `hashed` | obligatoire | booléen | Indique si `identity` est haché | oui |
+| `salt` | optionnelle | texte | Sel cryptographique | oui |
 
 ### Règles additionnelles vérifiées
 
@@ -111,8 +111,8 @@ Source : `ClassValidators(OBClasses.VerificationObjectAssertion)`.
 
 | Clé | Statut validator | Type attendu | Rôle | Présence dans Badge83 |
 |-----|------------------|--------------|------|------------------------|
-| `type` | obligatoire | valeur contenant `HostedBadge` ou `SignedBadge` | Type de vérification | ✅ oui (`HostedBadge`) |
-| `creator` | optionnelle | ID d'une clé publique | Utilisé pour `SignedBadge` | ❌ non |
+| `type` | obligatoire | valeur contenant `HostedBadge` ou `SignedBadge` | Type de vérification | oui (`HostedBadge`) |
+| `creator` | optionnelle | ID d'une clé publique | Utilisé pour `SignedBadge` | non |
 
 ### Remarque importante
 
@@ -132,19 +132,19 @@ Source : `ClassValidators(OBClasses.BadgeClass)`.
 
 | Clé | Statut validator | Type attendu | Rôle | Présence dans Badge83 |
 |-----|------------------|--------------|------|------------------------|
-| `id` | obligatoire | IRI | Identifiant du badge | ✅ oui |
-| `type` | obligatoire | RDF type contenant `BadgeClass` | Type de l'objet | ✅ oui |
-| `issuer` | obligatoire | ID / URL / objet `Profile` | Référence émetteur | ✅ oui |
-| `name` | obligatoire | texte | Nom du badge | ✅ oui |
-| `description` | obligatoire | texte | Description du badge | ✅ oui |
-| `image` | optionnelle au niveau propriété, mais soumise à validation image | ID / URL / data URI | Image représentative du badge | ✅ oui |
-| `criteria` | obligatoire | ID / objet `Criteria` | Conditions d'obtention | ✅ oui |
-| `alignment` | optionnelle | ID ou liste d'ID | Alignements pédagogiques | ❌ non |
-| `tags` | optionnelle | texte ou liste | Mots-clés | ❌ non |
-| `@language` | optionnelle | language tag | Langue par défaut | ❌ non |
-| `version` | optionnelle | texte ou nombre | Version | ❌ non |
-| `related` | optionnelle | ID ou liste d'ID | Ressources liées | ❌ non |
-| `endorsement` | optionnelle | ID ou liste d'ID | Endorsements | ❌ non |
+| `id` | obligatoire | IRI | Identifiant du badge | oui |
+| `type` | obligatoire | RDF type contenant `BadgeClass` | Type de l'objet | oui |
+| `issuer` | obligatoire | ID / URL / objet `Profile` | Référence émetteur | oui |
+| `name` | obligatoire | texte | Nom du badge | oui |
+| `description` | obligatoire | texte | Description du badge | oui |
+| `image` | optionnelle au niveau propriété, mais soumise à validation image | ID / URL / data URI | Image représentative du badge | oui |
+| `criteria` | obligatoire | ID / objet `Criteria` | Conditions d'obtention | oui |
+| `alignment` | optionnelle | ID ou liste d'ID | Alignements pédagogiques | non |
+| `tags` | optionnelle | texte ou liste | Mots-clés | non |
+| `@language` | optionnelle | language tag | Langue par défaut | non |
+| `version` | optionnelle | texte ou nombre | Version | non |
+| `related` | optionnelle | ID ou liste d'ID | Ressources liées | non |
+| `endorsement` | optionnelle | ID ou liste d'ID | Endorsements | non |
 
 ### Comparaison avec Badge83
 
@@ -168,9 +168,9 @@ Source : `ClassValidators(OBClasses.Criteria)`.
 
 | Clé | Statut validator | Type attendu | Rôle | Présence dans Badge83 |
 |-----|------------------|--------------|------|------------------------|
-| `type` | optionnelle | RDF type (`Criteria`) | Type de l'objet criteria | ❌ non |
-| `id` | optionnelle | IRI | URL des critères | ❌ non |
-| `narrative` | optionnelle, mais requise dans certains cas de nœud embarqué | markdown text | Description des critères | ✅ oui |
+| `type` | optionnelle | RDF type (`Criteria`) | Type de l'objet criteria | non |
+| `id` | optionnelle | IRI | URL des critères | non |
+| `narrative` | optionnelle, mais requise dans certains cas de nœud embarqué | markdown text | Description des critères | oui |
 
 ### Règle métier complémentaire
 
@@ -196,20 +196,20 @@ Source : `ClassValidators(OBClasses.Profile or OBClasses.Issuer)`.
 
 | Clé | Statut validator | Type attendu | Rôle | Présence dans Badge83 |
 |-----|------------------|--------------|------|------------------------|
-| `id` | obligatoire | IRI | Identifiant public de l'émetteur | ✅ oui |
-| `type` | obligatoire | RDF type contenant `Issuer` ou `Profile` | Type de l'objet | ✅ oui |
-| `name` | obligatoire | texte | Nom de l'émetteur | ✅ oui |
-| `description` | optionnelle | texte | Description du profil | ✅ oui |
-| `image` | optionnelle | ID / URL / data URI | Image du profil | ✅ oui |
-| `url` | obligatoire | URL | URL publique de l'émetteur | ✅ oui |
-| `email` | obligatoire | email | Contact de l'émetteur | ✅ oui |
-| `telephone` | optionnelle | téléphone | Contact téléphonique | ❌ non |
-| `publicKey` | optionnelle | ID | Clé publique pour signature | ❌ non |
-| `verification` | optionnelle | ID / objet `VerificationObjectIssuer` | Politique de vérification hosted | ❌ non |
-| `@language` | optionnelle | language tag | Langue par défaut | ❌ non |
-| `version` | optionnelle | texte ou nombre | Version | ❌ non |
-| `related` | optionnelle | ID ou liste d'ID | Ressources liées | ❌ non |
-| `endorsement` | optionnelle | ID ou liste d'ID | Endorsements | ❌ non |
+| `id` | obligatoire | IRI | Identifiant public de l'émetteur | oui |
+| `type` | obligatoire | RDF type contenant `Issuer` ou `Profile` | Type de l'objet | oui |
+| `name` | obligatoire | texte | Nom de l'émetteur | oui |
+| `description` | optionnelle | texte | Description du profil | oui |
+| `image` | optionnelle | ID / URL / data URI | Image du profil | oui |
+| `url` | obligatoire | URL | URL publique de l'émetteur | oui |
+| `email` | obligatoire | email | Contact de l'émetteur | oui |
+| `telephone` | optionnelle | téléphone | Contact téléphonique | non |
+| `publicKey` | optionnelle | ID | Clé publique pour signature | non |
+| `verification` | optionnelle | ID / objet `VerificationObjectIssuer` | Politique de vérification hosted | non |
+| `@language` | optionnelle | language tag | Langue par défaut | non |
+| `version` | optionnelle | texte ou nombre | Version | non |
+| `related` | optionnelle | ID ou liste d'ID | Ressources liées | non |
+| `endorsement` | optionnelle | ID ou liste d'ID | Endorsements | non |
 
 ### Comparaison avec Badge83
 

@@ -104,7 +104,7 @@ source .venv/bin/activate
 python -c "from openbadges.verifier.server.app import app; app.run(host='0.0.0.0', port=5000)"
 ```
 
-### Étape 6 — Résultat final (SUCCÈS ✅)
+### Étape 6 — Résultat final (SUCCÈS )
 
 La validation a été relancée avec le **même badge** et a réussi.
 
@@ -132,13 +132,13 @@ Le résultat confirme que le **format actuellement émis par `badge83/app/issuer
 
 ### Points validés
 
-- ✅ Structure de l'assertion conforme Open Badges 2.0
-- ✅ URLs publiques résolubles (HostedBadge)
-- ✅ Chaîne de validation complète : Assertion → BadgeClass → Issuer
-- ✅ Identité du destinataire hachée (sha256)
-- ✅ Vérification de l'émetteur (Issuer)
-- ✅ Compatibilité JSON-LD et contexte Open Badges
-- ✅ Structure PNG compatible avec l'extraction `unbake(...)` du validateur
+- Oui / Structure de l'assertion conforme Open Badges 2.0
+- Oui / URLs publiques résolubles (HostedBadge)
+- Oui / Chaîne de validation complète : Assertion → BadgeClass → Issuer
+- Oui / Identité du destinataire hachée (sha256)
+- Oui / Vérification de l'émetteur (Issuer)
+- Oui / Compatibilité JSON-LD et contexte Open Badges
+- Oui / Structure PNG compatible avec l'extraction `unbake(...)` du validateur
 
 ### Bug corrigé dans openbadges-validator-core
 
@@ -191,4 +191,4 @@ Ces descriptions ne correspondent plus à l'implémentation active. La structure
 ---
 
 **Date du test :** 15 Avril 2026  
-**Statut :** ✅ VALIDATION RÉUSSIE
+**Statut :** VALIDATION RÉUSSIE
