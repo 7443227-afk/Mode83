@@ -128,18 +128,22 @@ curl http://127.0.0.1:8000/assertions/<uuid>
 
 ## Structure Open Badges implémentée
 
-Le projet utilise une structure minimale inspirée d'Open Badges 2.0 :
+Le projet implémente le modèle **HostedBadge** d'Open Badges 2.0 :
 
-- `issuer_template.json` : profil de l'émetteur MODE83 (avec `${BASE_URL}` dynamique)
-- `badgeclass_template.json` : définition du badge MODE83 (avec `${BASE_URL}` dynamique)
-- `Assertion` : badge individuel remis à un apprenant, généré dans `data/issued/`
+- `issuer_template.json` : profil public de l'émetteur MODE83 (avec `${BASE_URL}` dynamique)
+- `badgeclass_template.json` : définition publique du badge MODE83 (avec `${BASE_URL}` dynamique)
+- `Assertion` : badge individuel remis à un apprenant, stocké dans `data/issued/`
 
-Lors de l'émission :
-- un identifiant unique d'assertion est créé,
-- l'email du destinataire est dérivé en identité hachée,
-- l'assertion embarque les URLs publiques de l'`Issuer` et du `BadgeClass` (format HostedBadge).
+Lors de l'émission, Badge83 génère une assertion avec :
+- `@context: https://w3id.org/openbadges/v2`
+- `id` et `url` sous forme d'URL HTTP publique (`${BASE_URL}/assertions/<uuid>`)
+- `verification.type: HostedBadge`
+- `verification.url` pointant vers l'URL publique de l'assertion
+- `badge` sous forme d'URL vers le `BadgeClass`
+- `issuer` sous forme d'URL vers le profil `Issuer`
+- `recipient.identity` haché au format `sha256$...`
 
-Les champs de structure restent ceux attendus par le standard Open Badges 2.0, mais les contenus éditoriaux de cette implémentation MODE83 sont rédigés en français.
+Cette structure correspond au format effectivement produit par `app/issuer.py` et consommé par les validateurs Open Badges 2.0.
 
 ## Remarques
 
@@ -148,6 +152,7 @@ Les champs de structure restent ceux attendus par le standard Open Badges 2.0, m
 - Le chunk `openbadges` est unique : re-baker le même PNG ne duplique pas les données.
 - La vérification d'un badge baked se fait en extrayant le chunk `openbadges` du PNG ; aucune connexion réseau n'est requise.
 - **HostedBadge** : les assertions contiennent des URLs HTTP publiques (au lieu d'objets imbriqués) permettant la validation externe par des tiers comme `validator.openbadges.org`.
+- Le fichier `app/models.py` contient encore des modèles historiques plus anciens ; la structure réellement émise en production est celle implémentée dans `app/issuer.py`.
 
 ## Journal des modifications
 
@@ -165,4 +170,5 @@ Voir [`docs/CHANGELOG-130426.md`](docs/CHANGELOG-130426.md) pour les modificatio
 | Endpoints hébergés (HostedBadge) | ✅ Implémenté | URLs publiques pour Issuer, BadgeClass et Assertions |
 | Signature JWS (SignedBadge) | 🔲 Planifié | Chiffrer les assertions avec une clé privée, vérification par clé publique |
 | Ancrage blockchain | 🔲 Planifié | Enregistrer les empreintes d'assertions sur une blockchain pour preuve d'immutabilité |
-| Validation IMS officielle | 🔲 Planifié | Passer le badge par le validateur <https://validator.openbadges.org> |
+| Validation avec `openbadges-validator-core` | ✅ Validé | Test de conformité réussi sur un badge MODE83 hébergé |
+| Validation IMS officielle | 🔲 À poursuivre | Vérifications complémentaires sur l'infrastructure publique / HTTPS |

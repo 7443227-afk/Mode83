@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 from hashlib import sha256
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,8 +33,19 @@ def _load_json(path: Path) -> dict:
         return json.load(file)
 
 
-def _recipient_identity(email: str) -> str:
-    return "sha256$" + sha256(email.strip().lower().encode("utf-8")).hexdigest()
+def _make_recipient_hash(email: str, salt: str) -> str:
+    normalized_email = email.strip().lower().encode("utf-8")
+    return "sha256$" + sha256(normalized_email + salt.encode("utf-8")).hexdigest()
+
+
+def _make_recipient(email: str) -> dict:
+    salt = secrets.token_hex(8)
+    return {
+        "type": "email",
+        "hashed": True,
+        "salt": salt,
+        "identity": _make_recipient_hash(email, salt),
+    }
 
 
 def issue_badge(name: str, email: str) -> dict:
@@ -55,11 +67,7 @@ def issue_badge(name: str, email: str) -> dict:
         "id": assertion_url,
         "type": "Assertion",
         "url": assertion_url,
-        "recipient": {
-            "type": "email",
-            "hashed": True,
-            "identity": _recipient_identity(email),
-        },
+        "recipient": _make_recipient(email),
         "issuedOn": issued_on,
         "verification": {
             "type": "HostedBadge",
@@ -109,11 +117,7 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         "id": assertion_url,
         "type": "Assertion",
         "url": assertion_url,
-        "recipient": {
-            "type": "email",
-            "hashed": True,
-            "identity": _recipient_identity(email),
-        },
+        "recipient": _make_recipient(email),
         "issuedOn": issued_on,
         "verification": {
             "type": "HostedBadge",

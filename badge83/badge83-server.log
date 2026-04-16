@@ -1,0 +1,21 @@
+INFO:     Started server process [110756]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:47838 - "GET /issuers/main HTTP/1.1" 200 OK
+INFO:     172.225.158.141:51511 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.158.141:50026 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     172.225.158.141:48517 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     172.225.158.141:48517 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     145.241.167.34:39916 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
+INFO:     145.241.167.34:39918 - "GET /issuers/main HTTP/1.1" 200 OK
+INFO:     172.225.158.141:48565 - "POST /verify-online HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59410 - "GET /assertions/e3dbb9e4-f573-4fa2-adbe-eb8072807fa1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59422 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
+INFO:     145.241.167.34:48198 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
+INFO:     145.241.167.34:48214 - "GET /assets/mode83-badge.png HTTP/1.1" 200 OK
+INFO:     145.241.167.34:48228 - "GET /issuers/main HTTP/1.1" 200 OK
+INFO:     145.241.167.34:46254 - "GET /assertions/44b8c620-36dc-4625-85dd-270005701620 HTTP/1.1" 200 OK
+INFO:     145.241.167.34:46262 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
+INFO:     145.241.167.34:46278 - "GET /assets/mode83-badge.png HTTP/1.1" 200 OK
+INFO:     145.241.167.34:46280 - "GET /issuers/main HTTP/1.1" 200 OK

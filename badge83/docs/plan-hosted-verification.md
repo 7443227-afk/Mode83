@@ -1,42 +1,41 @@
-# Plan — Endpoints publics pour la vérification en ligne (HostedBadge)
+# État d'implémentation — Endpoints publics pour la vérification en ligne (HostedBadge)
 
 ## Contexte
 
 Les assertions Open Badges émises par Badge83 utilisent le type de vérification **`HostedBadge`**. Un validateur externe (ex. `validator.openbadges.org`) doit pouvoir accéder aux URLs référencées dans l'assertion via HTTP/HTTPS.
 
-**État actuel** : les URLs pointent vers `https://mode83.example` — un domaine fictif non accessible.
-
-**Solution temporaire** : utiliser l'IP du serveur de test comme base de toutes les URLs.
+**État actuel** : l'implémentation a été réalisée. Les badges émis utilisent `BADGE83_BASE_URL` comme base pour toutes les URLs publiques (`Issuer`, `BadgeClass`, `Assertion`).
 
 ---
 
-## Problème
+## Problème initial
 
-| Ressource | URL actuelle | Accessible ? |
+| Ressource | Ancien format | Problème |
 |-----------|-------------|-------------|
-| Issuer | `https://mode83.example/issuers/main` | ❌ |
-| BadgeClass | `https://mode83.example/badges/blockchain-foundations` | ❌ |
-| Assertion | `urn:uuid:<uuid>` | ❌ (URN non résolvable) |
+| Issuer | `https://mode83.example/issuers/main` | Domaine fictif non résolvable |
+| BadgeClass | `https://mode83.example/badges/blockchain-foundations` | Domaine fictif non résolvable |
+| Assertion | `urn:uuid:<uuid>` | URN non résolvable pour HostedBadge |
 
 ---
 
-## Plan d'implémentation
+## Implémentation réalisée
 
-### Étape 1 — Endpoints publics dans `main.py`
+### 1. Endpoints publics dans `main.py`
 
-Ajouter 3 nouveaux endpoints qui servent les ressources JSON :
+Les endpoints publics suivants servent les ressources JSON :
 
 | Endpoint | Méthode | Retour |
 |----------|---------|--------|
-| `/issuers/main` | `GET` | `data/issuer.json` |
-| `/badges/blockchain-foundations` | `GET` | `data/badgeclass.json` |
+| `/issuers/main` | `GET` | `issuer_template.json` avec `${BASE_URL}` résolu |
+| `/badges/blockchain-foundations` | `GET` | `badgeclass_template.json` avec `${BASE_URL}` résolu |
 | `/assertions/{assertion_id}` | `GET` | `data/issued/{id}.json` |
+| `/assets/{asset_name}` | `GET` | Image du badge ou autre ressource statique |
 
 Content-Type : `application/ld+json; profile="https://w3id.org/openbadges/v2"`
 
-### Étape 2 — Mettre à jour les fichiers de référence
+### 2. Fichiers de référence dynamiques
 
-**`data/issuer.json`** — remplacer toutes les URLs :
+Les fichiers de référence sont désormais des **templates** :
 
 ```json
 {
@@ -51,7 +50,7 @@ Content-Type : `application/ld+json; profile="https://w3id.org/openbadges/v2"`
 }
 ```
 
-**`data/badgeclass.json`** — idem :
+Le même principe s'applique à `badgeclass_template.json`.
 
 ```json
 {
@@ -68,9 +67,9 @@ Content-Type : `application/ld+json; profile="https://w3id.org/openbadges/v2"`
 }
 ```
 
-### Étape 3 — Modifier la génération des assertions (`issuer.py`)
+### 3. Génération des assertions (`issuer.py`)
 
-L'assertion doit utiliser des **URLs de référence** (pas d'objets imbriqués) :
+L'assertion générée utilise des **URLs de référence** (pas d'objets imbriqués) :
 
 ```json
 {
@@ -81,28 +80,27 @@ L'assertion doit utiliser des **URLs de référence** (pas d'objets imbriqués) 
   "recipient": {
     "type": "email",
     "hashed": true,
-    "identity": "sha256...",
-    "plaintext_email": "alice@example.org",
-    "name": "Alice"
+    "identity": "sha256..."
   },
   "issuedOn": "2025-04-13T10:30:00+00:00",
   "verification": {
-    "type": "HostedBadge"
+    "type": "HostedBadge",
+    "url": "http://<SERVEUR_IP>:8000/assertions/<uuid>"
   },
   "badge": "http://<SERVEUR_IP>:8000/badges/blockchain-foundations",
   "issuer": "http://<SERVEUR_IP>:8000/issuers/main"
 }
 ```
 
-Changements dans `issuer.py` :
+Points effectivement implémentés dans `issuer.py` :
 - `issuer` → URL string (au lieu de l'objet complet)
 - `badge` → URL string (au lieu de l'objet imbriqué)
 - `id` → URL complète (`http://<IP>:8000/assertions/<uuid>`)
-- Ajouter le champ `url`
+- Ajouter `verification.url`
 
-### Étape 4 — CORS
+### 4. CORS
 
-Ajouter le middleware CORS dans `main.py` pour autoriser les requêtes cross-origin du validateur IMS :
+Le middleware CORS est en place dans `main.py` pour autoriser les requêtes cross-origin des validateurs externes :
 
 ```python
 from fastapi.middleware.cors import CORSMiddleware
@@ -115,9 +113,9 @@ app.add_middleware(
 )
 ```
 
-### Étape 5 — Endpoint pour l'image du badge
+### 5. Endpoint pour l'image du badge
 
-Le champ `image` dans BadgeClass pointe vers une ressource HTTP. Ajouter un endpoint :
+Le champ `image` dans BadgeClass pointe vers une ressource HTTP, servie via `/assets/{asset_name}`.
 
 ```python
 @app.get("/assets/mode83-badge.png")
@@ -125,9 +123,9 @@ async def get_badge_image():
     return FileResponse(DATA_BASE / "badge.png", media_type="image/png")
 ```
 
-### Étape 6 — Configuration du serveur
+### 6. Configuration du serveur
 
-Démarrer FastAPI en écoute sur toutes les interfaces :
+FastAPI doit être démarré en écoute sur toutes les interfaces pour une validation externe :
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -139,18 +137,18 @@ Vérifier que :
 
 ---
 
-## Résumé des fichiers à modifier
+## Résumé des fichiers concernés
 
-| Fichier | Modifications |
+| Fichier | Rôle actuel |
 |---------|--------------|
-| `main.py` | + 3 endpoints (`/issuers/`, `/badges/`, `/assertions/`), + endpoint image, + CORS middleware |
-| `issuer.py` | Assertion avec URLs de référence au lieu d'objets imbriqués |
-| `data/issuer.json` | Remplacer `mode83.example` → `<SERVEUR_IP>:8000` |
-| `data/badgeclass.json` | Remplacer `mode83.example` → `<SERVEUR_IP>:8000` |
+| `main.py` | Expose les endpoints publics, les assets, CORS et la vérification en ligne |
+| `issuer.py` | Génère des assertions HostedBadge avec URLs de référence |
+| `data/issuer_template.json` | Template dynamique de profil émetteur |
+| `data/badgeclass_template.json` | Template dynamique de BadgeClass |
 
 ---
 
-## Chaîne de vérification (après implémentation)
+## Chaîne de vérification actuelle
 
 ```
 Badge PNG (baked)
@@ -170,7 +168,7 @@ Badge PNG (baked)
 
 ---
 
-## Tests
+## Tests recommandés
 
 1. **Émettre un badge** : `POST /issue-baked` avec `name` + `email`
 2. **Vérifier les URLs** : extraire l'assertion du PNG, curl chaque URL
@@ -179,13 +177,13 @@ Badge PNG (baked)
    curl http://<IP>:8000/badges/blockchain-foundations
    curl http://<IP>:8000/assertions/<uuid>
    ```
-3. **Soumettre au validateur IMS** : uploader le badge PNG sur [validator.openbadges.org](https://validator.openbadges.org)
+3. **Soumettre au validateur compatible** : utiliser `openbadges-validator-core` ou un validateur public compatible
 
 ---
 
-## Migration future vers HTTPS / domaine
+## Prochaines améliorations
 
-Quand on passe en production :
+Pour une mise en production durable :
 1. Configurer un domaine (`badges.mode83.fr`)
 2. Mettre en place HTTPS (Let's Encrypt)
 3. Remplacer `http://<IP>:8000` → `https://badges.mode83.fr` dans `issuer.json` et `badgeclass.json`

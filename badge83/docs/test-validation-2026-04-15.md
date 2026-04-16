@@ -128,6 +128,8 @@ La validation a été relancée avec le **même badge** et a réussi.
 Le badge MODE83 émis par Badge83 a **validé avec succès** les tests de conformité 
 Open Badges 2.0 d'IMS Global.
 
+Le résultat confirme que le **format actuellement émis par `badge83/app/issuer.py`** est compatible avec la chaîne de validation Open Badges 2.0 : assertion hébergée, `badge` et `issuer` référencés par URL, contexte JSON-LD v2, et identité destinataire hachée au format `sha256$...`.
+
 ### Points validés
 
 - ✅ Structure de l'assertion conforme Open Badges 2.0
@@ -136,6 +138,7 @@ Open Badges 2.0 d'IMS Global.
 - ✅ Identité du destinataire hachée (sha256)
 - ✅ Vérification de l'émetteur (Issuer)
 - ✅ Compatibilité JSON-LD et contexte Open Badges
+- ✅ Structure PNG compatible avec l'extraction `unbake(...)` du validateur
 
 ### Bug corrigé dans openbadges-validator-core
 
@@ -155,6 +158,35 @@ corrigé dans `openbadges/verifier/utils.py`. La correction remplace l'appel à
 ### Fichiers modifiés
 
 - `openbadges/verifier/utils.py` — Correction de `CachableDocumentLoader.__call__()`
+
+### Analyse PNG complémentaire
+
+Une inspection binaire du badge PNG baked validé (`8eca1166-162f-4761-96fe-8f8366b709be.png`) a confirmé la structure suivante :
+
+1. `IHDR`
+2. `IDAT`
+3. `tEXt` avec keyword `openbadges`
+4. `IEND`
+
+Le chunk `tEXt` embarque un JSON UTF-8 correctement décodable contenant les clés attendues par l'assertion Open Badges 2.0 (`@context`, `id`, `type`, `url`, `recipient`, `issuedOn`, `verification`, `badge`, `issuer`).
+
+Cette structure correspond au mode de traitement du validateur :
+
+- extraction du badge baked via `openbadges_bakery.unbake(...)` ;
+- validation de l'assertion JSON-LD extraite ;
+- récupération éventuelle des ressources HTTP associées (`BadgeClass`, `Issuer`).
+
+Conclusion : le PNG produit par Badge83 est non seulement valide en tant qu'image PNG, mais aussi compatible avec le mécanisme concret d'analyse utilisé par `openbadges-validator-core`.
+
+### Remarque documentaire
+
+Certaines notes techniques plus anciennes du projet Badge83 décrivaient encore une structure antérieure avec :
+
+- un identifiant d'assertion de type `urn:uuid:...`
+- des objets `badge` et `issuer` imbriqués
+- des champs additionnels non présents dans le runtime actuel
+
+Ces descriptions ne correspondent plus à l'implémentation active. La structure effectivement produite et validée est celle du modèle **HostedBadge** basé sur des URLs publiques.
 
 ---
 
