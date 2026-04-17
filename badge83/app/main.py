@@ -4,11 +4,11 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from urllib.parse import urlparse
+from typing import Any
 
 import httpx
 
-from fastapi import FastAPI, Form, Request, UploadFile, File, HTTPException
+from fastapi import FastAPI, Form, Request, UploadFile, File, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse
 from fastapi.templating import Jinja2Templates
@@ -19,6 +19,8 @@ from app.verifier import verify_badge, verify_baked_badge
 app = FastAPI(title="Badge 83")
 templates = Jinja2Templates(directory="templates")
 DATA_BASE = Path(__file__).resolve().parent.parent / "data"
+ISSUED_DIR = DATA_BASE / "issued"
+BAKED_DIR = DATA_BASE / "baked"
 
 # ---------------------------------------------------------------------------
 # Base URL configuration (via environment variable)
@@ -39,8 +41,14 @@ app.add_middleware(
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """Affiche la page principale avec les formulaires."""
+    """Affiche la nouvelle console d'administration Badge83."""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/legacy", response_class=HTMLResponse)
+async def legacy_index(request: Request):
+    """Affiche l'ancienne interface pour rollback rapide."""
+    return templates.TemplateResponse("index_legacy.html", {"request": request})
 
 
 @app.get("/badge.png")
@@ -94,6 +102,184 @@ async def verify_baked(badge: UploadFile = File(...)):
     png_data = await badge.read()
     result = verify_baked_badge(png_data)
     return result
+
+
+def _extract_assertion_id(assertion: dict[str, Any]) -> str:
+    assertion_id = assertion.get("id", "")
+    if isinstance(assertion_id, str) and "/" in assertion_id:
+        return assertion_id.rstrip("/").split("/")[-1]
+    return str(assertion_id or "unknown")
+
+
+def _safe_load_json(file_path: Path) -> dict[str, Any] | None:
+    try:
+        return json.loads(file_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    json_path = ISSUED_DIR / f"{assertion_id}.json"
+    png_path = BAKED_DIR / f"{assertion_id}.png"
+
+    if assertion is None and json_path.exists():
+        assertion = _safe_load_json(json_path)
+
+    if assertion is None:
+        return None
+
+    recipient = assertion.get("recipient", {}) if isinstance(assertion.get("recipient"), dict) else {}
+    verification = assertion.get("verification", {}) if isinstance(assertion.get("verification"), dict) else {}
+
+    badge_ref = assertion.get("badge", "")
+    issuer_ref = assertion.get("issuer", "")
+    badge_name = badge_ref.split("/")[-1].replace("-", " ").title() if isinstance(badge_ref, str) and badge_ref else "Unknown"
+    issuer_name = issuer_ref.split("/")[-1].replace("-", " ").title() if isinstance(issuer_ref, str) and issuer_ref else "Unknown"
+
+    return {
+        "assertion_id": assertion_id,
+        "issued_on": assertion.get("issuedOn"),
+        "has_json": json_path.exists(),
+        "has_png": png_path.exists(),
+        "json_url": f"/api/badges/{assertion_id}/json",
+        "png_url": f"/api/badges/{assertion_id}/png",
+        "public_assertion_url": assertion.get("url") or assertion.get("id"),
+        "badge_name": badge_name,
+        "issuer_name": issuer_name,
+        "recipient": {
+            "type": recipient.get("type"),
+            "identity": recipient.get("identity"),
+            "hashed": recipient.get("hashed"),
+            "salt": recipient.get("salt"),
+        },
+        "verification": verification,
+        "assertion": assertion,
+    }
+
+
+def _list_badge_records() -> list[dict[str, Any]]:
+    ISSUED_DIR.mkdir(parents=True, exist_ok=True)
+    BAKED_DIR.mkdir(parents=True, exist_ok=True)
+
+    assertion_ids = {path.stem for path in ISSUED_DIR.glob("*.json")}
+    assertion_ids.update(path.stem for path in BAKED_DIR.glob("*.png"))
+
+    records: list[dict[str, Any]] = []
+    for assertion_id in sorted(assertion_ids):
+        record = _collect_badge_record(assertion_id)
+        if record:
+            records.append(record)
+
+    records.sort(key=lambda item: item.get("issued_on") or "", reverse=True)
+    return records
+
+
+def _dashboard_stats(records: list[dict[str, Any]]) -> dict[str, Any]:
+    hosted_count = sum(1 for record in records if str(record.get("public_assertion_url", "")).startswith("http"))
+    return {
+        "total_badges": len(records),
+        "total_json": sum(1 for record in records if record.get("has_json")),
+        "total_png": sum(1 for record in records if record.get("has_png")),
+        "hosted_ready": hosted_count,
+        "base_url": BASE_URL,
+        "latest_badge": records[0]["assertion_id"] if records else None,
+    }
+
+
+@app.get("/api/dashboard/stats")
+async def api_dashboard_stats():
+    records = _list_badge_records()
+    return _dashboard_stats(records)
+
+
+@app.get("/api/badges")
+async def api_list_badges():
+    records = _list_badge_records()
+    return {"items": records, "stats": _dashboard_stats(records)}
+
+
+@app.get("/api/badges/{assertion_id}")
+async def api_get_badge(assertion_id: str):
+    record = _collect_badge_record(assertion_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Badge not found")
+
+    png_inspection = None
+    png_path = BAKED_DIR / f"{assertion_id}.png"
+    if png_path.exists():
+        png_inspection = verify_baked_badge(png_path.read_bytes())
+
+    return {
+        **record,
+        "png_preview_url": record["png_url"] if record.get("has_png") else None,
+        "png_inspection": png_inspection,
+    }
+
+
+@app.get("/api/badges/{assertion_id}/json")
+async def api_download_badge_json(assertion_id: str):
+    file_path = ISSUED_DIR / f"{assertion_id}.json"
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Badge JSON not found")
+    return FileResponse(file_path, media_type="application/json", filename=f"{assertion_id}.json")
+
+
+@app.get("/api/badges/{assertion_id}/png")
+async def api_download_badge_png(assertion_id: str):
+    file_path = BAKED_DIR / f"{assertion_id}.png"
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Badge PNG not found")
+    return FileResponse(file_path, media_type="image/png", filename=f"{assertion_id}.png")
+
+
+@app.get("/api/badges/{assertion_id}/inspect")
+async def api_inspect_badge_png(assertion_id: str):
+    file_path = BAKED_DIR / f"{assertion_id}.png"
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Badge PNG not found")
+    return verify_baked_badge(file_path.read_bytes())
+
+
+@app.put("/api/badges/{assertion_id}")
+async def api_update_badge(assertion_id: str, payload: dict[str, Any] = Body(...)):
+    file_path = ISSUED_DIR / f"{assertion_id}.json"
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Badge not found")
+
+    assertion = _safe_load_json(file_path)
+    if not assertion or assertion.get("type") != "Assertion":
+        raise HTTPException(status_code=400, detail="Invalid badge assertion")
+
+    updated_assertion = payload.get("assertion") if isinstance(payload.get("assertion"), dict) else payload
+    if updated_assertion.get("type") != "Assertion":
+        raise HTTPException(status_code=400, detail="Payload must be an Open Badges Assertion")
+
+    updated_assertion["id"] = assertion.get("id")
+    if assertion.get("url"):
+        updated_assertion["url"] = assertion.get("url")
+
+    file_path.write_text(json.dumps(updated_assertion, ensure_ascii=False, indent=2), encoding="utf-8")
+    record = _collect_badge_record(assertion_id, updated_assertion)
+    return {"status": "updated", "item": record}
+
+
+@app.delete("/api/badges/{assertion_id}")
+async def api_delete_badge(assertion_id: str):
+    json_path = ISSUED_DIR / f"{assertion_id}.json"
+    png_path = BAKED_DIR / f"{assertion_id}.png"
+
+    deleted = []
+    if json_path.exists():
+        json_path.unlink()
+        deleted.append("json")
+    if png_path.exists():
+        png_path.unlink()
+        deleted.append("png")
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Badge not found")
+
+    return {"status": "deleted", "assertion_id": assertion_id, "deleted": deleted}
 
 
 # ---------------------------------------------------------------------------

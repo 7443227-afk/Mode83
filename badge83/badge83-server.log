@@ -19,3 +19,124 @@ INFO:     145.241.167.34:46254 - "GET /assertions/44b8c620-36dc-4625-85dd-270005
 INFO:     145.241.167.34:46262 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
 INFO:     145.241.167.34:46278 - "GET /assets/mode83-badge.png HTTP/1.1" 200 OK
 INFO:     145.241.167.34:46280 - "GET /issuers/main HTTP/1.1" 200 OK
+INFO:     3.94.247.99:57398 - "GET /a9b8c7d6e5f4.txt HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57406 - "GET /.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57414 - "GET /.env.local HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57422 - "GET /.env.production HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57766 - "GET /.env.development HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57774 - "GET /.env.dev HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57778 - "GET /.env.prod HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57788 - "GET /.env.staging HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57802 - "GET /.env.backup HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57810 - "GET /.env.old HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57814 - "GET /.env.bak HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57816 - "GET /.env.save HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57828 - "GET /.env.tmp HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57844 - "GET /.envrc HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57858 - "GET /app/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57864 - "GET /src/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57874 - "GET /config/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57878 - "GET /backend/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57880 - "GET /api/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57884 - "GET /server/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57890 - "GET /docker-compose.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57892 - "GET /docker-compose.yaml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57898 - "GET /docker-compose.override.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57908 - "GET /docker-compose.dev.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57920 - "GET /docker-compose.prod.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57934 - "GET /config.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57948 - "GET /config.yaml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57950 - "GET /config.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57954 - "GET /settings.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57958 - "GET /secrets.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57974 - "GET /application.properties HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57980 - "GET /application.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:57988 - "GET /application.yaml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58004 - "GET /application-dev.properties HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58020 - "GET /application-prod.properties HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58026 - "GET /appsettings.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58036 - "GET /appsettings.Development.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58052 - "GET /appsettings.Production.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58068 - "GET /config/production.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58084 - "GET /config/development.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58088 - "GET /config/default.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58096 - "GET /config/local.json HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58102 - "GET /config/database.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58112 - "GET /config/database.yaml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58128 - "GET /actuator/env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58130 - "GET /actuator/configprops HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58138 - "GET /api/config HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58152 - "GET /api/settings HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58156 - "GET /api/env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58162 - "GET /debug/vars HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58174 - "GET /backup/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58182 - "GET /old/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58196 - "GET /tmp/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58198 - "GET /settings.py HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58210 - "GET /config.py HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58226 - "GET /storage/framework/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58234 - "GET /laravel/.env HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58236 - "GET /wp-config.php.bak HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58244 - "GET /wp-config.php.old HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58260 - "GET /wp-config.php.txt HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58268 - "GET /serverless.yml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58272 - "GET /serverless.yaml HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58280 - "GET /terraform.tfvars HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58286 - "GET /ecosystem.config.js HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:58298 - "GET /.env.production.local HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:38722 - "GET /.env.development.local HTTP/1.1" 404 Not Found
+INFO:     3.94.247.99:38734 - "GET /.env.test.local HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     85.217.140.42:40166 - "GET / HTTP/1.1" 200 OK
+INFO:     85.217.140.42:40182 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     205.210.31.221:59692 - "GET / HTTP/1.1" 200 OK
+INFO:     205.210.31.28:64122 - "GET / HTTP/1.1" 200 OK
+INFO:     89.248.168.227:59056 - "GET /mobil/ HTTP/1.1" 404 Not Found
+INFO:     60.124.90.102:52947 - "GET / HTTP/1.0" 200 OK
+INFO:     180.149.125.170:27207 - "GET / HTTP/1.1" 200 OK
+INFO:     66.132.195.48:32572 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     66.132.195.48:21332 - "GET / HTTP/1.1" 200 OK
+INFO:     66.132.195.48:21338 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     66.132.195.48:21348 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     66.132.195.48:21356 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     66.132.195.48:27484 - "GET /wiki HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.114:57404 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.114:42104 - "GET / HTTP/1.1" 200 OK
+INFO:     199.45.154.114:35018 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.114:35046 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     199.45.154.114:41626 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.114:57632 - "GET /sitemap.xml HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     45.82.78.106:50384 - "GET / HTTP/1.1" 200 OK
+INFO:     45.131.155.110:40720 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     64.62.197.182:30054 - "GET / HTTP/1.1" 200 OK
+INFO:     64.62.197.195:60505 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     64.62.197.183:35529 - "GET http%3A//api.ipify.org/?format=json HTTP/1.1" 404 Not Found
+INFO:     64.62.197.191:23313 - "CONNECT www.shadowserver.org%3A443 HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.149:45840 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.149:33820 - "GET / HTTP/1.1" 200 OK
+INFO:     199.45.154.149:33832 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.149:33838 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     199.45.154.149:42386 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.149:34950 - "GET /.well-known/security.txt HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     3.129.187.38:35734 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     31.58.214.23:32836 - "GET /.openclaw/workspace/memory.md HTTP/1.0" 404 Not Found
+INFO:     87.236.176.152:43673 - "GET / HTTP/1.1" 200 OK

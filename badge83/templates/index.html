@@ -3,305 +3,1154 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Badge 83</title>
+    <title>Badge83 Control Center</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <style>
+      :root {
+        --bg: #eef3f9;
+        --panel: #ffffff;
+        --panel-soft: #f8fbff;
+        --border: #dbe5f0;
+        --text: #0f172a;
+        --muted: #5b6b80;
+        --accent: #2563eb;
+        --accent-soft: #e8f0ff;
+        --nav-bg: #0f172a;
+        --nav-soft: #172235;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .app-shell {
+        min-height: 100vh;
+      }
+
+      .status-bar,
+      .content-card,
+      .sidebar-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(15, 23, 42, 0.06);
+      }
+
+      .status-chip {
+        background: var(--panel-soft);
+        border: 1px solid var(--border);
+        border-radius: 0.85rem;
+        padding: 0.45rem 0.7rem;
+        height: 100%;
+      }
+
+      .status-bar h1 {
+        font-size: 1rem;
+        line-height: 1.05;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status-bar .text-muted {
+        font-size: 0.84rem;
+      }
+
+      .status-bar .badge {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.55rem;
+      }
+
+      .top-actions .btn,
+      .top-actions .form-select {
+        padding-top: 0.22rem;
+        padding-bottom: 0.22rem;
+        padding-left: 0.55rem;
+        padding-right: 0.55rem;
+        font-size: 0.8rem;
+        line-height: 1.2;
+      }
+
+      .top-actions .form-select {
+        min-width: 108px !important;
+        max-width: 118px;
+        border-radius: 999px;
+      }
+
+      .top-actions {
+        flex-wrap: nowrap !important;
+      }
+
+      .status-compact {
+        font-size: 0.88rem;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status-bar.compact-header {
+        padding-top: 0.85rem !important;
+        padding-bottom: 0.85rem !important;
+      }
+
+      .compact-header .header-row {
+        margin-bottom: 0.45rem !important;
+      }
+
+      .compact-header .status-grid {
+        --bs-gutter-x: 0.65rem;
+        --bs-gutter-y: 0.65rem;
+      }
+
+      .compact-header .stats-grid {
+        --bs-gutter-x: 0.65rem;
+        --bs-gutter-y: 0.65rem;
+        margin-top: 0.35rem !important;
+      }
+
+      .compact-header .stat-card .card-body {
+        padding: 0.5rem 0.7rem;
+      }
+
+      .compact-header .stat-card .fs-4 {
+        font-size: 1.15rem !important;
+        line-height: 1.05;
+      }
+
+      .compact-header .stat-card .small.mono {
+        font-size: 0.82rem !important;
+        line-height: 1.15;
+        word-break: break-word;
+      }
+
+      .compact-header .stat-card .card-body > .fw-semibold,
+      .compact-header .stat-card .card-body > .fs-4 {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .compact-header .stat-card .card-body > .text-muted {
+        font-size: 0.72rem !important;
+        line-height: 1.05;
+        margin-bottom: 0.1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .compact-header .title-block {
+        max-width: 860px;
+      }
+
+      .compact-header .title-block p {
+        margin-top: 0.15rem;
+      }
+
+      .compact-header .title-block .d-flex {
+        margin-bottom: 0 !important;
+      }
+
+      .compact-header #statusSummaryRow,
+      .compact-header #statsRow {
+        align-items: stretch;
+      }
+
+      .sidebar-card {
+        background: linear-gradient(180deg, var(--nav-bg), var(--nav-soft));
+        color: #e5eefb;
+      }
+
+      .sidebar-title,
+      .sidebar-card .text-muted {
+        color: #9fb1ca !important;
+      }
+
+      .menu-btn {
+        width: 100%;
+        text-align: left;
+        border: 1px solid rgba(191, 219, 254, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: #e5eefb;
+        border-radius: 0.85rem;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.65rem;
+        transition: 0.2s ease;
+      }
+
+      .menu-btn:hover,
+      .menu-btn.active {
+        background: rgba(37, 99, 235, 0.22);
+        border-color: rgba(96, 165, 250, 0.5);
+      }
+
+      .content-card {
+        min-height: 74vh;
+      }
+
+      .table-wrap {
+        max-height: 64vh;
+        overflow: auto;
+      }
+
+      .json-box {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        min-height: 220px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .badge-preview {
+        max-width: 100%;
+        max-height: 260px;
+        border-radius: 0.75rem;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+      }
+
+      .table tbody tr {
+        cursor: pointer;
+      }
+
+      .table tbody tr.table-active {
+        --bs-table-bg: #e8f0ff;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .view-pane {
+        display: none;
+      }
+
+      .view-pane.active {
+        display: block;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      @media (max-width: 1366px) {
+        .container-fluid {
+          max-width: 1280px;
+        }
+
+        .status-bar h1 {
+          font-size: 1.08rem;
+        }
+
+        .compact-header .title-block {
+          max-width: 620px;
+        }
+
+        .content-card {
+          min-height: auto;
+        }
+
+        .table-wrap {
+          max-height: 52vh;
+        }
+
+        .json-box {
+          min-height: 180px;
+        }
+      }
+
+      @media (max-width: 1194px) {
+        .status-bar,
+        .content-card,
+        .sidebar-card {
+          border-radius: 0.85rem;
+        }
+
+        .sidebar-card {
+          position: sticky;
+          top: 1rem;
+        }
+
+        .menu-btn {
+          padding: 0.8rem 0.9rem;
+          font-size: 0.95rem;
+        }
+
+        .table {
+          font-size: 0.92rem;
+        }
+
+        .badge-preview {
+          max-height: 220px;
+        }
+
+        #assertionEditor {
+          min-height: 320px;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .app-shell {
+          padding-left: 0.25rem;
+          padding-right: 0.25rem;
+        }
+
+        .status-bar h1 {
+          font-size: 1.02rem;
+        }
+
+        .status-bar {
+          padding: 1rem !important;
+        }
+
+        .top-actions {
+          width: 100%;
+          flex-wrap: wrap !important;
+        }
+
+        .sidebar-card,
+        .content-card {
+          padding: 1rem !important;
+        }
+
+        .section-title {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .table-wrap {
+          max-height: none;
+        }
+
+        .table {
+          min-width: 880px;
+        }
+      }
+
+      @media (max-width: 820px) {
+        .menu-btn {
+          margin-bottom: 0.5rem;
+        }
+
+        #statusSummaryRow > div,
+        #statsRow > div {
+          flex: 0 0 100%;
+          max-width: 100%;
+        }
+
+        .badge-preview {
+          max-height: 180px;
+        }
+      }
+
+      @media (min-width: 1200px) {
+        .compact-header .status-grid > div {
+          flex: 0 0 33.3333%;
+          max-width: 33.3333%;
+        }
+
+        .compact-header .stats-grid > div {
+          flex: 0 0 16.6667%;
+          max-width: 16.6667%;
+        }
+      }
+    </style>
   </head>
-  <body class="bg-light">
-    <main class="container py-5">
+  <body>
+    <main class="container-fluid py-4 app-shell">
       <section class="mb-4">
-        <h1 class="mb-2">Badge 83</h1>
-        <p class="text-muted mb-0">Implémentation simple d'Open Badges pour émettre et vérifier des assertions MODE83.</p>
-      </section>
-
-      <section class="row g-4 mb-4">
-        <div class="col-12 col-md-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h2 class="h5 mb-3">Émettre une assertion Open Badge (JSON)</h2>
-              <form id="issueForm" method="post" action="/issue">
-                <div class="mb-3">
-                  <label for="name" class="form-label">Nom</label>
-                  <input id="name" type="text" name="name" class="form-control" required />
-                </div>
-                <div class="mb-3">
-                  <label for="email" class="form-label">Email</label>
-                  <input id="email" type="email" name="email" class="form-control" required />
-                </div>
-                <button type="submit" class="btn btn-primary">Émettre (JSON)</button>
-              </form>
+        <div class="status-bar compact-header p-3 p-md-4">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 header-row mb-3">
+            <div class="title-block">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge text-bg-dark">Badge83</span>
+                <span class="badge text-bg-primary">Admin Workspace</span>
+              </div>
+              <h1 id="pageTitle" class="h3 mb-1">Espace de travail administrateur et élément courant</h1>
+            </div>
+            <div class="d-flex gap-2 flex-wrap top-actions align-items-center justify-content-start justify-content-xl-end">
+              <select id="languageSelect" class="form-select" style="min-width: 180px;">
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+              </select>
+              <a href="/legacy" class="btn btn-outline-secondary">Legacy page</a>
             </div>
           </div>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h2 class="h5 mb-3">Émettre un badge baked (PNG)</h2>
-              <form id="issueBakedForm">
-                <div class="mb-3">
-                  <label for="bakedName" class="form-label">Nom</label>
-                  <input id="bakedName" type="text" name="name" class="form-control" required />
-                </div>
-                <div class="mb-3">
-                  <label for="bakedEmail" class="form-label">Email</label>
-                  <input id="bakedEmail" type="email" name="email" class="form-control" required />
-                </div>
-                <div class="mb-3">
-                  <label for="badgeImage" class="form-label">Image PNG à baker <span class="text-muted">(optionnel)</span></label>
-                  <input
-                    type="file"
-                    id="badgeImage"
-                    name="badge_image"
-                    class="form-control"
-                    accept=".png"
-                  />
-                  <div class="form-text">
-                    Sélectionnez votre propre image PNG ou utilisez le badge par défaut
-                    (<a href="/badge.png" target="_blank">télécharger badge.png</a>).
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-success">Émettre (PNG baked)</button>
-              </form>
+          <div class="row status-grid g-3" id="statusSummaryRow">
+            <div class="col-12 col-lg-4">
+              <div class="status-chip">
+                <div id="labelCurrentBadge" class="small text-muted">Badge courant</div>
+                <div id="currentBadgeStatus" class="fw-semibold mono">Non sélectionné</div>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="row g-4 mb-4">
-        <div class="col-12 col-md-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h2 class="h5 mb-3">Vérifier une assertion (par ID)</h2>
-              <form id="verifyForm" method="get" action="/verify">
-                <div class="mb-3">
-                  <label for="badgeId" class="form-label">Badge ID</label>
-                  <input
-                    type="text"
-                    id="badgeId"
-                    name="badge_id"
-                    class="form-control"
-                    placeholder="Entrez un identifiant"
-                  />
-                </div>
-                <button type="submit" class="btn btn-outline-primary">Vérifier (ID)</button>
-              </form>
+            <div class="col-12 col-lg-4">
+              <div class="status-chip">
+                <div id="labelCurrentView" class="small text-muted">Vue active</div>
+                <div id="currentViewStatus" class="fw-semibold status-compact">Registre des badges</div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h2 class="h5 mb-3">Vérifier un badge baked (PNG)</h2>
-              <form id="verifyBakedForm">
-                <div class="mb-3">
-                  <label for="badgeFile" class="form-label">Fichier PNG baked</label>
-                  <input
-                    type="file"
-                    id="badgeFile"
-                    name="badge"
-                    class="form-control"
-                    accept=".png"
-                    required
-                  />
-                </div>
-                <button type="submit" class="btn btn-outline-success">Vérifier (PNG)</button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="row g-4 mb-4">
-        <div class="col-12">
-          <div class="card shadow-sm border-primary">
-            <div class="card-body">
-              <h2 class="h5 mb-3">🌐 Vérification en ligne (HostedBadge)</h2>
-              <p class="text-muted mb-3">
-                Vérifiez un badge en résolvant ses URLs publiques.
-                Collez une URL d'assertion ou uploadez un badge baked — chaque ressource référencée
-                sera interrogée pour valider la chaîne complète (Assertion → BadgeClass → Issuer).
-              </p>
-              <div class="row g-3 align-items-end">
-                <div class="col-12 col-md-7">
-                  <label for="assertionUrl" class="form-label">URL d'assertion</label>
-                  <input
-                    type="url"
-                    id="assertionUrl"
-                    class="form-control"
-                    placeholder="http://127.0.0.1:8000/assertions/<uuid>"
-                  />
-                </div>
-                <div class="col-12 col-md-5 d-flex gap-2">
-                  <button id="verifyOnlineBtn" class="btn btn-primary">Vérifier par URL</button>
-                  <span class="align-self-center text-muted">ou</span>
-                  <label for="verifyOnlineFile" class="btn btn-outline-success mb-0">
-                    Charger un PNG baked
-                  </label>
-                  <input
-                    type="file"
-                    id="verifyOnlineFile"
-                    class="form-control d-none"
-                    accept=".png"
-                  />
-                </div>
+            <div class="col-12 col-lg-4">
+              <div class="status-chip">
+                <div id="labelSystem" class="small text-muted">Système</div>
+                <div id="baseUrlStatus" class="fw-semibold status-compact">Interface active</div>
               </div>
             </div>
           </div>
+          <div class="row stats-grid g-3 mt-1" id="statsRow"></div>
         </div>
       </section>
 
-      <section class="card shadow-sm">
-        <div class="card-body">
-          <h2 class="h5 mb-3">Résultat JSON</h2>
-          <pre id="result" class="bg-dark text-light rounded p-3 mb-0" style="min-height: 160px">En attente d'action...</pre>
+      <section class="row g-4">
+        <div class="col-12 col-xl-3">
+          <div class="sidebar-card p-3 p-md-4 h-100">
+            <div id="sidebarTitle" class="sidebar-title small text-uppercase mb-3">Menu d’actions</div>
+            <button class="menu-btn active" data-view="registryView" data-i18n="menuRegistry">Registre des badges</button>
+            <button class="menu-btn" data-view="inspectorView" data-i18n="menuInspector">Inspection et édition</button>
+            <button class="menu-btn" data-view="issueView" data-i18n="menuIssue">Émission de badge</button>
+            <button class="menu-btn" data-view="verifyView" data-i18n="menuVerify">Vérification et HostedBadge</button>
+            <button class="menu-btn" data-view="systemView" data-i18n="menuSystem">Sortie système</button>
+            <hr class="border-secondary-subtle my-4" />
+            <div id="searchLabel" class="small text-muted mb-2">Recherche rapide</div>
+            <input id="searchInput" type="search" class="form-control mb-3" placeholder="Recherche par ID / identité" />
+            <button id="refreshBtn" class="btn btn-primary w-100">Actualiser les données</button>
+          </div>
+        </div>
+
+        <div class="col-12 col-xl-9">
+          <div class="content-card p-3 p-md-4">
+            <div id="registryView" class="view-pane active">
+              <div class="section-title">
+                <div>
+                  <h2 id="registryTitle" class="h5 mb-1">Registre des badges délivrés</h2>
+                  <p id="registryDesc" class="text-muted mb-0">Consultation, navigation dans l’archive et sélection rapide d’un élément.</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table align-middle table-hover" id="badgesTable">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th>ID</th>
+                      <th>Дата</th>
+                      <th>Badge</th>
+                      <th>Recipient</th>
+                      <th>Assets</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="badgesTbody">
+                    <tr><td colspan="6" class="text-center text-muted py-4">Chargement de la liste…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="inspectorView" class="view-pane">
+              <div class="section-title">
+                <div>
+                  <h2 id="inspectorTitle" class="h5 mb-1">Inspecteur / élément courant</h2>
+                  <p id="inspectorDesc" class="text-muted mb-0">Prévisualisation PNG, JSON, analyse du badge baked et édition de l’assertion.</p>
+                </div>
+              </div>
+
+              <div id="emptyInspector" class="text-muted">Aucun badge sélectionné.</div>
+
+              <div id="inspector" class="d-none">
+                <div class="row g-4">
+                  <div class="col-12 col-lg-5">
+                    <div class="border rounded-4 p-3 h-100 bg-light">
+                      <h3 id="previewTitle" class="h6">Aperçu PNG</h3>
+                      <div class="text-center mb-3">
+                        <img id="badgePreview" class="badge-preview" alt="Badge preview" />
+                      </div>
+                      <div class="small text-muted" id="badgeMeta"></div>
+                      <div class="d-flex gap-2 mt-3 flex-wrap">
+                        <a id="downloadJsonBtn" class="btn btn-outline-primary btn-sm" target="_blank">Télécharger JSON</a>
+                        <a id="downloadPngBtn" class="btn btn-outline-success btn-sm" target="_blank">Télécharger PNG</a>
+                        <button id="inspectPngBtn" class="btn btn-outline-dark btn-sm">Analyser les champs PNG</button>
+                        <button id="deleteBtn" class="btn btn-outline-danger btn-sm">Supprimer</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-lg-7">
+                    <div class="border rounded-4 p-3 mb-3">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h3 id="editorTitle" class="h6 mb-0">JSON d’assertion éditable</h3>
+                        <button id="saveEditBtn" class="btn btn-sm btn-primary">Enregistrer les modifications</button>
+                      </div>
+                      <textarea id="assertionEditor" class="form-control mono" rows="14"></textarea>
+                    </div>
+                    <div class="border rounded-4 p-3">
+                      <h3 id="inspectionTitle" class="h6">Résultat de l’inspection</h3>
+                      <pre id="inspectionOutput" class="json-box mb-0">En attente d’une action…</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="issueView" class="view-pane">
+              <div class="section-title">
+                <div>
+                  <h2 id="issueTitle" class="h5 mb-1">Émission de badge</h2>
+                  <p id="issueDesc" class="text-muted mb-0">Création d’une assertion JSON ou d’un PNG baked depuis un formulaire unique.</p>
+                </div>
+              </div>
+              <form id="issuePanelForm" class="mb-3">
+                <div class="mb-3">
+                  <label id="issueNameLabel" class="form-label" for="issueName">Nom</label>
+                  <input id="issueName" name="name" type="text" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                  <label id="issueEmailLabel" class="form-label" for="issueEmail">Email</label>
+                  <input id="issueEmail" name="email" type="email" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                  <label id="issueModeLabel" class="form-label" for="issueMode">Mode d’émission</label>
+                  <select id="issueMode" class="form-select">
+                    <option value="json">Assertion JSON</option>
+                    <option value="png">PNG baked</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label id="issueBadgeImageLabel" class="form-label" for="issueBadgeImage">PNG personnalisé</label>
+                  <input id="issueBadgeImage" type="file" class="form-control" accept=".png" />
+                  <div id="issueBadgeImageHelp" class="form-text">Optionnel. Utilisez votre propre PNG ou le badge standard.</div>
+                </div>
+                <button id="issueSubmitBtn" type="submit" class="btn btn-success w-100">Émettre le badge</button>
+              </form>
+              <div id="issueStatus" class="small text-muted">Remplissez les champs et choisissez le mode d’émission.</div>
+            </div>
+
+            <div id="verifyView" class="view-pane">
+              <div class="section-title">
+                <div>
+                  <h2 id="verifyTitle" class="h5 mb-1">Centre de vérification</h2>
+                  <p id="verifyDesc" class="text-muted mb-0">Vérification par ID, URL et PNG dans une seule zone de travail.</p>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label id="verifyBadgeIdLabel" class="form-label" for="verifyBadgeId">Vérification par badge ID</label>
+                <div class="input-group">
+                  <input id="verifyBadgeId" type="text" class="form-control" placeholder="UUID badge" />
+                  <button id="verifyIdBtn" class="btn btn-outline-primary">Vérifier</button>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label id="verifyAssertionUrlLabel" class="form-label" for="verifyAssertionUrl">Vérification Hosted par URL</label>
+                <div class="input-group">
+                  <input id="verifyAssertionUrl" type="url" class="form-control" placeholder="https://.../assertions/&lt;uuid&gt;" />
+                  <button id="verifyUrlBtn" class="btn btn-outline-primary">Contrôler</button>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label id="verifyPngFileLabel" class="form-label" for="verifyPngFile">Vérification PNG / analyse baked</label>
+                <input id="verifyPngFile" type="file" class="form-control" accept=".png" />
+              </div>
+              <pre id="verifyOutput" class="json-box mb-0">La vérification n’a pas encore été lancée.</pre>
+            </div>
+
+            <div id="systemView" class="view-pane">
+              <div class="section-title">
+                <div>
+                  <h2 id="systemTitle" class="h5 mb-1">Sortie système</h2>
+                  <p id="systemDesc" class="text-muted mb-0">Réponses techniques de l’API, informations de service et statuts des opérations.</p>
+                </div>
+              </div>
+              <pre id="systemOutput" class="json-box mb-0">L’interface d’administration est prête.</pre>
+            </div>
+          </div>
         </div>
       </section>
     </main>
 
     <script>
-      const issueForm = document.getElementById('issueForm');
-      const issueBakedForm = document.getElementById('issueBakedForm');
-      const verifyForm = document.getElementById('verifyForm');
-      const verifyBakedForm = document.getElementById('verifyBakedForm');
-      const badgeIdInput = document.getElementById('badgeId');
-      const resultBox = document.getElementById('result');
+      const state = { badges: [], filteredBadges: [], selectedId: null };
 
-      // Online verification elements
-      const verifyOnlineBtn = document.getElementById('verifyOnlineBtn');
-      const verifyOnlineFile = document.getElementById('verifyOnlineFile');
-      const assertionUrlInput = document.getElementById('assertionUrl');
+      const statsRow = document.getElementById('statsRow');
+      const currentBadgeStatus = document.getElementById('currentBadgeStatus');
+      const currentViewStatus = document.getElementById('currentViewStatus');
+      const baseUrlStatus = document.getElementById('baseUrlStatus');
+      const menuButtons = Array.from(document.querySelectorAll('.menu-btn'));
+      const viewPanes = Array.from(document.querySelectorAll('.view-pane'));
+      const badgesTbody = document.getElementById('badgesTbody');
+      const searchInput = document.getElementById('searchInput');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const emptyInspector = document.getElementById('emptyInspector');
+      const inspector = document.getElementById('inspector');
+      const badgePreview = document.getElementById('badgePreview');
+      const badgeMeta = document.getElementById('badgeMeta');
+      const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+      const downloadPngBtn = document.getElementById('downloadPngBtn');
+      const inspectPngBtn = document.getElementById('inspectPngBtn');
+      const deleteBtn = document.getElementById('deleteBtn');
+      const assertionEditor = document.getElementById('assertionEditor');
+      const inspectionOutput = document.getElementById('inspectionOutput');
+      const saveEditBtn = document.getElementById('saveEditBtn');
+      const issuePanelForm = document.getElementById('issuePanelForm');
+      const issueStatus = document.getElementById('issueStatus');
+      const verifyBadgeId = document.getElementById('verifyBadgeId');
+      const verifyIdBtn = document.getElementById('verifyIdBtn');
+      const verifyAssertionUrl = document.getElementById('verifyAssertionUrl');
+      const verifyUrlBtn = document.getElementById('verifyUrlBtn');
+      const verifyPngFile = document.getElementById('verifyPngFile');
+      const verifyOutput = document.getElementById('verifyOutput');
+      const systemOutput = document.getElementById('systemOutput');
+      const languageSelect = document.getElementById('languageSelect');
 
-      function showResult(data) {
-        resultBox.textContent = JSON.stringify(data, null, 2);
+      const translations = {
+        fr: {
+          pageTitle: 'Espace de travail administrateur et élément courant',
+          pageSubtitle: 'À gauche — le menu d’actions, à droite — la fenêtre de contenu active. En haut — le statut système et les informations sur le badge sélectionné.',
+          labelCurrentBadge: 'Badge courant',
+          labelCurrentView: 'Vue active',
+          labelSystem: 'Système',
+          notSelected: 'Non sélectionné',
+          loading: 'Chargement…',
+          menuRegistry: 'Registre des badges',
+          menuInspector: 'Inspection et édition',
+          menuIssue: 'Émission de badge',
+          menuVerify: 'Vérification et HostedBadge',
+          menuSystem: 'Sortie système',
+          searchLabel: 'Recherche rapide',
+          searchPlaceholder: 'Recherche par ID / identité',
+          refreshBtn: 'Actualiser les données',
+          registryTitle: 'Registre des badges délivrés',
+          registryDesc: 'Consultation, navigation dans l’archive et sélection rapide d’un élément.',
+          loadingList: 'Chargement de la liste…',
+          noBadgesFiltered: 'Aucun badge pour le filtre courant.',
+          inspectorTitle: 'Inspecteur / élément courant',
+          inspectorDesc: 'Prévisualisation PNG, JSON, analyse du badge baked et édition de l’assertion.',
+          emptyInspector: 'Aucun badge sélectionné.',
+          previewTitle: 'Aperçu PNG',
+          downloadJsonBtn: 'Télécharger JSON',
+          downloadPngBtn: 'Télécharger PNG',
+          inspectPngBtn: 'Analyser les champs PNG',
+          deleteBtn: 'Supprimer',
+          editorTitle: 'JSON d’assertion éditable',
+          saveEditBtn: 'Enregistrer les modifications',
+          inspectionTitle: 'Résultat de l’inspection',
+          waitingAction: 'En attente d’une action…',
+          issueTitle: 'Émission de badge',
+          issueDesc: 'Création d’une assertion JSON ou d’un PNG baked depuis un formulaire unique.',
+          issueNameLabel: 'Nom',
+          issueEmailLabel: 'Email',
+          issueModeLabel: 'Mode d’émission',
+          issueBadgeImageLabel: 'PNG personnalisé',
+          issueBadgeImageHelp: 'Optionnel. Utilisez votre propre PNG ou le badge standard.',
+          issueSubmitBtn: 'Émettre le badge',
+          issueStatusIdle: 'Remplissez les champs et choisissez le mode d’émission.',
+          verifyTitle: 'Centre de vérification',
+          verifyDesc: 'Vérification par ID, URL et PNG dans une seule zone de travail.',
+          verifyBadgeIdLabel: 'Vérification par badge ID',
+          verifyAssertionUrlLabel: 'Vérification Hosted par URL',
+          verifyPngFileLabel: 'Vérification PNG / analyse baked',
+          verifyIdBtn: 'Vérifier',
+          verifyUrlBtn: 'Contrôler',
+          verifyOutputIdle: 'La vérification n’a pas encore été lancée.',
+          systemTitle: 'Sortie système',
+          systemDesc: 'Réponses techniques de l’API, informations de service et statuts des opérations.',
+          systemReady: 'L’interface d’administration est prête.',
+          viewLabels: {
+            registryView: 'Registre des badges',
+            inspectorView: 'Inspection et édition',
+            issueView: 'Émission de badge',
+            verifyView: 'Vérification et HostedBadge',
+            systemView: 'Sortie système',
+          },
+          stats: ['Total badges', 'Assertions JSON', 'PNG baked', 'Hosted ready', 'Base URL', 'Dernier badge'],
+        },
+        en: {
+          pageTitle: 'Admin workspace and current item',
+          pageSubtitle: 'Left — action menu, right — active content window. Top — system status and information about the selected badge.',
+          labelCurrentBadge: 'Current badge',
+          labelCurrentView: 'Current view',
+          labelSystem: 'System',
+          notSelected: 'Not selected',
+          loading: 'Loading…',
+          menuRegistry: 'Badge registry',
+          menuInspector: 'Inspector and editing',
+          menuIssue: 'Issue badge',
+          menuVerify: 'Verification and HostedBadge',
+          menuSystem: 'System output',
+          searchLabel: 'Quick search',
+          searchPlaceholder: 'Search by ID / identity',
+          refreshBtn: 'Refresh data',
+          registryTitle: 'Issued badge registry',
+          registryDesc: 'Browse the archive and quickly select an item to work with.',
+          loadingList: 'Loading list…',
+          noBadgesFiltered: 'No badges for the current filter.',
+          inspectorTitle: 'Inspector / current item',
+          inspectorDesc: 'PNG preview, JSON, baked badge parsing and assertion editing.',
+          emptyInspector: 'No badge selected yet.',
+          previewTitle: 'PNG preview',
+          downloadJsonBtn: 'Download JSON',
+          downloadPngBtn: 'Download PNG',
+          inspectPngBtn: 'Parse PNG fields',
+          deleteBtn: 'Delete',
+          editorTitle: 'Editable assertion JSON',
+          saveEditBtn: 'Save changes',
+          inspectionTitle: 'Inspection output',
+          waitingAction: 'Waiting for action…',
+          issueTitle: 'Badge issuing',
+          issueDesc: 'Create a JSON assertion or baked PNG from a single form.',
+          issueNameLabel: 'Name',
+          issueEmailLabel: 'Email',
+          issueModeLabel: 'Issue mode',
+          issueBadgeImageLabel: 'Custom PNG',
+          issueBadgeImageHelp: 'Optional. Use your own PNG or the standard badge.',
+          issueSubmitBtn: 'Issue badge',
+          issueStatusIdle: 'Fill in the fields and choose the issue mode.',
+          verifyTitle: 'Verification center',
+          verifyDesc: 'Verify by ID, URL and PNG in one workspace.',
+          verifyBadgeIdLabel: 'Verify by badge ID',
+          verifyAssertionUrlLabel: 'Hosted verification by URL',
+          verifyPngFileLabel: 'PNG verification / baked parse',
+          verifyIdBtn: 'Run',
+          verifyUrlBtn: 'Check',
+          verifyOutputIdle: 'Verification has not been started yet.',
+          systemTitle: 'System output',
+          systemDesc: 'Technical API responses, service information and operation statuses.',
+          systemReady: 'Control Center is ready.',
+          viewLabels: {
+            registryView: 'Badge registry',
+            inspectorView: 'Inspector and editing',
+            issueView: 'Badge issuing',
+            verifyView: 'Verification and HostedBadge',
+            systemView: 'System output',
+          },
+          stats: ['Total badges', 'JSON assertions', 'Baked PNG', 'Hosted ready', 'Base URL', 'Latest badge'],
+        },
+        ru: {
+          pageTitle: 'Админ-пространство и текущий элемент',
+          pageSubtitle: 'Слева — меню действий, справа — активное окно контента. Сверху — статус системы и информация о выбранном badge.',
+          labelCurrentBadge: 'Текущий badge',
+          labelCurrentView: 'Текущий режим',
+          labelSystem: 'Система',
+          notSelected: 'Не выбран',
+          loading: 'Загрузка…',
+          menuRegistry: 'Реестр badge’ей',
+          menuInspector: 'Инспектор и редактирование',
+          menuIssue: 'Выпуск badge',
+          menuVerify: 'Проверка и HostedBadge',
+          menuSystem: 'Системный вывод',
+          searchLabel: 'Быстрый поиск',
+          searchPlaceholder: 'Поиск по ID / identity',
+          refreshBtn: 'Обновить данные',
+          registryTitle: 'Реестр выданных badge’ей',
+          registryDesc: 'Просмотр архива и быстрый выбор элемента для работы.',
+          loadingList: 'Загрузка списка…',
+          noBadgesFiltered: 'Нет badge’ей по текущему фильтру.',
+          inspectorTitle: 'Инспектор / текущий элемент',
+          inspectorDesc: 'Просмотр PNG, JSON, парсинг baked badge и редактирование assertion.',
+          emptyInspector: 'Ни один badge пока не выбран.',
+          previewTitle: 'PNG preview',
+          downloadJsonBtn: 'Скачать JSON',
+          downloadPngBtn: 'Скачать PNG',
+          inspectPngBtn: 'Распарсить поля PNG',
+          deleteBtn: 'Удалить',
+          editorTitle: 'Редактируемый assertion JSON',
+          saveEditBtn: 'Сохранить изменения',
+          inspectionTitle: 'Результат инспекции',
+          waitingAction: 'В ожидании действия…',
+          issueTitle: 'Выпуск badge',
+          issueDesc: 'Создание JSON assertion или baked PNG из единой формы.',
+          issueNameLabel: 'Имя',
+          issueEmailLabel: 'Email',
+          issueModeLabel: 'Режим выпуска',
+          issueBadgeImageLabel: 'Кастомный PNG',
+          issueBadgeImageHelp: 'Опционально. Используйте свой PNG или стандартный badge.',
+          issueSubmitBtn: 'Выпустить badge',
+          issueStatusIdle: 'Заполните поля и выберите режим выпуска.',
+          verifyTitle: 'Центр проверки',
+          verifyDesc: 'Проверка по ID, URL и PNG в одном рабочем окне.',
+          verifyBadgeIdLabel: 'Проверка по badge ID',
+          verifyAssertionUrlLabel: 'Hosted verification по URL',
+          verifyPngFileLabel: 'Проверка PNG / parse baked',
+          verifyIdBtn: 'Запустить',
+          verifyUrlBtn: 'Проверить',
+          verifyOutputIdle: 'Верификация ещё не запускалась.',
+          systemTitle: 'Системный вывод',
+          systemDesc: 'Технические ответы API, служебная информация и статусы операций.',
+          systemReady: 'Control Center готов.',
+          viewLabels: {
+            registryView: 'Реестр badge’ей',
+            inspectorView: 'Инспектор и редактирование',
+            issueView: 'Выпуск badge',
+            verifyView: 'Проверка и HostedBadge',
+            systemView: 'Системный вывод',
+          },
+          stats: ['Всего badges', 'JSON assertions', 'PNG baked', 'Hosted ready', 'Base URL', 'Latest badge'],
+        },
+      };
+
+      let currentLang = 'fr';
+
+      function t(key) {
+        return translations[currentLang][key] ?? key;
       }
 
-      issueForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const formData = new FormData(issueForm);
-
-        const response = await fetch('/issue', {
-          method: 'POST',
-          body: formData,
+      function applyTranslations() {
+        document.documentElement.lang = currentLang;
+        const ids = [
+          'pageTitle','pageSubtitle','labelCurrentBadge','labelCurrentView','labelSystem','sidebarTitle','searchLabel',
+          'registryTitle','registryDesc','inspectorTitle','inspectorDesc','emptyInspector','previewTitle','downloadJsonBtn',
+          'downloadPngBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
+          'issueNameLabel','issueEmailLabel','issueModeLabel','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn',
+          'verifyTitle','verifyDesc','verifyBadgeIdLabel','verifyAssertionUrlLabel','verifyPngFileLabel','verifyIdBtn','verifyUrlBtn',
+          'systemTitle','systemDesc','refreshBtn'
+        ];
+        ids.forEach((id) => {
+          const node = document.getElementById(id);
+          if (node) node.textContent = t(id);
         });
 
-        const data = await response.json();
-        showResult(data);
-
-        if (data.badge?.assertion_id) {
-          badgeIdInput.value = data.badge.assertion_id;
+        searchInput.placeholder = t('searchPlaceholder');
+        issueStatus.textContent = t('issueStatusIdle');
+        verifyOutput.textContent = t('verifyOutputIdle');
+        if (systemOutput.textContent === 'Control Center готов.' || systemOutput.textContent === 'L’interface d’administration est prête.' || systemOutput.textContent === 'Control Center is ready.') {
+          systemOutput.textContent = t('systemReady');
         }
-      });
+        if (inspectionOutput.textContent.includes('attente') || inspectionOutput.textContent.includes('Waiting') || inspectionOutput.textContent.includes('ожидании')) {
+          inspectionOutput.textContent = t('waitingAction');
+        }
+        if (!state.selectedId) currentBadgeStatus.textContent = t('notSelected');
+        switchView(viewPanes.find((pane) => pane.classList.contains('active'))?.id || 'registryView');
+        renderTable();
+        if (state.badges.length) renderStats({
+          total_badges: state.badges.length,
+          total_json: state.badges.filter((b) => b.has_json).length,
+          total_png: state.badges.filter((b) => b.has_png).length,
+          hosted_ready: state.badges.filter((b) => String(b.public_assertion_url || '').startsWith('http')).length,
+          base_url: baseUrlStatus.textContent,
+          latest_badge: state.badges[0]?.assertion_id || '—',
+        });
+      }
 
-      issueBakedForm.addEventListener('submit', async (event) => {
+      function setSystemOutput(data) {
+        systemOutput.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      }
+
+      function switchView(viewId) {
+        viewPanes.forEach((pane) => pane.classList.toggle('active', pane.id === viewId));
+        menuButtons.forEach((button) => button.classList.toggle('active', button.dataset.view === viewId));
+
+        currentViewStatus.textContent = t('viewLabels')[viewId] || viewId;
+      }
+
+      function setVerifyOutput(data) {
+        verifyOutput.textContent = JSON.stringify(data, null, 2);
+      }
+
+      function renderStats(stats) {
+        const labels = t('stats');
+        const items = [
+          [labels[0], stats.total_badges],
+          [labels[1], stats.total_json],
+          [labels[2], stats.total_png],
+          [labels[3], stats.hosted_ready],
+          [currentLang === 'fr' ? 'Statut' : currentLang === 'en' ? 'Status' : 'Статус', currentLang === 'fr' ? 'En ligne' : currentLang === 'en' ? 'Online' : 'Онлайн'],
+          [labels[5], stats.latest_badge || '—'],
+        ];
+
+          statsRow.innerHTML = items.map(([label, value]) => `
+          <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+            <div class="card stat-card bg-light h-100">
+              <div class="card-body">
+                <div class="text-muted small">${label}</div>
+                <div class="fw-semibold ${label.includes('URL') || label.includes('badge') ? 'small mono' : 'fs-4'}" title="${value}">${value}</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        baseUrlStatus.textContent = currentLang === 'fr' ? 'Interface active' : currentLang === 'en' ? 'Interface active' : 'Панель активна';
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function collectSearchText(value) {
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          return String(value);
+        }
+        if (Array.isArray(value)) {
+          return value.map(collectSearchText).join(' ');
+        }
+        if (typeof value === 'object') {
+          return Object.values(value).map(collectSearchText).join(' ');
+        }
+        return '';
+      }
+
+      function renderTable() {
+        if (!state.filteredBadges.length) {
+          badgesTbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${t('noBadgesFiltered')}</td></tr>`;
+          return;
+        }
+
+        badgesTbody.innerHTML = state.filteredBadges.map((item) => {
+          const recipient = item.recipient?.identity ? `${item.recipient.identity}` : '—';
+          return `
+            <tr data-id="${escapeHtml(item.assertion_id)}" class="${state.selectedId === item.assertion_id ? 'table-active' : ''}">
+              <td class="mono small">${escapeHtml(item.assertion_id)}</td>
+              <td class="small">${escapeHtml(item.issued_on || '—')}</td>
+              <td>
+                <div class="fw-semibold">${escapeHtml(item.badge_name)}</div>
+                <div class="text-muted small">${escapeHtml(item.issuer_name)}</div>
+              </td>
+              <td class="mono small">${escapeHtml(recipient.slice(0, 26))}${recipient.length > 26 ? '…' : ''}</td>
+              <td>
+                ${item.has_json ? '<span class="badge text-bg-primary me-1">JSON</span>' : ''}
+                ${item.has_png ? '<span class="badge text-bg-success">PNG</span>' : ''}
+              </td>
+              <td>
+                <div class="d-flex gap-1 flex-wrap">
+                  <button class="btn btn-sm btn-outline-primary action-view" data-id="${escapeHtml(item.assertion_id)}">View</button>
+                  <a class="btn btn-sm btn-outline-secondary" href="${escapeHtml(item.json_url)}" target="_blank">JSON</a>
+                  ${item.has_png ? `<a class="btn btn-sm btn-outline-success" href="${escapeHtml(item.png_url)}" target="_blank">PNG</a>` : ''}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        badgesTbody.querySelectorAll('tr').forEach((row) => {
+          row.addEventListener('click', (event) => {
+            if (event.target.closest('a') || event.target.closest('button')) return;
+            selectBadge(row.dataset.id);
+          });
+        });
+
+        badgesTbody.querySelectorAll('.action-view').forEach((button) => {
+          button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            selectBadge(button.dataset.id);
+          });
+        });
+      }
+
+      function applyFilter() {
+        const query = searchInput.value.trim().toLowerCase();
+        state.filteredBadges = state.badges.filter((item) => {
+          if (!query) return true;
+          const haystack = collectSearchText(item).toLowerCase();
+          return haystack.includes(query);
+        });
+        renderTable();
+      }
+
+      async function loadDashboard(selectId = null) {
+        badgesTbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${t('loadingList')}</td></tr>`;
+        const response = await fetch('/api/badges');
+        const data = await response.json();
+        state.badges = data.items || [];
+        renderStats(data.stats || {});
+        applyFilter();
+
+        const nextSelection = selectId || state.selectedId || state.badges[0]?.assertion_id || null;
+        if (nextSelection) {
+          await selectBadge(nextSelection);
+        } else {
+          emptyInspector.classList.remove('d-none');
+          inspector.classList.add('d-none');
+          currentBadgeStatus.textContent = t('notSelected');
+        }
+      }
+
+      async function selectBadge(assertionId) {
+        state.selectedId = assertionId;
+        renderTable();
+        const response = await fetch(`/api/badges/${encodeURIComponent(assertionId)}`);
+        if (!response.ok) {
+          setSystemOutput({ error: `Unable to load badge: ${assertionId}` });
+          return;
+        }
+
+        const item = await response.json();
+        emptyInspector.classList.add('d-none');
+        inspector.classList.remove('d-none');
+        currentBadgeStatus.textContent = item.assertion_id;
+
+        badgePreview.src = item.has_png ? item.png_preview_url : '/badge.png';
+        badgePreview.style.opacity = item.has_png ? '1' : '0.5';
+        badgeMeta.innerHTML = `
+          <div><strong>ID:</strong> <span class="mono">${escapeHtml(item.assertion_id)}</span></div>
+          <div><strong>Issued:</strong> ${escapeHtml(item.issued_on || '—')}</div>
+          <div><strong>Hosted URL:</strong> <a href="${escapeHtml(item.public_assertion_url || '#')}" target="_blank">${escapeHtml(item.public_assertion_url || '—')}</a></div>
+        `;
+        downloadJsonBtn.href = item.json_url;
+        downloadPngBtn.href = item.has_png ? item.png_url : '#';
+        downloadPngBtn.classList.toggle('disabled', !item.has_png);
+        inspectPngBtn.disabled = !item.has_png;
+        deleteBtn.dataset.id = item.assertion_id;
+        saveEditBtn.dataset.id = item.assertion_id;
+        inspectPngBtn.dataset.id = item.assertion_id;
+        assertionEditor.value = JSON.stringify(item.assertion, null, 2);
+        inspectionOutput.textContent = JSON.stringify(item.png_inspection || { info: 'PNG inspection unavailable' }, null, 2);
+        setSystemOutput({ selected: item.assertion_id, has_png: item.has_png, has_json: item.has_json });
+        switchView('inspectorView');
+      }
+
+      issuePanelForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const fileInput = document.getElementById('badgeImage');
-        const file = fileInput.files[0];
+        issueStatus.textContent = currentLang === 'fr' ? 'Émission du badge…' : currentLang === 'en' ? 'Issuing badge…' : 'Выпуск badge…';
+
+        const mode = document.getElementById('issueMode').value;
+        const name = document.getElementById('issueName').value;
+        const email = document.getElementById('issueEmail').value;
+        const file = document.getElementById('issueBadgeImage').files[0];
 
         const formData = new FormData();
-        formData.append('name', document.getElementById('bakedName').value);
-        formData.append('email', document.getElementById('bakedEmail').value);
-        if (file) {
-          formData.append('badge_image', file);
-        }
+        formData.append('name', name);
+        formData.append('email', email);
+        if (file) formData.append('badge_image', file);
 
-        const response = await fetch('/issue-baked', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (response.ok) {
+        if (mode === 'json') {
+          const response = await fetch('/issue', { method: 'POST', body: formData });
+          const data = await response.json();
+          issueStatus.textContent = currentLang === 'fr' ? 'Assertion JSON émise.' : currentLang === 'en' ? 'JSON assertion issued.' : 'JSON assertion выпущен.';
+          setSystemOutput(data);
+          issuePanelForm.reset();
+          await loadDashboard(data.badge?.assertion_id || null);
+          switchView('registryView');
+        } else {
+          const response = await fetch('/issue-baked', { method: 'POST', body: formData });
+          if (!response.ok) {
+            const error = await response.text();
+            issueStatus.textContent = currentLang === 'fr' ? 'Erreur lors de l’émission du PNG.' : currentLang === 'en' ? 'PNG issuing error.' : 'Ошибка выпуска PNG.';
+            setSystemOutput({ error });
+            return;
+          }
           const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
+          const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
+          const disposition = response.headers.get('Content-Disposition') || 'attachment; filename="badge.png"';
+          const match = disposition.match(/filename="([^"]+)"/);
           a.href = url;
-          a.download = 'badge-baked.png';
+          a.download = match ? match[1] : 'badge.png';
           document.body.appendChild(a);
           a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-          showResult({ status: 'baked', message: 'Badge PNG téléchargé avec succès.' });
-        } else {
-          const err = await response.json().catch(() => ({ detail: response.statusText }));
-          showResult({ status: 'error', message: err.detail || 'Erreur lors de la génération du badge.' });
+          a.remove();
+          URL.revokeObjectURL(url);
+          issueStatus.textContent = currentLang === 'fr' ? 'PNG baked émis et téléchargé.' : currentLang === 'en' ? 'Baked PNG issued and downloaded.' : 'PNG baked выпущен и скачан.';
+          setSystemOutput({ status: 'baked', filename: a.download });
+          issuePanelForm.reset();
+          await loadDashboard();
+          switchView('registryView');
         }
       });
 
-      verifyForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const badgeId = badgeIdInput.value.trim();
+      verifyIdBtn.addEventListener('click', async () => {
+        const badgeId = verifyBadgeId.value.trim();
+        if (!badgeId) return setVerifyOutput({ error: currentLang === 'fr' ? 'Entrez un badge ID' : currentLang === 'en' ? 'Enter a badge ID' : 'Введите badge ID' });
         const response = await fetch(`/verify?badge_id=${encodeURIComponent(badgeId)}`);
         const data = await response.json();
-        showResult(data);
+        setVerifyOutput(data);
+        switchView('verifyView');
       });
 
-      verifyBakedForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const fileInput = document.getElementById('badgeFile');
-        const file = fileInput.files[0];
-        if (!file) {
-          showResult({ error: 'Aucun fichier sélectionné.' });
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append('badge', file);
-
-        const response = await fetch('/verify-baked', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await response.json();
-        showResult(data);
-      });
-
-      // --- Online verification (HostedBadge) ---
-
-      verifyOnlineBtn.addEventListener('click', async () => {
-        const url = assertionUrlInput.value.trim();
-        if (!url) {
-          showResult({ error: 'Veuillez entrer une URL d\'assertion.' });
-          return;
-        }
-
-        showResult({ status: 'loading', message: 'Résolution de la chaîne en cours...' });
-
+      verifyUrlBtn.addEventListener('click', async () => {
+        const url = verifyAssertionUrl.value.trim();
+        if (!url) return setVerifyOutput({ error: currentLang === 'fr' ? 'Entrez une URL d’assertion' : currentLang === 'en' ? 'Enter an assertion URL' : 'Введите assertion URL' });
         const formData = new FormData();
         formData.append('assertion_url', url);
-
-        const response = await fetch('/verify-online', {
-          method: 'POST',
-          body: formData,
-        });
-
+        const response = await fetch('/verify-online', { method: 'POST', body: formData });
         const data = await response.json();
-        showResult(data);
+        setVerifyOutput(data);
+        switchView('verifyView');
       });
 
-      verifyOnlineFile.addEventListener('change', async () => {
-        const file = verifyOnlineFile.files[0];
+      verifyPngFile.addEventListener('change', async () => {
+        const file = verifyPngFile.files[0];
         if (!file) return;
-
-        showResult({ status: 'loading', message: 'Extraction et vérification en cours...' });
-
         const formData = new FormData();
-        formData.append('badge_file', file);
+        formData.append('badge', file);
+        const response = await fetch('/verify-baked', { method: 'POST', body: formData });
+        const data = await response.json();
+        setVerifyOutput(data);
+        verifyPngFile.value = '';
+        switchView('verifyView');
+      });
 
-        const response = await fetch('/verify-online', {
-          method: 'POST',
-          body: formData,
+      inspectPngBtn.addEventListener('click', async () => {
+        const badgeId = inspectPngBtn.dataset.id;
+        if (!badgeId) return;
+        const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}/inspect`);
+        const data = await response.json();
+        inspectionOutput.textContent = JSON.stringify(data, null, 2);
+        switchView('inspectorView');
+      });
+
+      saveEditBtn.addEventListener('click', async () => {
+        const badgeId = saveEditBtn.dataset.id;
+        if (!badgeId) return;
+        let parsed;
+        try {
+          parsed = JSON.parse(assertionEditor.value);
+        } catch (error) {
+          setSystemOutput({ error: currentLang === 'fr' ? 'JSON d’assertion invalide' : currentLang === 'en' ? 'Invalid assertion JSON' : 'Некорректный assertion JSON', details: String(error) });
+          return;
+        }
+
+        const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assertion: parsed }),
         });
 
         const data = await response.json();
-        showResult(data);
-
-        // Clear input so same file can be re-selected
-        verifyOnlineFile.value = '';
+        setSystemOutput(data);
+        await loadDashboard(badgeId);
+        switchView('systemView');
       });
+
+      deleteBtn.addEventListener('click', async () => {
+        const badgeId = deleteBtn.dataset.id;
+        if (!badgeId) return;
+        const confirmText = currentLang === 'fr' ? `Supprimer le badge ${badgeId} ?` : currentLang === 'en' ? `Delete badge ${badgeId}?` : `Удалить badge ${badgeId}?`;
+        if (!window.confirm(confirmText)) return;
+        const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}`, { method: 'DELETE' });
+        const data = await response.json();
+        setSystemOutput(data);
+        state.selectedId = null;
+        currentBadgeStatus.textContent = 'Не выбран';
+        emptyInspector.classList.remove('d-none');
+        inspector.classList.add('d-none');
+        await loadDashboard();
+        switchView('registryView');
+      });
+
+      searchInput.addEventListener('input', applyFilter);
+      refreshBtn.addEventListener('click', () => loadDashboard(state.selectedId));
+      menuButtons.forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+      languageSelect.addEventListener('change', () => {
+        currentLang = languageSelect.value;
+        applyTranslations();
+      });
+
+      loadDashboard().catch((error) => {
+        setSystemOutput({ error: 'Init failed', details: String(error) });
+      });
+      applyTranslations();
     </script>
   </body>
 </html>
