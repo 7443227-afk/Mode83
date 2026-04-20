@@ -1,3 +1,53 @@
+### Documentation - Analyse et Extraction des Métadonnées PNG
+
+#### Objectif
+
+Le script `png_parser.py` est conçu pour analyser des fichiers PNG et extraire des métadonnées, en particulier en se concentrant sur les données Open Badges. Ce document explique ce que fait ce script, comment il fonctionne, quels outils et technologies sont utilisés et comment il est implémenté.
+
+#### Fonctionnalités
+
+1. **Vérification de la Signature PNG**:
+   - Le script commence par vérifier si le fichier possède la signature PNG (`PNG_SIGNATURE`).
+
+2. **Analyse des Chunks**:
+   - Le script lit le fichier PNG par morceaux (chunks), extrayant les informations suivantes pour chaque chunk :
+     - `index`: La position du chunk dans le fichier.
+     - `type`: Le type du chunk (par exemple, `tEXt`, `iTXt`, `IHDR`, `IDAT`, `IEND`).
+     - `length`: La longueur des données du chunk.
+     - `keyword`: Pour les chunks `tEXt` et `iTXt`, le mot-clé.
+     - `text_preview`: Un aperçu du contenu texte.
+     - `json_keys`: Si le contenu texte est un JSON, une liste des clés JSON.
+     - `compression_flag`: Pour les chunks `iTXt`, le drapeau de compression.
+     - `compression_method`: Pour les chunks `iTXt`, la méthode de compression.
+     - `language`: Pour les chunks `iTXt`, la langue.
+     - `translated_keyword`: Pour les chunks `iTXt`, le mot-clé traduit.
+
+3. **Injections Open Badges**:
+   - Le script cherche spécifiquement des chunks avec le mot-clé `openbadges` et enregistre leur contenu dans la liste `openbadges_injections`.
+
+4. **Sortie**:
+   - Le script génère un rapport JSON contenant toutes les informations extraites.
+
+#### Problèmes Potentiels avec les Données Image
+
+Au cours de l'implémentation actuelle, le script ne s'occupe pas d'extrait et d'inclure explicitement les données de l'image (par exemple, les données des pixels) dans le rapport. Il se concentre plutôt sur l'extraction des métadonnées et des données Open Badges.
+
+#### Recommandations
+
+1. **Inclure les Données de l'Image dans le Rapport**:
+   - Pour afficher l'image, le code côté client attend que les données de l'image soient incluses dans le rapport. Nous devons modifier la fonction `inspect_png` pour extraire les données de l'image des chunks `IDAT` et les inclure dans le rapport.
+
+2. **Mettre à Jour la Fonction `inspect_png`**:
+   - Nous devons ajouter une étape dans la fonction `inspect_png` pour extraire les données de l'image des chunks `IDAT` et les inclure dans le rapport.
+
+3. **Mettre à Jour le Code Côté Client**:
+   - Assurez-vous que le code côté client traite et affiche correctement les données de l'image.
+
+#### Fonction `inspect_png` Mise à Jour
+
+Voici la fonction `inspect_png` mise à jour qui inclut les données de l'image dans le rapport :
+
+```python
 #!/usr/bin/env python3
 from __future__ import annotations
 
@@ -75,7 +125,7 @@ def inspect_png(path: Path) -> dict[str, Any]:
         "chunk_summary": {},
         "chunks": [],
         "openbadges_injections": [],
-        "image_data": ""  # Initialize image data
+        "image_data": ""  # Initialiser les données de l'image
     }
 
     pos = 8
@@ -129,7 +179,7 @@ def inspect_png(path: Path) -> dict[str, Any]:
                     )
 
         elif chunk_type == "IDAT":
-            report["image_data"] += base64.b64encode(payload).decode('utf-8')  # Encode image data as Base64
+            report["image_data"] += base64.b64encode(payload).decode('utf-8')  # Encoder les données de l'image en Base64
 
         report["chunks"].append(chunk)
         report["chunk_count"] += 1
@@ -169,3 +219,14 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+```
+
+#### Résumé
+
+1. **Inclure les Données de l'Image dans le Rapport**:
+   - La fonction `inspect_png` inclut maintenant les données de l'image (`IDAT` chunks) dans le rapport comme des données encodées en Base64.
+
+2. **Mettre à Jour le Code Côté Client**:
+   - Assurez-vous que le code côté client traite et affiche correctement les données de l'image.
+
+Avec ces mises à jour, le serveur devrait maintenant inclure correctement les données de l'image dans la réponse, et le code côté client devrait être en mesure d'afficher l'image.
