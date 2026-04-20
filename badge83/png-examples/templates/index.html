@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG Parser Web Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .result-table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .result-table, .result-table th, .result-table td {
+            border: 1px solid #ddd;
+        }
+        .result-table th, .result-table td {
+            padding: 8px;
+            text-align: left;
+        }
+        .result-table th {
+            background-color: #f2f2f2;
+        }
+        .result-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .result-table tr:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PNG Parser Web Interface</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/png" required>
+            <input type="submit" value="Upload PNG">
+        </form>
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = '';
+
+                // Display raw data
+                resultDiv.innerHTML += '<h2>Raw Data</h2>';
+                resultDiv.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+
+                // Display the uploaded PNG image
+                if (data.image_data) {
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${data.image_data}`;
+                    img.width = 300;
+                    resultDiv.appendChild(img);
+                } else {
+                    resultDiv.innerHTML += '<p>No image data found in the response.</p>';
+                }
+
+                // Display the found fields and chunks
+                const table = document.createElement('table');
+                table.classList.add('result-table');
+
+                // Table header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                ['Chunk Type', 'Keyword', 'Text Preview', 'JSON Keys'].forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // Table body
+                const tbody = document.createElement('tbody');
+                if (data.chunks) {
+                    data.chunks.forEach(chunk => {
+                        const row = document.createElement('tr');
+                        ['type', 'keyword', 'text_preview', 'json_keys'].forEach(key => {
+                            const td = document.createElement('td');
+                            td.textContent = chunk[key] || '-';
+                            row.appendChild(td);
+                        });
+                        tbody.appendChild(row);
+                    });
+                }
+                table.appendChild(tbody);
+
+                resultDiv.appendChild(table);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = '<p>An error occurred while processing your request. Please try again later.</p>';
+            });
+        });
+    </script>
+</body>
+</html>

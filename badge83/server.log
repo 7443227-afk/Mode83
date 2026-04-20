@@ -1,11 +1,33 @@
-INFO:     Will watch for changes in these directories: ['/home/ubuntu/projects/Mode83/badge83']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [271377] using StatReload
-INFO:     Started server process [271381]
+INFO:     Started server process [672457]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51708 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     104.28.96.24:42090 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     104.28.96.24:42037 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     104.28.96.24:42046 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45110 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     104.28.96.24:42445 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60090 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     5.187.35.142:37186 - "GET /../../../../../../etc/passwd HTTP/1.1" 404 Not Found
+INFO:     109.227.130.45:53713 - "GET /playlist.m3u HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49012 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49012 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49028 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49012 - "GET /api/badges/0cf22246-e64a-4414-a54f-003b28a514d9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49028 - "GET /api/badges/0cf22246-e64a-4414-a54f-003b28a514d9/png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49028 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54734 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54734 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54734 - "GET /api/badges/0cf22246-e64a-4414-a54f-003b28a514d9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50904 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50904 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33826 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33826 - "GET /api/badges/0cf22246-e64a-4414-a54f-003b28a514d9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33826 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40564 - "POST /api/verify-desk/png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43416 - "GET /verify/badge/3dd1a574-3bed-402c-84c9-ef5d508f6ddc HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [271381]
-INFO:     Stopping reloader process [271377]
+INFO:     Finished server process [672457]

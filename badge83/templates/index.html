@@ -244,6 +244,27 @@
         margin-bottom: 1rem;
       }
 
+      .filter-box {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(191, 219, 254, 0.12);
+        border-radius: 0.85rem;
+        padding: 0.8rem;
+      }
+
+      .registry-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .registry-filters {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
       @media (max-width: 1366px) {
         .container-fluid {
           max-width: 1280px;
@@ -385,6 +406,7 @@
                 <option value="en">English</option>
                 <option value="ru">Русский</option>
               </select>
+              <a href="/verify-desk" class="btn btn-outline-primary">Bureau de vérification</a>
               <a href="/legacy" class="btn btn-outline-secondary">Legacy page</a>
             </div>
           </div>
@@ -420,10 +442,26 @@
             <button class="menu-btn" data-view="inspectorView" data-i18n="menuInspector">Inspection et édition</button>
             <button class="menu-btn" data-view="issueView" data-i18n="menuIssue">Émission de badge</button>
             <button class="menu-btn" data-view="verifyView" data-i18n="menuVerify">Vérification et HostedBadge</button>
+            <a href="/verify-desk" class="menu-btn text-decoration-none d-block">Bureau de vérification</a>
             <button class="menu-btn" data-view="systemView" data-i18n="menuSystem">Sortie système</button>
             <hr class="border-secondary-subtle my-4" />
             <div id="searchLabel" class="small text-muted mb-2">Recherche rapide</div>
             <input id="searchInput" type="search" class="form-control mb-3" placeholder="Recherche par ID / identité" />
+            <div class="filter-box mb-3">
+              <div id="filterLabel" class="small text-muted mb-2">Filtres</div>
+              <div class="form-check mb-2">
+                <input id="filterJson" class="form-check-input" type="checkbox" />
+                <label id="filterJsonLabel" class="form-check-label" for="filterJson">JSON uniquement</label>
+              </div>
+              <div class="form-check mb-2">
+                <input id="filterPng" class="form-check-input" type="checkbox" />
+                <label id="filterPngLabel" class="form-check-label" for="filterPng">PNG uniquement</label>
+              </div>
+              <div class="form-check">
+                <input id="filterHosted" class="form-check-input" type="checkbox" />
+                <label id="filterHostedLabel" class="form-check-label" for="filterHosted">Hosted ready uniquement</label>
+              </div>
+            </div>
             <button id="refreshBtn" class="btn btn-primary w-100">Actualiser les données</button>
           </div>
         </div>
@@ -435,6 +473,9 @@
                 <div>
                   <h2 id="registryTitle" class="h5 mb-1">Registre des badges délivrés</h2>
                   <p id="registryDesc" class="text-muted mb-0">Consultation, navigation dans l’archive et sélection rapide d’un élément.</p>
+                </div>
+                <div class="registry-toolbar">
+                  <div id="resultsCount" class="small text-muted">0 éléments</div>
                 </div>
               </div>
               <div class="table-wrap">
@@ -478,6 +519,7 @@
                       <div class="d-flex gap-2 mt-3 flex-wrap">
                         <a id="downloadJsonBtn" class="btn btn-outline-primary btn-sm" target="_blank">Télécharger JSON</a>
                         <a id="downloadPngBtn" class="btn btn-outline-success btn-sm" target="_blank">Télécharger PNG</a>
+                        <a id="openVerifyPageBtn" class="btn btn-outline-secondary btn-sm" target="_blank">Open verification page</a>
                         <button id="inspectPngBtn" class="btn btn-outline-dark btn-sm">Analyser les champs PNG</button>
                         <button id="deleteBtn" class="btn btn-outline-danger btn-sm">Supprimer</button>
                       </div>
@@ -586,6 +628,10 @@
       const viewPanes = Array.from(document.querySelectorAll('.view-pane'));
       const badgesTbody = document.getElementById('badgesTbody');
       const searchInput = document.getElementById('searchInput');
+      const filterJson = document.getElementById('filterJson');
+      const filterPng = document.getElementById('filterPng');
+      const filterHosted = document.getElementById('filterHosted');
+      const resultsCount = document.getElementById('resultsCount');
       const refreshBtn = document.getElementById('refreshBtn');
       const emptyInspector = document.getElementById('emptyInspector');
       const inspector = document.getElementById('inspector');
@@ -593,6 +639,7 @@
       const badgeMeta = document.getElementById('badgeMeta');
       const downloadJsonBtn = document.getElementById('downloadJsonBtn');
       const downloadPngBtn = document.getElementById('downloadPngBtn');
+      const openVerifyPageBtn = document.getElementById('openVerifyPageBtn');
       const inspectPngBtn = document.getElementById('inspectPngBtn');
       const deleteBtn = document.getElementById('deleteBtn');
       const assertionEditor = document.getElementById('assertionEditor');
@@ -624,10 +671,15 @@
           menuVerify: 'Vérification et HostedBadge',
           menuSystem: 'Sortie système',
           searchLabel: 'Recherche rapide',
+          filterLabel: 'Filtres',
+          filterJsonLabel: 'JSON uniquement',
+          filterPngLabel: 'PNG uniquement',
+          filterHostedLabel: 'Hosted ready uniquement',
           searchPlaceholder: 'Recherche par ID / identité',
           refreshBtn: 'Actualiser les données',
           registryTitle: 'Registre des badges délivrés',
           registryDesc: 'Consultation, navigation dans l’archive et sélection rapide d’un élément.',
+          resultsCountLabel: 'éléments',
           loadingList: 'Chargement de la liste…',
           noBadgesFiltered: 'Aucun badge pour le filtre courant.',
           inspectorTitle: 'Inspecteur / élément courant',
@@ -636,6 +688,7 @@
           previewTitle: 'Aperçu PNG',
           downloadJsonBtn: 'Télécharger JSON',
           downloadPngBtn: 'Télécharger PNG',
+          openVerifyPageBtn: 'Ouvrir la page de vérification',
           inspectPngBtn: 'Analyser les champs PNG',
           deleteBtn: 'Supprimer',
           editorTitle: 'JSON d’assertion éditable',
@@ -685,10 +738,15 @@
           menuVerify: 'Verification and HostedBadge',
           menuSystem: 'System output',
           searchLabel: 'Quick search',
-          searchPlaceholder: 'Search by ID / identity',
+          filterLabel: 'Filters',
+          filterJsonLabel: 'JSON only',
+          filterPngLabel: 'PNG only',
+          filterHostedLabel: 'Hosted ready only',
+          searchPlaceholder: 'Search by ID / email / name',
           refreshBtn: 'Refresh data',
           registryTitle: 'Issued badge registry',
           registryDesc: 'Browse the archive and quickly select an item to work with.',
+          resultsCountLabel: 'items',
           loadingList: 'Loading list…',
           noBadgesFiltered: 'No badges for the current filter.',
           inspectorTitle: 'Inspector / current item',
@@ -697,6 +755,7 @@
           previewTitle: 'PNG preview',
           downloadJsonBtn: 'Download JSON',
           downloadPngBtn: 'Download PNG',
+          openVerifyPageBtn: 'Open verification page',
           inspectPngBtn: 'Parse PNG fields',
           deleteBtn: 'Delete',
           editorTitle: 'Editable assertion JSON',
@@ -746,10 +805,15 @@
           menuVerify: 'Проверка и HostedBadge',
           menuSystem: 'Системный вывод',
           searchLabel: 'Быстрый поиск',
-          searchPlaceholder: 'Поиск по ID / identity',
+          filterLabel: 'Фильтры',
+          filterJsonLabel: 'Только JSON',
+          filterPngLabel: 'Только PNG',
+          filterHostedLabel: 'Только Hosted ready',
+          searchPlaceholder: 'Поиск по ID / email / имени',
           refreshBtn: 'Обновить данные',
           registryTitle: 'Реестр выданных badge’ей',
           registryDesc: 'Просмотр архива и быстрый выбор элемента для работы.',
+          resultsCountLabel: 'элементов',
           loadingList: 'Загрузка списка…',
           noBadgesFiltered: 'Нет badge’ей по текущему фильтру.',
           inspectorTitle: 'Инспектор / текущий элемент',
@@ -758,6 +822,7 @@
           previewTitle: 'PNG preview',
           downloadJsonBtn: 'Скачать JSON',
           downloadPngBtn: 'Скачать PNG',
+          openVerifyPageBtn: 'Открыть страницу проверки',
           inspectPngBtn: 'Распарсить поля PNG',
           deleteBtn: 'Удалить',
           editorTitle: 'Редактируемый assertion JSON',
@@ -805,8 +870,9 @@
         document.documentElement.lang = currentLang;
         const ids = [
           'pageTitle','pageSubtitle','labelCurrentBadge','labelCurrentView','labelSystem','sidebarTitle','searchLabel',
+          'filterLabel','filterJsonLabel','filterPngLabel','filterHostedLabel',
           'registryTitle','registryDesc','inspectorTitle','inspectorDesc','emptyInspector','previewTitle','downloadJsonBtn',
-          'downloadPngBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
+          'downloadPngBtn','openVerifyPageBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
           'issueNameLabel','issueEmailLabel','issueModeLabel','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn',
           'verifyTitle','verifyDesc','verifyBadgeIdLabel','verifyAssertionUrlLabel','verifyPngFileLabel','verifyIdBtn','verifyUrlBtn',
           'systemTitle','systemDesc','refreshBtn'
@@ -902,6 +968,7 @@
       }
 
       function renderTable() {
+        resultsCount.textContent = `${state.filteredBadges.length} ${t('resultsCountLabel')}`;
         if (!state.filteredBadges.length) {
           badgesTbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${t('noBadgesFiltered')}</td></tr>`;
           return;
@@ -925,6 +992,7 @@
               <td>
                 <div class="d-flex gap-1 flex-wrap">
                   <button class="btn btn-sm btn-outline-primary action-view" data-id="${escapeHtml(item.assertion_id)}">View</button>
+                  <a class="btn btn-sm btn-outline-dark" href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">Verify</a>
                   <a class="btn btn-sm btn-outline-secondary" href="${escapeHtml(item.json_url)}" target="_blank">JSON</a>
                   ${item.has_png ? `<a class="btn btn-sm btn-outline-success" href="${escapeHtml(item.png_url)}" target="_blank">PNG</a>` : ''}
                 </div>
@@ -948,9 +1016,21 @@
         });
       }
 
-      function applyFilter() {
+      async function applyFilter() {
         const query = searchInput.value.trim().toLowerCase();
-        state.filteredBadges = state.badges.filter((item) => {
+        const sourceItems = query
+          ? await (async () => {
+              const response = await fetch(`/api/badges/search?query=${encodeURIComponent(searchInput.value.trim())}`);
+              if (!response.ok) return state.badges;
+              const data = await response.json();
+              return data.items || [];
+            })()
+          : state.badges;
+
+        state.filteredBadges = sourceItems.filter((item) => {
+          if (filterJson.checked && !item.has_json) return false;
+          if (filterPng.checked && !item.has_png) return false;
+          if (filterHosted.checked && !String(item.public_assertion_url || '').startsWith('http')) return false;
           if (!query) return true;
           const haystack = collectSearchText(item).toLowerCase();
           return haystack.includes(query);
@@ -996,10 +1076,12 @@
           <div><strong>ID:</strong> <span class="mono">${escapeHtml(item.assertion_id)}</span></div>
           <div><strong>Issued:</strong> ${escapeHtml(item.issued_on || '—')}</div>
           <div><strong>Hosted URL:</strong> <a href="${escapeHtml(item.public_assertion_url || '#')}" target="_blank">${escapeHtml(item.public_assertion_url || '—')}</a></div>
+          <div><strong>Verification page:</strong> <a href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">/verify/badge/${escapeHtml(item.assertion_id)}</a></div>
         `;
         downloadJsonBtn.href = item.json_url;
         downloadPngBtn.href = item.has_png ? item.png_url : '#';
         downloadPngBtn.classList.toggle('disabled', !item.has_png);
+        openVerifyPageBtn.href = `/verify/badge/${encodeURIComponent(item.assertion_id)}`;
         inspectPngBtn.disabled = !item.has_png;
         deleteBtn.dataset.id = item.assertion_id;
         saveEditBtn.dataset.id = item.assertion_id;
@@ -1139,7 +1221,16 @@
         switchView('registryView');
       });
 
-      searchInput.addEventListener('input', applyFilter);
+      let searchDebounceTimer = null;
+      searchInput.addEventListener('input', () => {
+        window.clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = window.setTimeout(() => {
+          applyFilter().catch((error) => setSystemOutput({ error: 'Search failed', details: String(error) }));
+        }, 220);
+      });
+      filterJson.addEventListener('change', applyFilter);
+      filterPng.addEventListener('change', applyFilter);
+      filterHosted.addEventListener('change', applyFilter);
       refreshBtn.addEventListener('click', () => loadDashboard(state.selectedId));
       menuButtons.forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
       languageSelect.addEventListener('change', () => {

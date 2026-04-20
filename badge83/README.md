@@ -71,8 +71,46 @@ cp .env.example .env
 ### Démarrage du serveur
 
 ```bash
-export BADGE83_BASE_URL=http://127.0.0.1:8000  # ou votre URL publique
+export BADGE83_BASE_URL=http://mode83.ddns.net  # ou votre URL publique
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Script de gestion du serveur
+
+Pour éviter d’oublier l’environnement, l’adresse et le port, utilisez le script fourni :
+
+```bash
+chmod +x badge83.sh
+./badge83.sh start
+./badge83.sh status
+./badge83.sh logs
+./badge83.sh stop
+```
+
+Par défaut, le script :
+
+- utilise le virtualenv du projet (`.venv`) ;
+- démarre `uvicorn` sur `0.0.0.0:8000` ;
+- injecte `BADGE83_BASE_URL` avec une valeur par défaut configurable ;
+- écrit le PID dans `server.pid` ;
+- écrit les logs dans `server.log`.
+
+Vous pouvez aussi définir un pepper de recherche stable pour les hash de recherche admin (`name` / `email`) :
+
+```bash
+export BADGE83_SEARCH_PEPPER="change-me-in-production"
+./badge83.sh restart
+```
+
+Ce pepper est utilisé pour calculer des hash de recherche stables côté serveur, sans exposer les valeurs en clair dans l’interface admin.
+
+Vous pouvez surcharger l’hôte, le port et l’URL publique :
+
+```bash
+BADGE83_HOST=0.0.0.0 \
+BADGE83_PORT=8010 \
+BADGE83_BASE_URL=http://mode83.ddns.net:8010 \
+./badge83.sh restart
 ```
 
 Si le port `8000` est déjà utilisé, choisissez un autre port :
@@ -99,6 +137,39 @@ curl -X POST -F "name=Alice" -F "email=alice@example.org" http://127.0.0.1:8000/
 
 # Vérification d'un badge baked (upload PNG)
 curl -X POST -F "badge=@badge.png" http://127.0.0.1:8000/verify-baked
+```
+
+### Bureau de vérification
+
+Une page simplifiée dédiée à un usage administratif est disponible ici :
+
+- `GET /verify-desk`
+
+Cette page permet :
+
+- de charger un badge PNG ;
+- de lancer une vérification rapide ;
+- d’afficher l’aperçu du badge ;
+- de voir le nom, l’email, la date de délivrance et le statut de l’issuer ;
+- de retrouver d’autres certificats liés si des hash de recherche sont disponibles.
+
+Le comportement d’affichage de l’émetteur est volontairement simplifié :
+
+- `mode83` si le badge appartient à l’organisation MODE83 ;
+- `autre organisme` sinon.
+
+### Nom des fichiers PNG baked
+
+Les badges émis en PNG baked sont maintenant téléchargés avec un nom lisible de type :
+
+```text
+<numéro>_mode83_<jjmmaaa>.png
+```
+
+Exemple :
+
+```text
+37_mode83_200426.png
 ```
 
 Réponse attendue pour un badge inexistant :
@@ -170,5 +241,6 @@ Voir [`docs/CHANGELOG-130426.md`](docs/CHANGELOG-130426.md) pour les modificatio
 | Endpoints hébergés (HostedBadge) | Implémenté | URLs publiques pour Issuer, BadgeClass et Assertions |
 | Signature JWS (SignedBadge) | 🔲 Planifié | Chiffrer les assertions avec une clé privée, vérification par clé publique |
 | Ancrage blockchain | 🔲 Planifié | Enregistrer les empreintes d'assertions sur une blockchain pour preuve d'immutabilité |
+| Base de données locale | 🔲 À étudier | Évaluer l’usage d’une base légère (ex. SQLite) pour stocker le registre, les métadonnées admin et les index de recherche |
 | Validation avec `openbadges-validator-core` | Validé | Test de conformité réussi sur un badge MODE83 hébergé |
 | Validation IMS officielle | 🔲 À poursuivre | Vérifications complémentaires sur l'infrastructure publique / HTTPS |

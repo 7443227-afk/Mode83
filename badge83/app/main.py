@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse
 from fastapi.templating import Jinja2Templates
 
-from app.issuer import issue_badge, issue_baked_badge
+from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
 from app.verifier import verify_badge, verify_baked_badge
 
 app = FastAPI(title="Badge 83")
@@ -25,7 +25,7 @@ BAKED_DIR = DATA_BASE / "baked"
 # ---------------------------------------------------------------------------
 # Base URL configuration (via environment variable)
 # ---------------------------------------------------------------------------
-BASE_URL = os.environ.get("BADGE83_BASE_URL", "http://127.0.0.1:8000")
+BASE_URL = os.environ.get("BADGE83_BASE_URL", "http://mode83.ddns.net")
 OB_CONTENT_TYPE = 'application/ld+json; profile="https://w3id.org/openbadges/v2"'
 
 # ---------------------------------------------------------------------------
@@ -43,6 +43,51 @@ app.add_middleware(
 async def index(request: Request):
     """Affiche la nouvelle console d'administration Badge83."""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/verify/badge/{assertion_id}", response_class=HTMLResponse)
+async def verify_badge_page(request: Request, assertion_id: str):
+    """Affiche une page de vérification lisible par un humain pour un badge donné."""
+    record = _collect_badge_record(assertion_id)
+    not_found = record is None
+
+    if not_found:
+        context = {
+            "request": request,
+            "assertion_id": assertion_id,
+            "not_found": True,
+            "status": "not_found",
+            "status_label": "Badge not found",
+            "status_tone": "warning",
+            "badge": None,
+        }
+        return templates.TemplateResponse("verify_badge.html", context, status_code=404)
+
+    public_assertion_url = record.get("public_assertion_url")
+    status = "valid" if record.get("has_json") else "partial"
+    status_label = "Valid badge" if status == "valid" else "Incomplete record"
+    status_tone = "success" if status == "valid" else "secondary"
+
+    context = {
+        "request": request,
+        "assertion_id": assertion_id,
+        "not_found": False,
+        "status": status,
+        "status_label": status_label,
+        "status_tone": status_tone,
+        "badge": {
+            **record,
+            "verification_page_url": str(request.url),
+            "raw_assertion_url": public_assertion_url,
+        },
+    }
+    return templates.TemplateResponse("verify_badge.html", context)
+
+
+@app.get("/verify-desk", response_class=HTMLResponse)
+async def verify_desk_page(request: Request):
+    """Affiche une page de vérification simplifiée pour un usage secrétariat."""
+    return templates.TemplateResponse("verify_desk.html", {"request": request})
 
 
 @app.get("/legacy", response_class=HTMLResponse)
@@ -77,7 +122,7 @@ async def issue_baked(name: str = Form(...), email: str = Form(...), badge_image
         content=result["baked_png_bytes"],
         media_type="image/png",
         headers={
-            "Content-Disposition": f'attachment; filename="badge-{result["assertion_id"]}.png"',
+            "Content-Disposition": f'attachment; filename="{result.get("baked_download_filename", f"badge-{result["assertion_id"]}.png")}"',
         },
     )
 
@@ -118,6 +163,130 @@ def _safe_load_json(file_path: Path) -> dict[str, Any] | None:
         return None
 
 
+def _is_probable_email(query: str) -> bool:
+    return "@" in query and "." in query.split("@")[-1]
+
+
+def _matches_email_query(assertion: dict[str, Any], query: str) -> bool:
+    recipient = assertion.get("recipient", {}) if isinstance(assertion.get("recipient"), dict) else {}
+    salt = recipient.get("salt")
+    identity = recipient.get("identity")
+    if not salt or not identity:
+        return False
+
+    expected_hash = "sha256$" + __import__("hashlib").sha256(
+        normalize_email(query).encode("utf-8") + str(salt).encode("utf-8")
+    ).hexdigest()
+    return expected_hash == identity
+
+
+def _matches_search_query(record: dict[str, Any], query: str) -> bool:
+    normalized_query = query.strip()
+    if not normalized_query:
+        return True
+
+    assertion = record.get("assertion", {}) if isinstance(record.get("assertion"), dict) else {}
+    search_data = assertion.get("search", {}) if isinstance(assertion.get("search"), dict) else {}
+    lowered_query = normalized_query.lower()
+
+    searchable_text = " ".join(
+        [
+            str(record.get("assertion_id", "")),
+            str(record.get("badge_name", "")),
+            str(record.get("issuer_name", "")),
+            str(record.get("recipient", {}).get("identity", "")),
+        ]
+    ).lower()
+    if lowered_query in searchable_text:
+        return True
+
+    if _is_probable_email(normalized_query):
+        email_hash = search_data.get("email_hash")
+        if email_hash and email_hash == make_search_hash(normalize_email(normalized_query)):
+            return True
+        return _matches_email_query(assertion, normalized_query)
+
+    name_hash = search_data.get("name_hash")
+    if name_hash and name_hash == make_search_hash(normalize_name(normalized_query)):
+        return True
+
+    return False
+
+
+def _find_related_badges(assertion: dict[str, Any], current_assertion_id: str | None = None) -> list[dict[str, Any]]:
+    search_data = assertion.get("search", {}) if isinstance(assertion.get("search"), dict) else {}
+    email_hash = search_data.get("email_hash")
+    name_hash = search_data.get("name_hash")
+
+    matches: list[dict[str, Any]] = []
+    for record in _list_badge_records():
+        if current_assertion_id and record.get("assertion_id") == current_assertion_id:
+            continue
+
+        record_assertion = record.get("assertion", {}) if isinstance(record.get("assertion"), dict) else {}
+        record_search = record_assertion.get("search", {}) if isinstance(record_assertion.get("search"), dict) else {}
+        record_admin_recipient = record_assertion.get("admin_recipient", {}) if isinstance(record_assertion.get("admin_recipient"), dict) else {}
+
+        same_email = bool(email_hash and record_search.get("email_hash") == email_hash)
+        same_name = bool(name_hash and record_search.get("name_hash") == name_hash)
+
+        if same_email or same_name:
+            matches.append(
+                {
+                    "assertion_id": record.get("assertion_id"),
+                    "badge_name": record.get("badge_name"),
+                    "issuer_name": record.get("issuer_name"),
+                    "issued_on": _format_display_date(record.get("issued_on")),
+                    "recipient_name": record_admin_recipient.get("name") or None,
+                    "recipient_email": record_admin_recipient.get("email") or None,
+                    "json_url": record.get("json_url"),
+                    "png_url": record.get("png_url"),
+                    "verification_page_url": f"/verify/badge/{record.get('assertion_id')}",
+                    "match": {
+                        "email": same_email,
+                        "name": same_name,
+                    },
+                }
+            )
+
+    return matches
+
+
+def _format_display_date(value: Any) -> str:
+    if not value:
+        return "—"
+
+    try:
+        from datetime import datetime
+
+        text_value = str(value).replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(text_value)
+        return parsed.strftime("%d/%m/%Y")
+    except Exception:
+        return str(value)
+
+
+def _build_issuer_check(assertion: dict[str, Any]) -> dict[str, Any]:
+    issuer_ref = assertion.get("issuer", "")
+    issuer_value = issuer_ref.get("id", "") if isinstance(issuer_ref, dict) else str(issuer_ref or "")
+    canonical_mode83_issuer = "http://mode83.ddns.net/issuers/main"
+    local_issuer_url = f"{BASE_URL.rstrip('/')}/issuers/main"
+    is_local = issuer_value in {local_issuer_url, canonical_mode83_issuer}
+
+    return {
+        "issuer": issuer_value or "unknown",
+        "is_local": is_local,
+        "status": "local" if is_local else "external",
+        "label": "mode83" if is_local else "autre organisme",
+        "organization_label": "mode83" if is_local else "autre organisme",
+        "message": (
+            "Badge émis par mode83"
+            if is_local
+            else "Badge valide, mais émis par un autre organisme"
+        ),
+    }
+
+
 def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = None) -> dict[str, Any] | None:
     json_path = ISSUED_DIR / f"{assertion_id}.json"
     png_path = BAKED_DIR / f"{assertion_id}.png"
@@ -153,6 +322,10 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
             "salt": recipient.get("salt"),
         },
         "verification": verification,
+        "search": {
+            "has_name_hash": bool(assertion.get("search", {}).get("name_hash")) if isinstance(assertion.get("search"), dict) else False,
+            "has_email_hash": bool(assertion.get("search", {}).get("email_hash")) if isinstance(assertion.get("search"), dict) else False,
+        },
         "assertion": assertion,
     }
 
@@ -196,6 +369,59 @@ async def api_dashboard_stats():
 async def api_list_badges():
     records = _list_badge_records()
     return {"items": records, "stats": _dashboard_stats(records)}
+
+
+@app.get("/api/badges/search")
+async def api_search_badges(query: str):
+    records = _list_badge_records()
+    matched = [record for record in records if _matches_search_query(record, query)]
+    return {
+        "items": matched,
+        "stats": _dashboard_stats(matched),
+        "query": query,
+        "mode": "email" if _is_probable_email(query) else "name-or-text",
+    }
+
+
+@app.post("/api/verify-desk/png")
+async def api_verify_desk_png(badge: UploadFile = File(...)):
+    """Workflow simplifié: upload PNG, vérification et recherche de certificats liés."""
+    png_data = await badge.read()
+    result = verify_baked_badge(png_data)
+
+    if not result.get("valid"):
+        return {
+            "valid": False,
+            "error": result.get("error", "Unable to verify PNG"),
+            "summary": None,
+            "related_badges": [],
+        }
+
+    assertion = result.get("assertion") or {}
+    assertion_id = _extract_assertion_id(assertion)
+    related_badges = _find_related_badges(assertion, current_assertion_id=assertion_id)
+    search_data = assertion.get("search", {}) if isinstance(assertion.get("search"), dict) else {}
+    admin_recipient = assertion.get("admin_recipient", {}) if isinstance(assertion.get("admin_recipient"), dict) else {}
+
+    return {
+        "valid": True,
+        "summary": result.get("summary"),
+        "assertion_id": assertion_id,
+        "assertion": assertion,
+        "issuer_check": _build_issuer_check(assertion),
+        "recipient_display": {
+            "name": admin_recipient.get("name") or "Non disponible",
+            "email": admin_recipient.get("email") or "Non disponible",
+            "issued_on": _format_display_date(assertion.get("issuedOn")),
+        },
+        "related_badges": related_badges,
+        "search_capabilities": {
+            "has_email_hash": bool(search_data.get("email_hash")),
+            "has_name_hash": bool(search_data.get("name_hash")),
+            "can_find_related_by_email": bool(search_data.get("email_hash")),
+            "can_find_related_by_name": bool(search_data.get("name_hash")),
+        },
+    }
 
 
 @app.get("/api/badges/{assertion_id}")

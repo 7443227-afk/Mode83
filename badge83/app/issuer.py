@@ -4,6 +4,7 @@ import json
 import os
 import secrets
 from hashlib import sha256
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -18,7 +19,21 @@ BADGECLASS_TEMPLATE = BASE_DIR / "badgeclass_template.json"
 BADGE_PNG = BASE_DIR / "badge.png"
 
 # URL de base pour les endpoints publics (doit correspondre à main.py)
-BASE_URL = os.environ.get("BADGE83_BASE_URL", "http://127.0.0.1:8000")
+BASE_URL = os.environ.get("BADGE83_BASE_URL", "http://mode83.ddns.net")
+SEARCH_PEPPER = os.environ.get("BADGE83_SEARCH_PEPPER", "badge83-dev-search-pepper")
+
+
+def _build_baked_download_filename(issued_on: str) -> str:
+    try:
+        parsed = datetime.fromisoformat(issued_on.replace("Z", "+00:00"))
+        date_part = parsed.strftime("%d%m%y")
+    except Exception:
+        date_part = datetime.now(timezone.utc).strftime("%d%m%y")
+
+    BAKED_DIR.mkdir(parents=True, exist_ok=True)
+    existing_files = sorted(path for path in BAKED_DIR.glob("*.png"))
+    sequence = len(existing_files) + 1
+    return f"{sequence}_mode83_{date_part}.png"
 
 
 def _load_template(path: Path) -> dict:
@@ -36,6 +51,33 @@ def _load_json(path: Path) -> dict:
 def _make_recipient_hash(email: str, salt: str) -> str:
     normalized_email = email.strip().lower().encode("utf-8")
     return "sha256$" + sha256(normalized_email + salt.encode("utf-8")).hexdigest()
+
+
+def normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def normalize_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name.strip().lower())
+
+
+def make_search_hash(value: str) -> str:
+    normalized_value = value.encode("utf-8")
+    return "sha256$" + sha256(normalized_value + SEARCH_PEPPER.encode("utf-8")).hexdigest()
+
+
+def make_search_metadata(name: str, email: str) -> dict:
+    return {
+        "name_hash": make_search_hash(normalize_name(name)),
+        "email_hash": make_search_hash(normalize_email(email)),
+    }
+
+
+def make_admin_recipient_metadata(name: str, email: str) -> dict:
+    return {
+        "name": name.strip(),
+        "email": normalize_email(email),
+    }
 
 
 def _make_recipient(email: str) -> dict:
@@ -75,6 +117,8 @@ def issue_badge(name: str, email: str) -> dict:
         },
         "badge": badge_url,
         "issuer": issuer_url,
+        "admin_recipient": make_admin_recipient_metadata(name=name, email=email),
+        "search": make_search_metadata(name=name, email=email),
     }
 
     badge_path = DATA_DIR / f"{assertion_id}.json"
@@ -106,6 +150,7 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
 
     assertion_id = str(uuid4())
     issued_on = datetime.now(timezone.utc).isoformat()
+    baked_download_filename = _build_baked_download_filename(issued_on)
 
     # URLs de référence pour HostedBadge
     issuer_url = f"{BASE_URL}/issuers/main"
@@ -125,6 +170,8 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         },
         "badge": badge_url,
         "issuer": issuer_url,
+        "admin_recipient": make_admin_recipient_metadata(name=name, email=email),
+        "search": make_search_metadata(name=name, email=email),
     }
 
     # Sauvegarde de l'assertion JSON
@@ -145,6 +192,7 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         "assertion_id": assertion_id,
         "assertion": assertion,
         "baked_png_path": str(baked_path),
+        "baked_download_filename": baked_download_filename,
         "baked_png_bytes": baked_png,
         "issuer": issuer,
         "badgeclass": badgeclass,

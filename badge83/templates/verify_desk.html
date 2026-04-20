@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Badge83 — Bureau de vérification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body { background: #eef3f9; color: #0f172a; }
+      .shell { min-height: 100vh; }
+      .panel { background: #fff; border: 1px solid #dbe5f0; border-radius: 1rem; box-shadow: 0 0.5rem 1rem rgba(15,23,42,0.06); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+      .badge-preview { max-width: 100%; max-height: 260px; border: 1px solid #dbe5f0; border-radius: 0.75rem; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <main class="container py-4 py-md-5 shell">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+        <div>
+          <div class="d-flex gap-2 align-items-center mb-2">
+            <span class="badge text-bg-dark">Badge83</span>
+            <span class="badge text-bg-primary">Bureau de vérification</span>
+          </div>
+          <h1 class="h2 mb-2">Bureau de vérification</h1>
+          <p class="text-muted mb-0">Téléverser un PNG, vérifier le badge et retrouver d'autres certificats liés au même email ou au même nom si les hash de recherche sont présents.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="/" class="btn btn-outline-secondary">Retour à l’admin</a>
+        </div>
+      </div>
+
+      <section class="panel p-4 mb-4">
+        <form id="deskForm">
+          <label for="deskPng" class="form-label fw-semibold">Badge PNG à vérifier</label>
+          <input id="deskPng" type="file" accept=".png" class="form-control mb-3" required />
+          <div id="deskPreviewWrap" class="mb-3 d-none">
+            <div class="small text-muted mb-2">Aperçu du badge chargé</div>
+            <img id="deskPreview" class="badge-preview" alt="Badge preview" />
+          </div>
+          <button type="submit" class="btn btn-primary">Vérifier le badge</button>
+        </form>
+      </section>
+
+      <section id="deskResult" class="panel p-4 d-none">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h2 class="h4 mb-0">Résultat de vérification</h2>
+          <span id="deskStatus" class="badge text-bg-secondary">En attente</span>
+        </div>
+
+        <div id="deskError" class="alert alert-danger d-none"></div>
+        <div id="deskIssuerNotice" class="alert d-none"></div>
+
+        <div id="deskSummary" class="summary-grid mb-4"></div>
+
+        <div class="mb-4">
+          <h3 class="h5">Capacités de rapprochement</h3>
+          <ul id="deskCapabilities" class="mb-0"></ul>
+        </div>
+
+        <div>
+          <h3 class="h5">Autres certificats liés</h3>
+          <div id="deskRelatedEmpty" class="text-muted">Aucun certificat lié trouvé.</div>
+          <div class="table-responsive">
+            <table id="deskRelatedTable" class="table d-none">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nom</th>
+                  <th>Email</th>
+                  <th>Badge</th>
+                  <th>Issuer</th>
+                  <th>Date</th>
+                  <th>Match</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="deskRelatedBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const deskForm = document.getElementById('deskForm');
+      const deskPng = document.getElementById('deskPng');
+      const deskResult = document.getElementById('deskResult');
+      const deskStatus = document.getElementById('deskStatus');
+      const deskError = document.getElementById('deskError');
+      const deskIssuerNotice = document.getElementById('deskIssuerNotice');
+      const deskSummary = document.getElementById('deskSummary');
+      const deskCapabilities = document.getElementById('deskCapabilities');
+      const deskRelatedEmpty = document.getElementById('deskRelatedEmpty');
+      const deskRelatedTable = document.getElementById('deskRelatedTable');
+      const deskRelatedBody = document.getElementById('deskRelatedBody');
+      const deskPreviewWrap = document.getElementById('deskPreviewWrap');
+      const deskPreview = document.getElementById('deskPreview');
+
+      function esc(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      deskPng.addEventListener('change', () => {
+        const file = deskPng.files[0];
+        if (!file) {
+          deskPreviewWrap.classList.add('d-none');
+          deskPreview.removeAttribute('src');
+          return;
+        }
+
+        const previewUrl = URL.createObjectURL(file);
+        deskPreview.src = previewUrl;
+        deskPreviewWrap.classList.remove('d-none');
+      });
+
+      deskForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const file = deskPng.files[0];
+        if (!file) return;
+
+        deskResult.classList.remove('d-none');
+        deskError.classList.add('d-none');
+        deskError.textContent = '';
+        deskIssuerNotice.className = 'alert d-none';
+        deskIssuerNotice.textContent = '';
+        deskStatus.className = 'badge text-bg-secondary';
+        deskStatus.textContent = 'Analyse en cours';
+        deskSummary.innerHTML = '';
+        deskCapabilities.innerHTML = '';
+        deskRelatedBody.innerHTML = '';
+        deskRelatedTable.classList.add('d-none');
+        deskRelatedEmpty.classList.remove('d-none');
+
+        const formData = new FormData();
+        formData.append('badge', file);
+
+        const response = await fetch('/api/verify-desk/png', { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (!data.valid) {
+          deskStatus.className = 'badge text-bg-danger';
+          deskStatus.textContent = 'Invalide';
+          deskError.classList.remove('d-none');
+          deskError.textContent = data.error || 'Vérification impossible';
+          return;
+        }
+
+        deskStatus.className = 'badge text-bg-success';
+        deskStatus.textContent = 'Valide';
+
+        const issuerCheck = data.issuer_check || {};
+        deskIssuerNotice.classList.remove('d-none');
+        deskIssuerNotice.classList.add(issuerCheck.is_local ? 'alert-success' : 'alert-warning');
+        deskIssuerNotice.innerHTML = `<strong>${esc(issuerCheck.label || 'organisme')}</strong> : ${esc(issuerCheck.message || 'Émetteur non déterminé')}`;
+
+        const summary = data.summary || {};
+        const recipientDisplay = data.recipient_display || {};
+        deskSummary.innerHTML = [
+          ['Assertion ID', data.assertion_id || summary.assertion_id || '—'],
+          ['Nom / prénom', recipientDisplay.name || '—'],
+          ['Email', recipientDisplay.email || '—'],
+          ['Badge', summary.badge_name || '—'],
+          ['Issuer', issuerCheck.label || '—'],
+          ['Organisation émettrice', issuerCheck.organization_label || '—'],
+          ['Date de délivrance', recipientDisplay.issued_on || summary.issued_on || '—'],
+        ].map(([label, value]) => `
+          <div class="border rounded-3 p-3 bg-light">
+            <div class="small text-muted">${esc(label)}</div>
+            <div class="fw-semibold ${label.includes('ID') ? 'mono small' : ''}">${esc(value)}</div>
+          </div>
+        `).join('');
+
+        const capabilities = data.search_capabilities || {};
+        deskCapabilities.innerHTML = [
+          `Recherche par email disponible : <strong>${capabilities.can_find_related_by_email ? 'oui' : 'non'}</strong>`,
+          `Recherche par nom disponible : <strong>${capabilities.can_find_related_by_name ? 'oui' : 'non'}</strong>`,
+        ].map((item) => `<li>${item}</li>`).join('');
+
+        const related = data.related_badges || [];
+        if (!related.length) {
+          deskRelatedEmpty.classList.remove('d-none');
+          deskRelatedTable.classList.add('d-none');
+          return;
+        }
+
+        deskRelatedEmpty.classList.add('d-none');
+        deskRelatedTable.classList.remove('d-none');
+        deskRelatedBody.innerHTML = related.map((item) => {
+          const match = [
+            item.match?.email ? 'email' : null,
+            item.match?.name ? 'name' : null,
+          ].filter(Boolean).join(', ');
+
+          return `
+            <tr>
+              <td class="mono small">${esc(item.assertion_id)}</td>
+              <td>${esc(item.recipient_name || '—')}</td>
+              <td>${esc(item.recipient_email || '—')}</td>
+              <td>${esc(item.badge_name || '—')}</td>
+              <td>${esc(item.issuer_name || '—')}</td>
+              <td>${esc(item.issued_on || '—')}</td>
+              <td>${esc(match || '—')}</td>
+              <td>
+                <div class="d-flex gap-2 flex-wrap">
+                  <a class="btn btn-sm btn-outline-secondary" href="${esc(item.verification_page_url)}" target="_blank">Voir</a>
+                  <a class="btn btn-sm btn-outline-primary" href="${esc(item.json_url)}" target="_blank">JSON</a>
+                  ${item.png_url ? `<a class="btn btn-sm btn-outline-success" href="${esc(item.png_url)}" target="_blank">PNG</a>` : ''}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      });
+    </script>
+  </body>
+</html>
