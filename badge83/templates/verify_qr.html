@@ -177,8 +177,12 @@
             <div class="value">{{ badge.issuer_label }}</div>
           </div>
           <div class="fact">
-            <div class="label">Organisation</div>
-            <div class="value">{{ badge.organization_label }}</div>
+            <div class="label">Titulaire</div>
+            <div class="value">{{ badge.recipient_name }}</div>
+          </div>
+          <div class="fact">
+            <div class="label">Email</div>
+            <div class="value">{{ badge.recipient_email }}</div>
           </div>
           <div class="fact">
             <div class="label">Date de délivrance</div>
@@ -201,9 +205,6 @@
         </div>
 
         <div class="actions">
-          {% if badge and badge.raw_assertion_url %}
-          <a class="btn btn-primary" href="{{ badge.raw_assertion_url }}" target="_blank">Ouvrir l’assertion brute</a>
-          {% endif %}
           {% if badge and badge.full_verification_url %}
           <a class="btn btn-secondary" href="{{ badge.full_verification_url }}">Ouvrir la page de vérification complète</a>
           {% endif %}

@@ -125,6 +125,11 @@ async def verify_badge_qr_page(request: Request, assertion_id: str):
         return templates.TemplateResponse("verify_qr.html", context, status_code=404)
 
     issuer_check = _build_issuer_check(record.get("assertion") or {})
+    admin_recipient = (
+        record.get("assertion", {}).get("admin_recipient", {})
+        if isinstance(record.get("assertion"), dict)
+        else {}
+    )
     is_valid = bool(record.get("has_json"))
     is_mode83 = bool(issuer_check.get("is_local"))
 
@@ -157,9 +162,9 @@ async def verify_badge_qr_page(request: Request, assertion_id: str):
             "is_valid": is_valid,
             "is_mode83": is_mode83,
             "issuer_label": issuer_check.get("label") or record.get("issuer_name"),
-            "organization_label": issuer_check.get("organization_label") or record.get("issuer_name"),
             "issued_on_display": _format_display_date(record.get("issued_on")),
-            "raw_assertion_url": record.get("public_assertion_url"),
+            "recipient_name": admin_recipient.get("name") or "Non disponible",
+            "recipient_email": admin_recipient.get("email") or "Non disponible",
             "full_verification_url": f"/verify/badge/{assertion_id}",
         },
     }

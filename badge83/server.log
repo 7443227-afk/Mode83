@@ -1,19 +1,13 @@
-INFO:     Started server process [819797]
+INFO:     Started server process [826452]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     82.122.8.33:58164 - "GET /verify/qr/8cf3e60f-51e0-4b07-bcf6-c28f7ece1c04 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58168 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58168 - "GET /api/badges/f319390f-2335-45b7-8c99-9b42dd7f80db HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58168 - "GET /api/badges/f319390f-2335-45b7-8c99-9b42dd7f80db/png HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58176 - "POST /issue-baked HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58176 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58193 - "GET /verify/qr/08b516ae-8085-410f-a98a-f0c43b615e82 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58197 - "GET /verify/qr/08b516ae-8085-410f-a98a-f0c43b615e82 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57212 - "GET /verify/qr/70fa66ab-c40c-4738-9354-234a75030a18 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57218 - "GET /verify/qr/70fa66ab-c40c-4738-9354-234a75030a18 HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58492 - "GET /verify/qr/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37896 - "GET /verify/qr/70fa66ab-c40c-4738-9354-234a75030a18 HTTP/1.1" 200 OK
 WARNING:  Invalid HTTP request received.
 WARNING:  Invalid HTTP request received.
 WARNING:  Invalid HTTP request received.
 WARNING:  Invalid HTTP request received.
-INFO:     82.122.8.33:58200 - "GET /verify/qr/f319390f-2335-45b7-8c99-9b42dd7f80db HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42886 - "GET /verify/qr/70fa66ab-c40c-4738-9354-234a75030a18 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:47956 - "GET /verify/qr/70fa66ab-c40c-4738-9354-234a75030a18 HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58502 - "GET /verify/badge/5c2fc15d-97ef-4b36-a479-483649d81132 HTTP/1.1" 200 OK
