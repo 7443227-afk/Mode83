@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Badge83 QR Verification</title>
+    <title>Badge83 Vérification QR</title>
     <style>
       :root {
         --ok: #16a34a;
@@ -155,7 +155,7 @@
     <main class="page">
       <section class="card">
         <header class="hero {{ hero_tone }}">
-          <div class="brand">Badge83 · Mobile verification</div>
+          <div class="brand">Badge83 · Vérification mobile</div>
           <div class="status-icon">{{ status_icon }}</div>
           <h1>{{ status_title }}</h1>
           <p class="subtitle">{{ status_message }}</p>
@@ -164,7 +164,7 @@
         <div class="content">
           {% if not_found %}
           <div class="fact">
-            <div class="label">Badge ID</div>
+            <div class="label">Identifiant du badge</div>
             <div class="value mono">{{ assertion_id }}</div>
           </div>
           {% else %}
@@ -173,7 +173,7 @@
             <div class="value">{{ badge.badge_name }}</div>
           </div>
           <div class="fact">
-            <div class="label">Issuer</div>
+            <div class="label">Émetteur</div>
             <div class="value">{{ badge.issuer_label }}</div>
           </div>
           <div class="fact">
@@ -181,20 +181,20 @@
             <div class="value">{{ badge.organization_label }}</div>
           </div>
           <div class="fact">
-            <div class="label">Issued on</div>
+            <div class="label">Date de délivrance</div>
             <div class="value">{{ badge.issued_on_display }}</div>
           </div>
           <div class="fact">
-            <div class="label">Assertion ID</div>
+            <div class="label">Identifiant de l’assertion</div>
             <div class="value mono">{{ assertion_id }}</div>
           </div>
 
           <div class="chips">
             <div class="chip {{ 'ok' if badge.is_valid else 'bad' }}">
-              {{ 'Verification passed' if badge.is_valid else 'Verification failed' }}
+              {{ 'Vérification réussie' if badge.is_valid else 'Vérification échouée' }}
             </div>
             <div class="chip {{ 'ok' if badge.is_mode83 else 'warn' }}">
-              {{ 'Issued by MODE83' if badge.is_mode83 else 'External issuer' }}
+              {{ 'Émis par MODE83' if badge.is_mode83 else 'Émetteur externe' }}
             </div>
           </div>
           {% endif %}
@@ -202,10 +202,10 @@
 
         <div class="actions">
           {% if badge and badge.raw_assertion_url %}
-          <a class="btn btn-primary" href="{{ badge.raw_assertion_url }}" target="_blank">Open raw assertion</a>
+          <a class="btn btn-primary" href="{{ badge.raw_assertion_url }}" target="_blank">Ouvrir l’assertion brute</a>
           {% endif %}
           {% if badge and badge.full_verification_url %}
-          <a class="btn btn-secondary" href="{{ badge.full_verification_url }}">Open full verification page</a>
+          <a class="btn btn-secondary" href="{{ badge.full_verification_url }}">Ouvrir la page de vérification complète</a>
           {% endif %}
         </div>
       </section>

@@ -7,15 +7,33 @@ VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
 APP_MODULE="app.main:app"
 PID_FILE="$PROJECT_DIR/server.pid"
 LOG_FILE="$PROJECT_DIR/server.log"
+CONFIG_FILE="$PROJECT_DIR/badge83.env"
 
 DEFAULT_HOST="0.0.0.0"
 DEFAULT_PORT="8000"
-DEFAULT_BASE_URL="http://mode83.ddns.net"
+DEFAULT_PUBLIC_SCHEME="http"
+DEFAULT_PUBLIC_HOST="mode83.ddns.net"
 DEFAULT_SEARCH_PEPPER="badge83-dev-search-pepper"
+
+if [ -f "$CONFIG_FILE" ]; then
+  # shellcheck disable=SC1090
+  set -a
+  source "$CONFIG_FILE"
+  set +a
+fi
 
 HOST="${BADGE83_HOST:-$DEFAULT_HOST}"
 PORT="${BADGE83_PORT:-$DEFAULT_PORT}"
-BASE_URL="${BADGE83_BASE_URL:-$DEFAULT_BASE_URL}"
+PUBLIC_SCHEME="${BADGE83_PUBLIC_SCHEME:-$DEFAULT_PUBLIC_SCHEME}"
+PUBLIC_HOST="${BADGE83_PUBLIC_HOST:-$DEFAULT_PUBLIC_HOST}"
+PUBLIC_PORT="${BADGE83_PUBLIC_PORT:-$PORT}"
+if [ -n "${BADGE83_BASE_URL:-}" ]; then
+  BASE_URL="${BADGE83_BASE_URL%/}"
+elif { [ "$PUBLIC_SCHEME" = "http" ] && [ "$PUBLIC_PORT" = "80" ]; } || { [ "$PUBLIC_SCHEME" = "https" ] && [ "$PUBLIC_PORT" = "443" ]; }; then
+  BASE_URL="$PUBLIC_SCHEME://$PUBLIC_HOST"
+else
+  BASE_URL="$PUBLIC_SCHEME://$PUBLIC_HOST:$PUBLIC_PORT"
+fi
 SEARCH_PEPPER="${BADGE83_SEARCH_PEPPER:-$DEFAULT_SEARCH_PEPPER}"
 
 usage() {
@@ -29,16 +47,23 @@ Usage:
   ./badge83.sh status
   ./badge83.sh logs
 
+Configuration file:
+  $CONFIG_FILE
+
 Optional environment variables:
   BADGE83_HOST      Host to bind (default: $DEFAULT_HOST)
   BADGE83_PORT      Port to bind (default: $DEFAULT_PORT)
-  BADGE83_BASE_URL  Public base URL embedded in badges (default: $DEFAULT_BASE_URL)
+  BADGE83_BASE_URL  Explicit public base URL embedded in badges
+  BADGE83_PUBLIC_SCHEME  Public scheme if BADGE83_BASE_URL is not set (default: $DEFAULT_PUBLIC_SCHEME)
+  BADGE83_PUBLIC_HOST    Public hostname if BADGE83_BASE_URL is not set (default: $DEFAULT_PUBLIC_HOST)
+  BADGE83_PUBLIC_PORT    Public port if BADGE83_BASE_URL is not set (default: BADGE83_PORT)
   BADGE83_SEARCH_PEPPER  Stable pepper for admin search hashes
 
 Examples:
   ./badge83.sh start
-  BADGE83_BASE_URL=http://mode83.ddns.net ./badge83.sh restart
-  BADGE83_PORT=8010 BADGE83_BASE_URL=http://mode83.ddns.net:8010 ./badge83.sh start
+  BADGE83_PUBLIC_HOST=mode83.ddns.net ./badge83.sh restart
+  BADGE83_PORT=8010 BADGE83_PUBLIC_PORT=8010 ./badge83.sh start
+  BADGE83_PUBLIC_SCHEME=https BADGE83_PUBLIC_PORT=443 ./badge83.sh start
 USAGE
 }
 

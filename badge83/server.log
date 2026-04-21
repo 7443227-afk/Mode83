@@ -1,23 +1,19 @@
-INFO:     Started server process [778339]
+INFO:     Started server process [819797]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:36180 - "GET /verify/qr/e1bd91e7-a912-4067-88f5-c8fbc80008d6 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58795 - "GET /verify/badge/e1bd91e7-a912-4067-88f5-c8fbc80008d6 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58795 - "GET / HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58791 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58795 - "GET /api/badges/8cf3e60f-51e0-4b07-bcf6-c28f7ece1c04 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58791 - "GET /api/badges/8cf3e60f-51e0-4b07-bcf6-c28f7ece1c04/png HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58796 - "POST /issue-baked HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58796 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58798 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:58798 - "GET /api/badges/8cf3e60f-51e0-4b07-bcf6-c28f7ece1c04 HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58164 - "GET /verify/qr/8cf3e60f-51e0-4b07-bcf6-c28f7ece1c04 HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58168 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58168 - "GET /api/badges/f319390f-2335-45b7-8c99-9b42dd7f80db HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58168 - "GET /api/badges/f319390f-2335-45b7-8c99-9b42dd7f80db/png HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58176 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58176 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58193 - "GET /verify/qr/08b516ae-8085-410f-a98a-f0c43b615e82 HTTP/1.1" 200 OK
+INFO:     82.122.8.33:58197 - "GET /verify/qr/08b516ae-8085-410f-a98a-f0c43b615e82 HTTP/1.1" 200 OK
 WARNING:  Invalid HTTP request received.
 WARNING:  Invalid HTTP request received.
 WARNING:  Invalid HTTP request received.
 WARNING:  Invalid HTTP request received.
-INFO:     82.122.8.33:58799 - "GET /verify/qr/8cf3e60f-51e0-4b07-bcf6-c28f7ece1c04 HTTP/1.1" 200 OK
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [778339]
+INFO:     82.122.8.33:58200 - "GET /verify/qr/f319390f-2335-45b7-8c99-9b42dd7f80db HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42886 - "GET /verify/qr/70fa66ab-c40c-4738-9354-234a75030a18 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47956 - "GET /verify/qr/70fa66ab-c40c-4738-9354-234a75030a18 HTTP/1.1" 200 OK

@@ -88,6 +88,24 @@ chmod +x badge83.sh
 ./badge83.sh stop
 ```
 
+Le script charge automatiquement, si présent, le fichier de configuration :
+
+```text
+badge83/badge83.env
+```
+
+Exemple de paramètres actuellement utilisés :
+
+```text
+BADGE83_HOST=0.0.0.0
+BADGE83_PORT=8000
+BADGE83_PUBLIC_SCHEME=http
+BADGE83_PUBLIC_HOST=mode83.ddns.net
+BADGE83_PUBLIC_PORT=8000
+```
+
+Cela permet de corriger les QR codes pour l’environnement actuel (`:8000`) tout en gardant une configuration portable pour la production.
+
 Par défaut, le script :
 
 - utilise le virtualenv du projet (`.venv`) ;

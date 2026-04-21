@@ -25,7 +25,29 @@ BAKED_DIR = DATA_BASE / "baked"
 # ---------------------------------------------------------------------------
 # Base URL configuration (via environment variable)
 # ---------------------------------------------------------------------------
-BASE_URL = os.environ.get("BADGE83_BASE_URL", "http://mode83.ddns.net")
+def _compose_public_base_url() -> str:
+    explicit_base_url = os.environ.get("BADGE83_BASE_URL")
+    if explicit_base_url:
+        return explicit_base_url.rstrip("/")
+
+    public_scheme = os.environ.get("BADGE83_PUBLIC_SCHEME", "http").strip() or "http"
+    public_host = os.environ.get("BADGE83_PUBLIC_HOST", "mode83.ddns.net").strip() or "mode83.ddns.net"
+    public_port = os.environ.get("BADGE83_PUBLIC_PORT") or os.environ.get("BADGE83_PORT") or "8000"
+
+    try:
+        port_value = int(str(public_port).strip())
+    except Exception:
+        port_value = 8000
+
+    is_standard_port = (public_scheme == "http" and port_value == 80) or (
+        public_scheme == "https" and port_value == 443
+    )
+    if is_standard_port:
+        return f"{public_scheme}://{public_host}"
+    return f"{public_scheme}://{public_host}:{port_value}"
+
+
+BASE_URL = _compose_public_base_url()
 OB_CONTENT_TYPE = 'application/ld+json; profile="https://w3id.org/openbadges/v2"'
 
 # ---------------------------------------------------------------------------

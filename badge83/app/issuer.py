@@ -20,12 +20,34 @@ BADGECLASS_TEMPLATE = BASE_DIR / "badgeclass_template.json"
 BADGE_PNG = BASE_DIR / "badge.png"
 
 # URL de base pour les endpoints publics (doit correspondre à main.py)
-DEFAULT_BASE_URL = "http://mode83.ddns.net"
+DEFAULT_BASE_URL = "http://mode83.ddns.net:8000"
 DEFAULT_SEARCH_PEPPER = "badge83-dev-search-pepper"
 
 
+def _compose_public_base_url() -> str:
+    explicit_base_url = os.environ.get("BADGE83_BASE_URL")
+    if explicit_base_url:
+        return explicit_base_url.rstrip("/")
+
+    public_scheme = os.environ.get("BADGE83_PUBLIC_SCHEME", "http").strip() or "http"
+    public_host = os.environ.get("BADGE83_PUBLIC_HOST", "mode83.ddns.net").strip() or "mode83.ddns.net"
+    public_port = os.environ.get("BADGE83_PUBLIC_PORT") or os.environ.get("BADGE83_PORT") or "8000"
+
+    try:
+        port_value = int(str(public_port).strip())
+    except Exception:
+        port_value = 8000
+
+    is_standard_port = (public_scheme == "http" and port_value == 80) or (
+        public_scheme == "https" and port_value == 443
+    )
+    if is_standard_port:
+        return f"{public_scheme}://{public_host}"
+    return f"{public_scheme}://{public_host}:{port_value}"
+
+
 def get_base_url() -> str:
-    return os.environ.get("BADGE83_BASE_URL", DEFAULT_BASE_URL)
+    return _compose_public_base_url() or DEFAULT_BASE_URL
 
 
 def get_search_pepper() -> str:
