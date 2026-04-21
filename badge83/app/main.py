@@ -84,6 +84,66 @@ async def verify_badge_page(request: Request, assertion_id: str):
     return templates.TemplateResponse("verify_badge.html", context)
 
 
+@app.get("/verify/qr/{assertion_id}", response_class=HTMLResponse)
+async def verify_badge_qr_page(request: Request, assertion_id: str):
+    """Affiche une page mobile minimale pour une vérification par QR."""
+    record = _collect_badge_record(assertion_id)
+
+    if record is None:
+        context = {
+            "request": request,
+            "assertion_id": assertion_id,
+            "not_found": True,
+            "hero_tone": "bad",
+            "status_icon": "✕",
+            "status_title": "Badge introuvable",
+            "status_message": "Aucune preuve locale n’a été trouvée pour cet identifiant.",
+            "badge": None,
+        }
+        return templates.TemplateResponse("verify_qr.html", context, status_code=404)
+
+    issuer_check = _build_issuer_check(record.get("assertion") or {})
+    is_valid = bool(record.get("has_json"))
+    is_mode83 = bool(issuer_check.get("is_local"))
+
+    if is_valid and is_mode83:
+        hero_tone = "ok"
+        status_icon = "✓"
+        status_title = "Badge vérifié"
+        status_message = "Badge valide et émis par MODE83."
+    elif is_valid:
+        hero_tone = "warn"
+        status_icon = "!"
+        status_title = "Badge valide"
+        status_message = "Badge valide, mais émis par un autre organisme."
+    else:
+        hero_tone = "bad"
+        status_icon = "✕"
+        status_title = "Vérification incomplète"
+        status_message = "Les preuves attendues sont incomplètes pour ce badge."
+
+    context = {
+        "request": request,
+        "assertion_id": assertion_id,
+        "not_found": False,
+        "hero_tone": hero_tone,
+        "status_icon": status_icon,
+        "status_title": status_title,
+        "status_message": status_message,
+        "badge": {
+            **record,
+            "is_valid": is_valid,
+            "is_mode83": is_mode83,
+            "issuer_label": issuer_check.get("label") or record.get("issuer_name"),
+            "organization_label": issuer_check.get("organization_label") or record.get("issuer_name"),
+            "issued_on_display": _format_display_date(record.get("issued_on")),
+            "raw_assertion_url": record.get("public_assertion_url"),
+            "full_verification_url": f"/verify/badge/{assertion_id}",
+        },
+    }
+    return templates.TemplateResponse("verify_qr.html", context)
+
+
 @app.get("/verify-desk", response_class=HTMLResponse)
 async def verify_desk_page(request: Request):
     """Affiche une page de vérification simplifiée pour un usage secrétariat."""

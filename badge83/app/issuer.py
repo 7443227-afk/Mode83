@@ -10,6 +10,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.baker import bake_badge, bake_badge_from_bytes
+from app.qr import make_verification_qr_url, overlay_qr_on_badge
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "issued"
 BAKED_DIR = Path(__file__).resolve().parent.parent / "data" / "baked"
@@ -19,8 +20,16 @@ BADGECLASS_TEMPLATE = BASE_DIR / "badgeclass_template.json"
 BADGE_PNG = BASE_DIR / "badge.png"
 
 # URL de base pour les endpoints publics (doit correspondre à main.py)
-BASE_URL = os.environ.get("BADGE83_BASE_URL", "http://mode83.ddns.net")
-SEARCH_PEPPER = os.environ.get("BADGE83_SEARCH_PEPPER", "badge83-dev-search-pepper")
+DEFAULT_BASE_URL = "http://mode83.ddns.net"
+DEFAULT_SEARCH_PEPPER = "badge83-dev-search-pepper"
+
+
+def get_base_url() -> str:
+    return os.environ.get("BADGE83_BASE_URL", DEFAULT_BASE_URL)
+
+
+def get_search_pepper() -> str:
+    return os.environ.get("BADGE83_SEARCH_PEPPER", DEFAULT_SEARCH_PEPPER)
 
 
 def _build_baked_download_filename(issued_on: str) -> str:
@@ -39,7 +48,7 @@ def _build_baked_download_filename(issued_on: str) -> str:
 def _load_template(path: Path) -> dict:
     """Charge un template JSON et remplace ${BASE_URL} par la valeur réelle."""
     content = path.read_text(encoding="utf-8")
-    content = content.replace("${BASE_URL}", BASE_URL)
+    content = content.replace("${BASE_URL}", get_base_url())
     return json.loads(content)
 
 
@@ -63,7 +72,7 @@ def normalize_name(name: str) -> str:
 
 def make_search_hash(value: str) -> str:
     normalized_value = value.encode("utf-8")
-    return "sha256$" + sha256(normalized_value + SEARCH_PEPPER.encode("utf-8")).hexdigest()
+    return "sha256$" + sha256(normalized_value + get_search_pepper().encode("utf-8")).hexdigest()
 
 
 def make_search_metadata(name: str, email: str) -> dict:
@@ -100,9 +109,10 @@ def issue_badge(name: str, email: str) -> dict:
     issued_on = datetime.now(timezone.utc).isoformat()
 
     # URLs de référence pour HostedBadge
-    issuer_url = f"{BASE_URL}/issuers/main"
-    badge_url = f"{BASE_URL}/badges/blockchain-foundations"
-    assertion_url = f"{BASE_URL}/assertions/{assertion_id}"
+    base_url = get_base_url()
+    issuer_url = f"{base_url}/issuers/main"
+    badge_url = f"{base_url}/badges/blockchain-foundations"
+    assertion_url = f"{base_url}/assertions/{assertion_id}"
 
     badge_data = {
         "@context": "https://w3id.org/openbadges/v2",
@@ -153,9 +163,11 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
     baked_download_filename = _build_baked_download_filename(issued_on)
 
     # URLs de référence pour HostedBadge
-    issuer_url = f"{BASE_URL}/issuers/main"
-    badge_url = f"{BASE_URL}/badges/blockchain-foundations"
-    assertion_url = f"{BASE_URL}/assertions/{assertion_id}"
+    base_url = get_base_url()
+    issuer_url = f"{base_url}/issuers/main"
+    badge_url = f"{base_url}/badges/blockchain-foundations"
+    assertion_url = f"{base_url}/assertions/{assertion_id}"
+    verification_page_url = make_verification_qr_url(base_url, assertion_id)
 
     assertion = {
         "@context": "https://w3id.org/openbadges/v2",
@@ -179,11 +191,14 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
     with badge_path.open("w", encoding="utf-8") as file:
         json.dump(assertion, file, ensure_ascii=False, indent=2)
 
-    # Baking dans le PNG
+    # Composition visuelle du badge avec QR avant baking Open Badges.
     if png_data:
-        baked_png = bake_badge_from_bytes(png_data, assertion)
+        source_png = png_data
     else:
-        baked_png = bake_badge(BADGE_PNG, assertion)
+        source_png = BADGE_PNG.read_bytes()
+
+    qr_ready_png = overlay_qr_on_badge(source_png, verification_page_url)
+    baked_png = bake_badge_from_bytes(qr_ready_png, assertion)
 
     baked_path = BAKED_DIR / f"{assertion_id}.png"
     baked_path.write_bytes(baked_png)
@@ -194,6 +209,7 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         "baked_png_path": str(baked_path),
         "baked_download_filename": baked_download_filename,
         "baked_png_bytes": baked_png,
+        "verification_page_url": verification_page_url,
         "issuer": issuer,
         "badgeclass": badgeclass,
     }

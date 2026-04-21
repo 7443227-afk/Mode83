@@ -9,6 +9,7 @@ Il permet d'émettre et de vérifier des assertions conformes au modèle Open Ba
 
 - Émettre une assertion Open Badge (`POST /issue`) à partir de `name` et `email`.
 - Émettre un badge **baked** dans un PNG (`POST /issue-baked`) — l'assertion JSON est injectée dans l'image via un chunk `tEXt` conforme au standard Open Badges.
+- Ajouter automatiquement un **QR code visible** sur les badges PNG baked, pointant vers la page publique de vérification humaine.
 - Vérifier une assertion par ID (`GET /verify/{id}` ou `GET /verify?badge_id=...`).
 - Vérifier un badge baked depuis un fichier PNG uploadé (`POST /verify-baked`) — extraction automatique de l'assertion depuis le chunk `openbadges`.
 - **Endpoints publics HostedBadge** — Servir l'Issuer, le BadgeClass et les Assertions via des URLs HTTP publiques pour validation externe (ex. `validator.openbadges.org`).
@@ -177,6 +178,28 @@ Réponse attendue pour un badge inexistant :
 ```json
 {"valid": false, "badge": null}
 ```
+
+### QR code sur les badges PNG
+
+Les badges émis via `POST /issue-baked` embarquent maintenant un **QR code visible** dans l'image.
+
+Le QR code :
+
+- est ajouté visuellement sur le badge avant le baking Open Badges ;
+- pointe vers une **page mobile de vérification** de type :
+
+```text
+<BADGE83_BASE_URL>/verify/qr/<assertion_id>
+```
+
+- permet un scan rapide depuis un smartphone ;
+- affiche un statut de vérification très visuel avec codes couleur ;
+- ne remplace pas l'assertion Open Badges, qui reste injectée séparément dans les métadonnées PNG.
+
+Cette séparation garantit que :
+
+- le QR sert d'entrée UX vers une page mobile minimale ;
+- le chunk `openbadges` continue d'assurer la compatibilité avec le flux baked / unbake standard.
 
 ### Endpoints publics (HostedBadge)
 
