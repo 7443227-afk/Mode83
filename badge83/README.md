@@ -49,15 +49,33 @@ mode83/
 - `python3`
 - accès à `pip` / création de virtualenv (`python3 -m venv`)
 
+## Environnement de travail standardisé
+
+Le projet **Badge83** doit être utilisé via un environnement virtuel local `.venv` situé à la racine de l'espace de travail :
+
+```text
+/home/ubuntu/projects/Mode83/.venv
+```
+
+Ce virtualenv n'est pas réservé aux tests : il sert aussi au **lancement normal du projet**, à l'installation des dépendances, à l'exécution des scripts et au démarrage du serveur.
+
 ## Installation et lancement
 
-Depuis `mode83/badge83` :
+Depuis `/home/ubuntu/projects/Mode83` :
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+.venv/bin/pip install -r badge83/requirements.txt
 ```
+
+Si vous préférez activer l'environnement :
+
+```bash
+source /home/ubuntu/projects/Mode83/.venv/bin/activate
+pip install -r /home/ubuntu/projects/Mode83/badge83/requirements.txt
+```
+
+Toutes les commandes ci-dessous peuvent alors être lancées soit avec l'environnement activé, soit en appelant explicitement `.venv/bin/python`.
 
 ### Configuration de l'URL publique
 
@@ -73,7 +91,7 @@ cp .env.example .env
 
 ```bash
 export BADGE83_BASE_URL=http://mode83.ddns.net  # ou votre URL publique
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+/home/ubuntu/projects/Mode83/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### Script de gestion du serveur
@@ -108,7 +126,7 @@ Cela permet de corriger les QR codes pour l’environnement actuel (`:8000`) tou
 
 Par défaut, le script :
 
-- utilise le virtualenv du projet (`.venv`) ;
+- utilise le virtualenv standardisé de l'espace de travail (`/home/ubuntu/projects/Mode83/.venv`) ;
 - démarre `uvicorn` sur `0.0.0.0:8000` ;
 - injecte `BADGE83_BASE_URL` avec une valeur par défaut configurable ;
 - écrit le PID dans `server.pid` ;
@@ -135,7 +153,22 @@ BADGE83_BASE_URL=http://mode83.ddns.net:8010 \
 Si le port `8000` est déjà utilisé, choisissez un autre port :
 
 ```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8010 --reload
+/home/ubuntu/projects/Mode83/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8010 --reload
+```
+
+## Exécution des tests
+
+Depuis la racine de l'espace de travail :
+
+```bash
+/home/ubuntu/projects/Mode83/.venv/bin/python -m pytest /home/ubuntu/projects/Mode83/badge83/tests -q
+```
+
+Ou, si le virtualenv est activé :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+pytest tests -q
 ```
 
 ## Utilisation
@@ -216,8 +249,8 @@ Le QR code :
 
 Cette séparation garantit que :
 
-- le QR sert d'entrée UX vers une page mobile minimale ;
-- le chunk `openbadges` continue d'assurer la compatibilité avec le flux baked / unbake standard.
+- le QR sert de point d'entrée utilisateur vers une page mobile minimale ;
+- le chunk `openbadges` continue d'assurer la compatibilité avec le flux baked / unbake standardisé.
 
 ### Endpoints publics (HostedBadge)
 

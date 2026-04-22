@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from app.baker import unbake_badge
-
-DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "issued"
+from app.config import ISSUED_DIR as DATA_DIR
 
 
 def verify_badge(badge_id: str) -> dict:
@@ -55,7 +53,7 @@ def verify_baked_badge(png_data: bytes) -> dict:
         return {"valid": False, "error": str(exc), "assertion": None}
 
     if assertion.get("type") != "Assertion":
-        return {"valid": False, "error": "Not a valid Open Badges Assertion", "assertion": None}
+        return {"valid": False, "error": "Ce document n'est pas une assertion Open Badges valide", "assertion": None}
 
     badge_id = assertion.get("id", "unknown")
     badge_ref = assertion.get("badge", "")

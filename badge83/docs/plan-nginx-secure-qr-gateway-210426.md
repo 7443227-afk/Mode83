@@ -310,3 +310,5 @@ Le résultat attendu est une architecture dans laquelle :
 - le reste de l’application n’est pas exposé directement ;
 - l’accès au portail de gestion devient conditionnel ;
 - la machine est prête à héberger plusieurs services derrière un point d’entrée HTTPS unique.
+
+   functi

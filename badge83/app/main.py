@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
-from pathlib import Path
 from typing import Any
 
 import httpx
@@ -13,45 +11,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse
 from fastapi.templating import Jinja2Templates
 
+from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_public_base_url
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
 from app.verifier import verify_badge, verify_baked_badge
 
 app = FastAPI(title="Badge 83")
 templates = Jinja2Templates(directory="templates")
-DATA_BASE = Path(__file__).resolve().parent.parent / "data"
-ISSUED_DIR = DATA_BASE / "issued"
-BAKED_DIR = DATA_BASE / "baked"
 
-# ---------------------------------------------------------------------------
-# Base URL configuration (via environment variable)
-# ---------------------------------------------------------------------------
+
 def _compose_public_base_url() -> str:
-    explicit_base_url = os.environ.get("BADGE83_BASE_URL")
-    if explicit_base_url:
-        return explicit_base_url.rstrip("/")
-
-    public_scheme = os.environ.get("BADGE83_PUBLIC_SCHEME", "http").strip() or "http"
-    public_host = os.environ.get("BADGE83_PUBLIC_HOST", "mode83.ddns.net").strip() or "mode83.ddns.net"
-    public_port = os.environ.get("BADGE83_PUBLIC_PORT") or os.environ.get("BADGE83_PORT") or "8000"
-
-    try:
-        port_value = int(str(public_port).strip())
-    except Exception:
-        port_value = 8000
-
-    is_standard_port = (public_scheme == "http" and port_value == 80) or (
-        public_scheme == "https" and port_value == 443
-    )
-    if is_standard_port:
-        return f"{public_scheme}://{public_host}"
-    return f"{public_scheme}://{public_host}:{port_value}"
+    return get_public_base_url()
 
 
 BASE_URL = _compose_public_base_url()
 OB_CONTENT_TYPE = 'application/ld+json; profile="https://w3id.org/openbadges/v2"'
 
 # ---------------------------------------------------------------------------
-# CORS — allow external validators (e.g. validator.openbadges.org) to fetch resources
+# CORS — autoriser les validateurs externes (ex. validator.openbadges.org) à récupérer les ressources
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -79,7 +55,7 @@ async def verify_badge_page(request: Request, assertion_id: str):
             "assertion_id": assertion_id,
             "not_found": True,
             "status": "not_found",
-            "status_label": "Badge not found",
+            "status_label": "Badge introuvable",
             "status_tone": "warning",
             "badge": None,
         }
@@ -87,7 +63,7 @@ async def verify_badge_page(request: Request, assertion_id: str):
 
     public_assertion_url = record.get("public_assertion_url")
     status = "valid" if record.get("has_json") else "partial"
-    status_label = "Valid badge" if status == "valid" else "Incomplete record"
+    status_label = "Badge valide" if status == "valid" else "Enregistrement incomplet"
     status_tone = "success" if status == "valid" else "secondary"
 
     context = {
@@ -472,14 +448,14 @@ async def api_search_badges(query: str):
 
 @app.post("/api/verify-desk/png")
 async def api_verify_desk_png(badge: UploadFile = File(...)):
-    """Workflow simplifié: upload PNG, vérification et recherche de certificats liés."""
+    """Workflow simplifié : upload PNG, vérification et recherche de certificats liés."""
     png_data = await badge.read()
     result = verify_baked_badge(png_data)
 
     if not result.get("valid"):
         return {
             "valid": False,
-            "error": result.get("error", "Unable to verify PNG"),
+            "error": result.get("error", "Impossible de vérifier le PNG"),
             "summary": None,
             "related_badges": [],
         }
@@ -515,7 +491,7 @@ async def api_verify_desk_png(badge: UploadFile = File(...)):
 async def api_get_badge(assertion_id: str):
     record = _collect_badge_record(assertion_id)
     if not record:
-        raise HTTPException(status_code=404, detail="Badge not found")
+        raise HTTPException(status_code=404, detail="Badge introuvable")
 
     png_inspection = None
     png_path = BAKED_DIR / f"{assertion_id}.png"
@@ -533,7 +509,7 @@ async def api_get_badge(assertion_id: str):
 async def api_download_badge_json(assertion_id: str):
     file_path = ISSUED_DIR / f"{assertion_id}.json"
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Badge JSON not found")
+        raise HTTPException(status_code=404, detail="JSON du badge introuvable")
     return FileResponse(file_path, media_type="application/json", filename=f"{assertion_id}.json")
 
 
@@ -541,7 +517,7 @@ async def api_download_badge_json(assertion_id: str):
 async def api_download_badge_png(assertion_id: str):
     file_path = BAKED_DIR / f"{assertion_id}.png"
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Badge PNG not found")
+        raise HTTPException(status_code=404, detail="PNG du badge introuvable")
     return FileResponse(file_path, media_type="image/png", filename=f"{assertion_id}.png")
 
 
@@ -549,7 +525,7 @@ async def api_download_badge_png(assertion_id: str):
 async def api_inspect_badge_png(assertion_id: str):
     file_path = BAKED_DIR / f"{assertion_id}.png"
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Badge PNG not found")
+        raise HTTPException(status_code=404, detail="PNG du badge introuvable")
     return verify_baked_badge(file_path.read_bytes())
 
 
@@ -557,15 +533,15 @@ async def api_inspect_badge_png(assertion_id: str):
 async def api_update_badge(assertion_id: str, payload: dict[str, Any] = Body(...)):
     file_path = ISSUED_DIR / f"{assertion_id}.json"
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Badge not found")
+        raise HTTPException(status_code=404, detail="Badge introuvable")
 
     assertion = _safe_load_json(file_path)
     if not assertion or assertion.get("type") != "Assertion":
-        raise HTTPException(status_code=400, detail="Invalid badge assertion")
+        raise HTTPException(status_code=400, detail="Assertion de badge invalide")
 
     updated_assertion = payload.get("assertion") if isinstance(payload.get("assertion"), dict) else payload
     if updated_assertion.get("type") != "Assertion":
-        raise HTTPException(status_code=400, detail="Payload must be an Open Badges Assertion")
+        raise HTTPException(status_code=400, detail="La charge utile doit être une assertion Open Badges")
 
     updated_assertion["id"] = assertion.get("id")
     if assertion.get("url"):
@@ -590,7 +566,7 @@ async def api_delete_badge(assertion_id: str):
         deleted.append("png")
 
     if not deleted:
-        raise HTTPException(status_code=404, detail="Badge not found")
+        raise HTTPException(status_code=404, detail="Badge introuvable")
 
     return {"status": "deleted", "assertion_id": assertion_id, "deleted": deleted}
 
@@ -600,18 +576,18 @@ async def api_delete_badge(assertion_id: str):
 # ---------------------------------------------------------------------------
 
 def _serve_json_file(file_path: Path) -> JSONResponse:
-    """Helper to serve a JSON file with the correct Open Badges content type."""
+    """Helper pour servir un fichier JSON avec le bon type de contenu Open Badges."""
     if not file_path.exists():
-        return JSONResponse(status_code=404, content={"error": "Resource not found"})
+        return JSONResponse(status_code=404, content={"error": "Ressource introuvable"})
     data = json.loads(file_path.read_text(encoding="utf-8"))
     return JSONResponse(content=data, media_type=OB_CONTENT_TYPE)
 
 
 def _serve_template_json(template_name: str) -> JSONResponse:
-    """Serve a JSON template file with ${BASE_URL} placeholder replaced."""
+    """Sert un fichier de template JSON avec remplacement du placeholder ${BASE_URL}."""
     template_path = DATA_BASE / template_name
     if not template_path.exists():
-        return JSONResponse(status_code=404, content={"error": "Resource not found"})
+        return JSONResponse(status_code=404, content={"error": "Ressource introuvable"})
     content = template_path.read_text(encoding="utf-8")
     content = content.replace("${BASE_URL}", BASE_URL)
     data = json.loads(content)
@@ -650,16 +626,16 @@ async def get_asset(asset_name: str):
     """Sert les assets statiques (images de badge, logo émetteur, etc.)."""
     asset_path = DATA_BASE / asset_name
     if not asset_path.exists():
-        return JSONResponse(status_code=404, content={"error": "Asset not found"})
+        return JSONResponse(status_code=404, content={"error": "Asset introuvable"})
     return FileResponse(asset_path, media_type="image/png")
 
 
 # ---------------------------------------------------------------------------
-# Online verification — resolve public URLs and validate the full chain
+# Vérification en ligne — résoudre les URLs publiques et valider la chaîne complète
 # ---------------------------------------------------------------------------
 
 async def _fetch_url(url: str) -> dict | None:
-    """Fetch a URL and return parsed JSON, or None on failure."""
+    """Récupère une URL et retourne le JSON parsé, ou None en cas d'échec."""
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(url, follow_redirects=True)
@@ -682,24 +658,24 @@ async def verify_online(
     """
     assertion = None
 
-    # Case 1: user uploaded a baked PNG
+    # Cas 1 : l'utilisateur a téléversé un PNG baked
     if badge_file:
         png_data = await badge_file.read()
         from app.verifier import verify_baked_badge
         result = verify_baked_badge(png_data)
         if not result["valid"]:
-            return {"valid": False, "error": result.get("error", "Failed to extract assertion")}
+            return {"valid": False, "error": result.get("error", "Échec de l'extraction de l'assertion")}
         assertion = result["assertion"]
 
-    # Case 2: user provided an assertion URL
+    # Cas 2 : l'utilisateur a fourni une URL d'assertion
     elif assertion_url:
         assertion = await _fetch_url(assertion_url)
         if not assertion or assertion.get("type") != "Assertion":
-            return {"valid": False, "error": "Unable to fetch a valid Assertion from this URL"}
+            return {"valid": False, "error": "Impossible de récupérer une assertion valide depuis cette URL"}
     else:
         return JSONResponse(
             status_code=400,
-            content={"error": "Provide either assertion_url or badge_file"},
+            content={"error": "Fournissez soit assertion_url, soit badge_file"},
         )
 
     # Resolve the full chain: badge URL → BadgeClass, issuer URL → Issuer
@@ -714,16 +690,16 @@ async def verify_online(
     if isinstance(issuer_ref, str) and issuer_ref.startswith("http"):
         issuer_data = await _fetch_url(issuer_ref)
 
-    # Cross-check: BadgeClass.issuer should match assertion.issuer
+    # Contrôle croisé : BadgeClass.issuer doit correspondre à assertion.issuer
     chain_valid = True
     chain_notes = []
 
     if badge_data is None and isinstance(badge_ref, str):
         chain_valid = False
-        chain_notes.append(f"BadgeClass inaccessible: {badge_ref}")
+        chain_notes.append(f"BadgeClass inaccessible : {badge_ref}")
     if issuer_data is None and isinstance(issuer_ref, str):
         chain_valid = False
-        chain_notes.append(f"Issuer inaccessible: {issuer_ref}")
+        chain_notes.append(f"Issuer inaccessible : {issuer_ref}")
 
     if badge_data and issuer_ref:
         badge_issuer = badge_data.get("issuer", "")

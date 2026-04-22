@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import secrets
 from hashlib import sha256
 import re
@@ -10,48 +9,25 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.baker import bake_badge, bake_badge_from_bytes
+from app.config import (
+    BAKED_DIR,
+    BADGE_PNG,
+    BADGECLASS_TEMPLATE,
+    DEFAULT_BASE_URL,
+    ISSUED_DIR as DATA_DIR,
+    ISSUER_TEMPLATE,
+    get_public_base_url,
+    get_search_pepper,
+)
 from app.qr import make_verification_qr_url, overlay_qr_on_badge
-
-DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "issued"
-BAKED_DIR = Path(__file__).resolve().parent.parent / "data" / "baked"
-BASE_DIR = Path(__file__).resolve().parent.parent / "data"
-ISSUER_TEMPLATE = BASE_DIR / "issuer_template.json"
-BADGECLASS_TEMPLATE = BASE_DIR / "badgeclass_template.json"
-BADGE_PNG = BASE_DIR / "badge.png"
-
-# URL de base pour les endpoints publics (doit correspondre à main.py)
-DEFAULT_BASE_URL = "http://mode83.ddns.net:8000"
-DEFAULT_SEARCH_PEPPER = "badge83-dev-search-pepper"
 
 
 def _compose_public_base_url() -> str:
-    explicit_base_url = os.environ.get("BADGE83_BASE_URL")
-    if explicit_base_url:
-        return explicit_base_url.rstrip("/")
-
-    public_scheme = os.environ.get("BADGE83_PUBLIC_SCHEME", "http").strip() or "http"
-    public_host = os.environ.get("BADGE83_PUBLIC_HOST", "mode83.ddns.net").strip() or "mode83.ddns.net"
-    public_port = os.environ.get("BADGE83_PUBLIC_PORT") or os.environ.get("BADGE83_PORT") or "8000"
-
-    try:
-        port_value = int(str(public_port).strip())
-    except Exception:
-        port_value = 8000
-
-    is_standard_port = (public_scheme == "http" and port_value == 80) or (
-        public_scheme == "https" and port_value == 443
-    )
-    if is_standard_port:
-        return f"{public_scheme}://{public_host}"
-    return f"{public_scheme}://{public_host}:{port_value}"
+    return get_public_base_url()
 
 
 def get_base_url() -> str:
     return _compose_public_base_url() or DEFAULT_BASE_URL
-
-
-def get_search_pepper() -> str:
-    return os.environ.get("BADGE83_SEARCH_PEPPER", DEFAULT_SEARCH_PEPPER)
 
 
 def _build_baked_download_filename(issued_on: str) -> str:

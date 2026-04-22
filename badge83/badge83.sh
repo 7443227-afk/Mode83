@@ -3,7 +3,14 @@
 set -euo pipefail
 
 PROJECT_DIR="/home/ubuntu/projects/Mode83/badge83"
-VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
+WORKSPACE_DIR="/home/ubuntu/projects/Mode83"
+ROOT_VENV_PYTHON="$WORKSPACE_DIR/.venv/bin/python"
+PROJECT_VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
+if [ -x "$ROOT_VENV_PYTHON" ]; then
+  VENV_PYTHON="$ROOT_VENV_PYTHON"
+else
+  VENV_PYTHON="$PROJECT_VENV_PYTHON"
+fi
 APP_MODULE="app.main:app"
 PID_FILE="$PROJECT_DIR/server.pid"
 LOG_FILE="$PROJECT_DIR/server.log"
@@ -38,28 +45,28 @@ SEARCH_PEPPER="${BADGE83_SEARCH_PEPPER:-$DEFAULT_SEARCH_PEPPER}"
 
 usage() {
   cat <<USAGE
-Badge83 server manager
+Gestionnaire du serveur Badge83
 
-Usage:
+Utilisation :
   ./badge83.sh start
   ./badge83.sh stop
   ./badge83.sh restart
   ./badge83.sh status
   ./badge83.sh logs
 
-Configuration file:
+Fichier de configuration :
   $CONFIG_FILE
 
-Optional environment variables:
-  BADGE83_HOST      Host to bind (default: $DEFAULT_HOST)
-  BADGE83_PORT      Port to bind (default: $DEFAULT_PORT)
-  BADGE83_BASE_URL  Explicit public base URL embedded in badges
-  BADGE83_PUBLIC_SCHEME  Public scheme if BADGE83_BASE_URL is not set (default: $DEFAULT_PUBLIC_SCHEME)
-  BADGE83_PUBLIC_HOST    Public hostname if BADGE83_BASE_URL is not set (default: $DEFAULT_PUBLIC_HOST)
-  BADGE83_PUBLIC_PORT    Public port if BADGE83_BASE_URL is not set (default: BADGE83_PORT)
-  BADGE83_SEARCH_PEPPER  Stable pepper for admin search hashes
+Variables d'environnement optionnelles :
+  BADGE83_HOST      Hôte d'écoute (défaut : $DEFAULT_HOST)
+  BADGE83_PORT      Port d'écoute (défaut : $DEFAULT_PORT)
+  BADGE83_BASE_URL  URL publique explicite intégrée dans les badges
+  BADGE83_PUBLIC_SCHEME  Schéma public si BADGE83_BASE_URL n'est pas défini (défaut : $DEFAULT_PUBLIC_SCHEME)
+  BADGE83_PUBLIC_HOST    Nom d'hôte public si BADGE83_BASE_URL n'est pas défini (défaut : $DEFAULT_PUBLIC_HOST)
+  BADGE83_PUBLIC_PORT    Port public si BADGE83_BASE_URL n'est pas défini (défaut : BADGE83_PORT)
+  BADGE83_SEARCH_PEPPER  Pepper stable pour les hash de recherche admin
 
-Examples:
+Exemples :
   ./badge83.sh start
   BADGE83_PUBLIC_HOST=mode83.ddns.net ./badge83.sh restart
   BADGE83_PORT=8010 BADGE83_PUBLIC_PORT=8010 ./badge83.sh start
@@ -70,7 +77,9 @@ USAGE
 ensure_project() {
   cd "$PROJECT_DIR"
   if [ ! -x "$VENV_PYTHON" ]; then
-    echo "Error: virtualenv python not found at $VENV_PYTHON"
+    echo "Erreur : Python du virtualenv introuvable à l'emplacement $VENV_PYTHON"
+    echo "Créez-le avec : python3 -m venv /home/ubuntu/projects/Mode83/.venv"
+    echo "Installez ensuite les dépendances avec : /home/ubuntu/projects/Mode83/.venv/bin/pip install -r /home/ubuntu/projects/Mode83/badge83/requirements.txt"
     exit 1
   fi
 }
@@ -106,19 +115,19 @@ show_status() {
   ensure_project
   local pid
   if pid="$(running_pid)"; then
-    echo "Status     : RUNNING"
+    echo "Statut     : ACTIF"
     echo "PID        : $pid"
-    echo "Bind       : $HOST:$PORT"
-    echo "Base URL   : $BASE_URL"
-    echo "PID file   : $PID_FILE"
-    echo "Log file   : $LOG_FILE"
+    echo "Écoute     : $HOST:$PORT"
+    echo "URL de base: $BASE_URL"
+    echo "Fichier PID: $PID_FILE"
+    echo "Fichier log: $LOG_FILE"
     ss -ltnp 2>/dev/null | grep ":$PORT" || true
   else
-    echo "Status     : STOPPED"
-    echo "Bind       : $HOST:$PORT"
-    echo "Base URL   : $BASE_URL"
-    echo "PID file   : $PID_FILE"
-    echo "Log file   : $LOG_FILE"
+    echo "Statut     : ARRÊTÉ"
+    echo "Écoute     : $HOST:$PORT"
+    echo "URL de base: $BASE_URL"
+    echo "Fichier PID: $PID_FILE"
+    echo "Fichier log: $LOG_FILE"
   fi
 }
 
@@ -126,15 +135,15 @@ start_server() {
   ensure_project
   local pid
   if pid="$(running_pid)"; then
-    echo "Badge83 is already running (PID $pid)."
+    echo "Badge83 est déjà en cours d'exécution (PID $pid)."
     show_status
     return 0
   fi
 
-  echo "Starting Badge83..."
-  echo "- Host     : $HOST"
+  echo "Démarrage de Badge83..."
+  echo "- Hôte     : $HOST"
   echo "- Port     : $PORT"
-  echo "- Base URL : $BASE_URL"
+  echo "- URL base : $BASE_URL"
 
   export BADGE83_BASE_URL="$BASE_URL"
   export BADGE83_SEARCH_PEPPER="$SEARCH_PEPPER"
@@ -147,10 +156,10 @@ start_server() {
   effective_pid="$(running_pid || true)"
   if [ -n "$effective_pid" ] && kill -0 "$effective_pid" 2>/dev/null; then
     echo "$effective_pid" > "$PID_FILE"
-    echo "Started. PID: $effective_pid"
+    echo "Démarré. PID : $effective_pid"
     show_status
   else
-    echo "Failed to start Badge83. Last log lines:"
+    echo "Échec du démarrage de Badge83. Dernières lignes du log :"
     tail -n 20 "$LOG_FILE" || true
     exit 1
   fi
@@ -160,27 +169,27 @@ stop_server() {
   ensure_project
   local pid
   if ! pid="$(running_pid)"; then
-    echo "Badge83 is not running."
+    echo "Badge83 n'est pas en cours d'exécution."
     rm -f "$PID_FILE"
     return 0
   fi
 
-  echo "Stopping Badge83 (PID $pid)..."
+  echo "Arrêt de Badge83 (PID $pid)..."
   kill "$pid" 2>/dev/null || true
 
   for _ in $(seq 1 10); do
     if ! kill -0 "$pid" 2>/dev/null; then
       rm -f "$PID_FILE"
-      echo "Stopped."
+      echo "Arrêté."
       return 0
     fi
     sleep 1
   done
 
-  echo "Process did not stop gracefully, sending SIGKILL..."
+  echo "Le processus ne s'est pas arrêté proprement, envoi de SIGKILL..."
   kill -9 "$pid" 2>/dev/null || true
   rm -f "$PID_FILE"
-  echo "Stopped."
+  echo "Arrêté."
 }
 
 restart_server() {
@@ -204,7 +213,7 @@ main() {
     logs) show_logs ;;
     help|--help|-h) usage ;;
     *)
-      echo "Unknown command: $command"
+      echo "Commande inconnue : $command"
       echo
       usage
       exit 1

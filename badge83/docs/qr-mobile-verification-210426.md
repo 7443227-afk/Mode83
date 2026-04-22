@@ -267,17 +267,17 @@ Objectif :
 
 - s’assurer que les nouveaux modules et routes sont syntaxiquement valides.
 
-### Vérification 2 — installation des dépendances dans le virtualenv
+### Vérification 2 — installation des dépendances dans le virtualenv standardisé du projet
 
 Commande :
 
 ```bash
-/home/ubuntu/projects/Mode83/badge83/.venv/bin/python -m pip install -r badge83/requirements.txt
+/home/ubuntu/projects/Mode83/.venv/bin/python -m pip install -r /home/ubuntu/projects/Mode83/badge83/requirements.txt
 ```
 
 Objectif :
 
-- installer `qrcode` et `Pillow` dans l’environnement du projet.
+- installer `qrcode` et `Pillow` dans l’environnement standardisé du projet.
 
 ### Vérification 3 — émission d’un badge avec QR
 
