@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_public_base_url
+from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
 from app.verifier import verify_badge, verify_baked_badge
 
@@ -25,6 +26,12 @@ def _compose_public_base_url() -> str:
 
 BASE_URL = _compose_public_base_url()
 OB_CONTENT_TYPE = 'application/ld+json; profile="https://w3id.org/openbadges/v2"'
+
+
+@app.on_event("startup")
+async def startup_registry_sync():
+    ISSUED_DIR.mkdir(parents=True, exist_ok=True)
+    import_assertions_from_directory(ISSUED_DIR)
 
 # ---------------------------------------------------------------------------
 # CORS — autoriser les validateurs externes (ex. validator.openbadges.org) à récupérer les ressources
@@ -548,6 +555,7 @@ async def api_update_badge(assertion_id: str, payload: dict[str, Any] = Body(...
         updated_assertion["url"] = assertion.get("url")
 
     file_path.write_text(json.dumps(updated_assertion, ensure_ascii=False, indent=2), encoding="utf-8")
+    sync_assertion_record(assertion_id, updated_assertion)
     record = _collect_badge_record(assertion_id, updated_assertion)
     return {"status": "updated", "item": record}
 
@@ -560,6 +568,7 @@ async def api_delete_badge(assertion_id: str):
     deleted = []
     if json_path.exists():
         json_path.unlink()
+        delete_assertion_record(assertion_id)
         deleted.append("json")
     if png_path.exists():
         png_path.unlink()

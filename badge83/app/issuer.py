@@ -19,6 +19,7 @@ from app.config import (
     get_public_base_url,
     get_search_pepper,
 )
+from app.database import sync_assertion_record
 from app.qr import make_verification_qr_url, overlay_qr_on_badge
 
 
@@ -133,6 +134,8 @@ def issue_badge(name: str, email: str) -> dict:
     with badge_path.open("w", encoding="utf-8") as file:
         json.dump(badge_data, file, ensure_ascii=False, indent=2)
 
+    sync_assertion_record(assertion_id, badge_data)
+
     return {
         "assertion_id": assertion_id,
         "assertion": badge_data,
@@ -188,6 +191,8 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
     badge_path = DATA_DIR / f"{assertion_id}.json"
     with badge_path.open("w", encoding="utf-8") as file:
         json.dump(assertion, file, ensure_ascii=False, indent=2)
+
+    sync_assertion_record(assertion_id, assertion)
 
     # Composition visuelle du badge avec QR avant baking Open Badges.
     if png_data:

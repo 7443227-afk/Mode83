@@ -11,6 +11,7 @@ WORKSPACE_DIR = PROJECT_DIR.parent
 DATA_BASE = PROJECT_DIR / "data"
 ISSUED_DIR = DATA_BASE / "issued"
 BAKED_DIR = DATA_BASE / "baked"
+REGISTRY_DB = DATA_BASE / "registry.db"
 
 ISSUER_TEMPLATE = DATA_BASE / "issuer_template.json"
 BADGECLASS_TEMPLATE = DATA_BASE / "badgeclass_template.json"
@@ -63,6 +64,11 @@ def get_public_base_url() -> str:
 
 def get_search_pepper() -> str:
     return os.environ.get("BADGE83_SEARCH_PEPPER", DEFAULT_SEARCH_PEPPER)
+
+
+def get_registry_db_path() -> Path:
+    raw_value = os.environ.get("BADGE83_REGISTRY_DB", str(REGISTRY_DB))
+    return Path(raw_value)
 
 
 def get_preferred_venv_python() -> Path:

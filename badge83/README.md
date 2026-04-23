@@ -120,6 +120,7 @@ BADGE83_PORT=8000
 BADGE83_PUBLIC_SCHEME=http
 BADGE83_PUBLIC_HOST=mode83.ddns.net
 BADGE83_PUBLIC_PORT=8000
+BADGE83_REGISTRY_DB=/home/ubuntu/projects/Mode83/badge83/data/registry.db
 ```
 
 Cela permet de corriger les QR codes pour l’environnement actuel (`:8000`) tout en gardant une configuration portable pour la production.
@@ -140,6 +141,28 @@ export BADGE83_SEARCH_PEPPER="change-me-in-production"
 ```
 
 Ce pepper est utilisé pour calculer des hash de recherche stables côté serveur, sans exposer les valeurs en clair dans l’interface admin.
+
+### Registre SQLite local
+
+Le projet maintient désormais un registre SQLite local des assertions dans :
+
+```text
+badge83/data/registry.db
+```
+
+Ce registre est utilisé comme **index local** pour l’administration et la recherche, tandis que les fichiers JSON dans `badge83/data/issued/` restent la source canonique des assertions Open Badges.
+
+Le comportement actuel est le suivant :
+
+- au démarrage du serveur, les JSON existants de `data/issued/` sont importés/synchronisés dans SQLite ;
+- lors d’une émission de badge (`/issue` ou `/issue-baked`), l’assertion est enregistrée en JSON puis synchronisée dans SQLite ;
+- lors d’une modification/suppression via l’API admin, le registre SQLite est mis à jour aussi.
+
+Vous pouvez surcharger le chemin de la base avec :
+
+```bash
+export BADGE83_REGISTRY_DB=/chemin/vers/registry.db
+```
 
 Vous pouvez surcharger l’hôte, le port et l’URL publique :
 
@@ -162,6 +185,12 @@ Depuis la racine de l'espace de travail :
 
 ```bash
 /home/ubuntu/projects/Mode83/.venv/bin/python -m pytest /home/ubuntu/projects/Mode83/badge83/tests -q
+```
+
+Test spécifique de la couche base de données :
+
+```bash
+/home/ubuntu/projects/Mode83/.venv/bin/python /home/ubuntu/projects/Mode83/badge83/app/test_database.py
 ```
 
 Ou, si le virtualenv est activé :
