@@ -1,8 +1,8 @@
 #!/bin/bash
-# Script to activate virtual environment and run the application
+# Script pour activer l'environnement virtuel et lancer l'application
 
-# Activate virtual environment
+# Activer l'environnement virtuel
 source venv/bin/activate
 
-# Run the main application
+# Lancer l'application principale
 python app/main.py

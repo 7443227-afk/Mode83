@@ -585,7 +585,7 @@ async def api_delete_badge(assertion_id: str):
 # ---------------------------------------------------------------------------
 
 def _serve_json_file(file_path: Path) -> JSONResponse:
-    """Helper pour servir un fichier JSON avec le bon type de contenu Open Badges."""
+    """Fonction utilitaire pour servir un fichier JSON avec le bon type de contenu Open Badges."""
     if not file_path.exists():
         return JSONResponse(status_code=404, content={"error": "Ressource introuvable"})
     data = json.loads(file_path.read_text(encoding="utf-8"))
@@ -687,7 +687,7 @@ async def verify_online(
             content={"error": "Fournissez soit assertion_url, soit badge_file"},
         )
 
-    # Resolve the full chain: badge URL → BadgeClass, issuer URL → Issuer
+    # Résoudre la chaîne complète : URL du badge → BadgeClass, URL de l'émetteur → Issuer
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
 

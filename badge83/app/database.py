@@ -29,9 +29,9 @@ def _extract_search(assertion: Dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-# Database initialization
+# Initialisation de la base de données
 def init_database(db_path: str | Path | None = None) -> sqlite3.Connection:
-    """Initialize database connection with row factory for easy access."""
+    """Initialise la connexion à la base avec un row factory pour un accès simplifié."""
     resolved_path = _normalize_db_path(db_path)
     db_dir = os.path.dirname(str(resolved_path))
     if db_dir and not os.path.exists(db_dir):
@@ -43,7 +43,7 @@ def init_database(db_path: str | Path | None = None) -> sqlite3.Connection:
 
 
 def create_tables(conn: sqlite3.Connection):
-    """Create database tables for badge management."""
+    """Crée les tables de base de données pour la gestion des badges."""
     with conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS assertions (
@@ -81,13 +81,13 @@ def create_tables(conn: sqlite3.Connection):
 
 
 def get_database_connection():
-    """Get database connection for the registry database."""
+    """Retourne une connexion à la base du registre."""
     conn = init_database()
     return conn
 
 
 def init_db_schema(db_path: str | Path | None = None):
-    """Initialize the database schema."""
+    """Initialise le schéma de la base de données."""
     conn = init_database(db_path)
     create_tables(conn)
     return conn
@@ -108,7 +108,7 @@ def build_registry_record(assertion_id: str, assertion: Dict[str, Any]) -> Dict[
 
 
 def add_assertion(conn: sqlite3.Connection, assertion_data: Dict[str, Any]) -> int:
-    """Add a new assertion to the database."""
+    """Ajoute une nouvelle assertion dans la base de données."""
     with conn:
         cursor = conn.execute('''
             INSERT INTO assertions (assertion_id, assertion_data, issued_on, name, email, name_hash, email_hash)
@@ -127,7 +127,7 @@ def add_assertion(conn: sqlite3.Connection, assertion_data: Dict[str, Any]) -> i
 
 
 def upsert_assertion(conn: sqlite3.Connection, assertion_data: Dict[str, Any]) -> int:
-    """Insert or replace an assertion registry row."""
+    """Insère ou remplace une ligne d'assertion dans le registre."""
     with conn:
         cursor = conn.execute('''
             INSERT INTO assertions (assertion_id, assertion_data, issued_on, name, email, name_hash, email_hash)
@@ -153,7 +153,7 @@ def upsert_assertion(conn: sqlite3.Connection, assertion_data: Dict[str, Any]) -
 
 
 def get_assertion_by_id(conn: sqlite3.Connection, assertion_id: str) -> Optional[Dict[str, Any]]:
-    """Retrieve an assertion by its ID."""
+    """Récupère une assertion à partir de son identifiant."""
     cursor = conn.execute('''
         SELECT * FROM assertions WHERE assertion_id = ?
     ''', (assertion_id,))
@@ -170,7 +170,7 @@ def get_assertion_by_id(conn: sqlite3.Connection, assertion_id: str) -> Optional
 
 
 def get_assertions_by_email(conn: sqlite3.Connection, email: str) -> List[Dict[str, Any]]:
-    """Retrieve assertions by email."""
+    """Récupère les assertions par adresse e-mail."""
     cursor = conn.execute('''
         SELECT * FROM assertions WHERE email = ?
     ''', (email,))
@@ -178,7 +178,7 @@ def get_assertions_by_email(conn: sqlite3.Connection, email: str) -> List[Dict[s
 
 
 def get_assertions_by_name(conn: sqlite3.Connection, name: str) -> List[Dict[str, Any]]:
-    """Retrieve assertions by name."""
+    """Récupère les assertions par nom."""
     cursor = conn.execute('''
         SELECT * FROM assertions WHERE name = ?
     ''', (name,))
@@ -196,7 +196,7 @@ def get_assertions_by_name_hash(conn: sqlite3.Connection, name_hash: str) -> Lis
 
 
 def update_assertion(conn: sqlite3.Connection, assertion_id: str, assertion_data: Dict[str, Any]) -> bool:
-    """Update an assertion in the database."""
+    """Met à jour une assertion dans la base de données."""
     with conn:
         result = conn.execute('''
             UPDATE assertions
@@ -216,7 +216,7 @@ def update_assertion(conn: sqlite3.Connection, assertion_id: str, assertion_data
 
 
 def delete_assertion(conn: sqlite3.Connection, assertion_id: str) -> bool:
-    """Delete an assertion from the database."""
+    """Supprime une assertion de la base de données."""
     with conn:
         result = conn.execute('''
             DELETE FROM assertions WHERE assertion_id = ?
@@ -226,7 +226,7 @@ def delete_assertion(conn: sqlite3.Connection, assertion_id: str) -> bool:
 
 
 def get_all_assertions(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
-    """Retrieve all assertions."""
+    """Récupère toutes les assertions."""
     cursor = conn.execute('SELECT assertion_id FROM assertions ORDER BY issued_on DESC, assertion_id DESC')
     return [get_assertion_by_id(conn, dict(row)["assertion_id"]) for row in cursor.fetchall()]
 
@@ -278,6 +278,6 @@ def import_assertions_from_directory(directory: str | Path, db_path: str | Path 
 
 
 def close_connection(conn: sqlite3.Connection):
-    """Close database connection."""
+    """Ferme la connexion à la base de données."""
     if conn:
         conn.close()

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Test script for database functionality
+Script de test pour les fonctionnalités de base de données
 """
 
 import sys
 import os
 
-# Add the parent directory to the path so we can import the database module
+# Ajouter le répertoire parent au chemin pour pouvoir importer le module de base de données
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from app.database import init_database, create_tables, add_assertion, get_assertion_by_id, import_assertions_from_directory, sync_assertion_record
@@ -14,18 +14,18 @@ import uuid
 import json
 
 def test_database():
-    """Test the database functionality"""
-    print("Testing database functionality...")
+    """Teste les fonctionnalités de la base de données."""
+    print("Test des fonctionnalités de la base de données...")
     
-    # Initialize database
+    # Initialiser la base de données
     db_path = "badge83/data/test_registry.db"
     conn = init_database(db_path)
     
-    # Create tables
+    # Créer les tables
     create_tables(conn)
-    print("Database initialized successfully")
+    print("Base de données initialisée avec succès")
     
-    # Test data
+    # Données de test
     test_data = {
         'assertion_id': 'test-assertion-' + str(uuid.uuid4())[:8],
         'assertion_data': {'name': 'Test Badge', 'issuer': 'Test Issuer'},
@@ -36,17 +36,17 @@ def test_database():
         'email_hash': 'hashed_email'
     }
     
-    # Add test assertion
+    # Ajouter une assertion de test
     assertion_id = add_assertion(conn, test_data)
-    print(f"Added assertion with ID: {assertion_id}")
+    print(f"Assertion ajoutée avec l'identifiant : {assertion_id}")
     
-    # Retrieve assertion
+    # Récupérer l'assertion
     result = get_assertion_by_id(conn, test_data['assertion_id'])
     if result:
-        print("Successfully retrieved assertion:")
+        print("Assertion récupérée avec succès :")
         print(result)
     else:
-        print("Failed to retrieve assertion")
+        print("Échec de la récupération de l'assertion")
     
     sample_json_path = os.path.join("badge83", "data", f"{test_data['assertion_id']}.json")
     with open(sample_json_path, "w", encoding="utf-8") as handle:
@@ -68,17 +68,17 @@ def test_database():
     import_stats = import_assertions_from_directory("badge83/data", db_path)
     print(f"Import stats: {import_stats}")
 
-    # Close connection
+    # Fermer la connexion
     conn.close()
     
-    # Clean up test database
+    # Nettoyer la base de test
     if os.path.exists(db_path):
         os.remove(db_path)
-        print("Test database removed")
+        print("Base de test supprimée")
     if os.path.exists(sample_json_path):
         os.remove(sample_json_path)
     
-    print("Database test completed")
+    print("Test de la base de données terminé")
 
 if __name__ == "__main__":
     test_database()
