@@ -28,8 +28,12 @@ def test_issue_badge_persists_assertion_and_metadata(isolated_issuer_env):
 
     assert saved_path.exists()
     assert assertion["type"] == "Assertion"
+    assert assertion["@language"] == "fr-FR"
     assert assertion["id"] == f"https://tests.mode83.local/assertions/{assertion_id}"
     assert assertion["verification"]["type"] == "HostedBadge"
+    assert assertion["expires"]
+    assert assertion["evidence"][0]["type"] == "Evidence"
+    assert assertion["evidence"][0]["id"] == f"https://tests.mode83.local/evidence/{assertion_id}"
     assert assertion["recipient"]["hashed"] is True
     assert assertion["admin_recipient"] == {
         "name": "Alice Example",
@@ -39,7 +43,13 @@ def test_issue_badge_persists_assertion_and_metadata(isolated_issuer_env):
     persisted = json.loads(saved_path.read_text(encoding="utf-8"))
     assert persisted == assertion
     assert result["issuer"]["id"] == "https://tests.mode83.local/issuers/main"
+    assert result["issuer"]["@language"] == "fr-FR"
+    assert result["issuer"]["verification"]["allowedOrigins"] == ["https://tests.mode83.local"]
+    assert result["issuer"]["verification"]["startsWith"] == ["https://tests.mode83.local/assertions/"]
     assert result["badgeclass"]["id"] == "https://tests.mode83.local/badges/blockchain-foundations"
+    assert result["badgeclass"]["@language"] == "fr-FR"
+    assert "mode83" in result["badgeclass"]["tags"]
+    assert result["badgeclass"]["alignment"][0]["type"] == "AlignmentObject"
 
 
 def test_issue_baked_badge_creates_png_and_qr_url(isolated_issuer_env, sample_png_bytes):

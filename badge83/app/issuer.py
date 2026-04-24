@@ -4,7 +4,7 @@ import json
 import secrets
 from hashlib import sha256
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -88,6 +88,54 @@ def make_admin_recipient_metadata(name: str, email: str) -> dict:
     }
 
 
+def _build_default_evidence(base_url: str, assertion_id: str, name: str) -> list[dict]:
+    return [
+        {
+            "id": f"{base_url}/evidence/{assertion_id}",
+            "type": "Evidence",
+            "narrative": f"Validation pédagogique du parcours MODE83 pour {name.strip()}.",
+            "genre": "assessment",
+        }
+    ]
+
+
+def _build_default_expiration(issued_on: str) -> str:
+    issued_dt = datetime.fromisoformat(issued_on)
+    return (issued_dt + timedelta(days=365)).isoformat()
+
+
+def _build_enriched_assertion(
+    *,
+    assertion_url: str,
+    badge_url: str,
+    issuer_url: str,
+    base_url: str,
+    assertion_id: str,
+    issued_on: str,
+    name: str,
+    email: str,
+) -> dict:
+    return {
+        "@context": "https://w3id.org/openbadges/v2",
+        "@language": "fr-FR",
+        "id": assertion_url,
+        "type": "Assertion",
+        "url": assertion_url,
+        "recipient": _make_recipient(email),
+        "issuedOn": issued_on,
+        "expires": _build_default_expiration(issued_on),
+        "evidence": _build_default_evidence(base_url, assertion_id, name),
+        "verification": {
+            "type": "HostedBadge",
+            "url": assertion_url,
+        },
+        "badge": badge_url,
+        "issuer": issuer_url,
+        "admin_recipient": make_admin_recipient_metadata(name=name, email=email),
+        "search": make_search_metadata(name=name, email=email),
+    }
+
+
 def _make_recipient(email: str) -> dict:
     salt = secrets.token_hex(8)
     return {
@@ -113,22 +161,16 @@ def issue_badge(name: str, email: str) -> dict:
     badge_url = f"{base_url}/badges/blockchain-foundations"
     assertion_url = f"{base_url}/assertions/{assertion_id}"
 
-    badge_data = {
-        "@context": "https://w3id.org/openbadges/v2",
-        "id": assertion_url,
-        "type": "Assertion",
-        "url": assertion_url,
-        "recipient": _make_recipient(email),
-        "issuedOn": issued_on,
-        "verification": {
-            "type": "HostedBadge",
-            "url": assertion_url,
-        },
-        "badge": badge_url,
-        "issuer": issuer_url,
-        "admin_recipient": make_admin_recipient_metadata(name=name, email=email),
-        "search": make_search_metadata(name=name, email=email),
-    }
+    badge_data = _build_enriched_assertion(
+        assertion_url=assertion_url,
+        badge_url=badge_url,
+        issuer_url=issuer_url,
+        base_url=base_url,
+        assertion_id=assertion_id,
+        issued_on=issued_on,
+        name=name,
+        email=email,
+    )
 
     badge_path = DATA_DIR / f"{assertion_id}.json"
     with badge_path.open("w", encoding="utf-8") as file:
@@ -170,22 +212,16 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
     assertion_url = f"{base_url}/assertions/{assertion_id}"
     verification_page_url = make_verification_qr_url(base_url, assertion_id)
 
-    assertion = {
-        "@context": "https://w3id.org/openbadges/v2",
-        "id": assertion_url,
-        "type": "Assertion",
-        "url": assertion_url,
-        "recipient": _make_recipient(email),
-        "issuedOn": issued_on,
-        "verification": {
-            "type": "HostedBadge",
-            "url": assertion_url,
-        },
-        "badge": badge_url,
-        "issuer": issuer_url,
-        "admin_recipient": make_admin_recipient_metadata(name=name, email=email),
-        "search": make_search_metadata(name=name, email=email),
-    }
+    assertion = _build_enriched_assertion(
+        assertion_url=assertion_url,
+        badge_url=badge_url,
+        issuer_url=issuer_url,
+        base_url=base_url,
+        assertion_id=assertion_id,
+        issued_on=issued_on,
+        name=name,
+        email=email,
+    )
 
     # Sauvegarde de l'assertion JSON
     badge_path = DATA_DIR / f"{assertion_id}.json"

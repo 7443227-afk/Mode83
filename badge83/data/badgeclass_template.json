@@ -1,5 +1,6 @@
 {
   "@context": "https://w3id.org/openbadges/v2",
+  "@language": "fr-FR",
   "id": "${BASE_URL}/badges/blockchain-foundations",
   "type": "BadgeClass",
   "name": "MODE83 Fondamentaux Blockchain",
@@ -8,5 +9,18 @@
   "criteria": {
     "narrative": "L'apprenant a validé les exigences pédagogiques et les activités d'évaluation prévues par MODE83."
   },
+  "tags": [
+    "mode83",
+    "blockchain",
+    "openbadges"
+  ],
+  "alignment": [
+    {
+      "type": "AlignmentObject",
+      "targetName": "Parcours MODE83 — Fondamentaux Blockchain",
+      "targetDescription": "Référentiel pédagogique interne MODE83 pour l'initiation à la blockchain.",
+      "targetUrl": "${BASE_URL}"
+    }
+  ],
   "issuer": "${BASE_URL}/issuers/main"
 }

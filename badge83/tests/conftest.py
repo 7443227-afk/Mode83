@@ -43,9 +43,14 @@ def isolated_issuer_env(tmp_path, monkeypatch, sample_png_bytes):
         json.dumps(
             {
                 "@context": "https://w3id.org/openbadges/v2",
+                "@language": "fr-FR",
                 "id": "${BASE_URL}/issuers/main",
                 "type": "Issuer",
                 "name": "Mode83",
+                "verification": {
+                    "allowedOrigins": ["${BASE_URL}"],
+                    "startsWith": ["${BASE_URL}/assertions/"],
+                },
             }
         ),
         encoding="utf-8",
@@ -54,9 +59,19 @@ def isolated_issuer_env(tmp_path, monkeypatch, sample_png_bytes):
         json.dumps(
             {
                 "@context": "https://w3id.org/openbadges/v2",
+                "@language": "fr-FR",
                 "id": "${BASE_URL}/badges/blockchain-foundations",
                 "type": "BadgeClass",
                 "name": "Blockchain Foundations",
+                "tags": ["mode83", "blockchain", "openbadges"],
+                "alignment": [
+                    {
+                        "type": "AlignmentObject",
+                        "targetName": "Parcours MODE83 — Fondamentaux Blockchain",
+                        "targetDescription": "Référentiel pédagogique interne MODE83 pour l'initiation à la blockchain.",
+                        "targetUrl": "${BASE_URL}",
+                    }
+                ],
                 "issuer": "${BASE_URL}/issuers/main",
             }
         ),

@@ -1,19 +1,51 @@
-INFO:     Started server process [1085152]
+INFO:     Started server process [1219665]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     82.122.8.33:54645 - "GET /verify/qr/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
-INFO:     46.101.199.62:57334 - "GET / HTTP/1.1" 200 OK
-INFO:     46.101.199.62:57336 - "GET /favicon.ico HTTP/1.1" 404 Not Found
-INFO:     45.79.207.71:53251 - "GET / HTTP/1.1" 200 OK
-INFO:     45.79.115.59:56432 - "GET / HTTP/1.1" 200 OK
-INFO:     45.33.12.214:44369 - "GET / HTTP/1.1" 200 OK
-INFO:     86.71.230.210:63536 - "GET / HTTP/1.1" 200 OK
-INFO:     86.71.230.210:63536 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     86.71.230.210:63536 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
-INFO:     86.71.230.210:63536 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba/png HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34126 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34126 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34138 - "GET /favicon.ico HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:34126 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34138 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba/png HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     104.28.96.13:18459 - "GET / HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18459 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18459 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18459 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba/png HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18565 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18565 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18597 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18597 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18878 - "GET /api/badges/75b1e02b-6622-4308-9ab9-cc5be93e24f3 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18878 - "GET /api/badges/75b1e02b-6622-4308-9ab9-cc5be93e24f3/png HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     82.122.8.33:60177 - "GET /verify/qr/75b1e02b-6622-4308-9ab9-cc5be93e24f3 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=S HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Sem HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18909 - "GET /api/badges/search?query=Semi HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Semin HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18909 - "GET /api/badges/search?query=Semi HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=N HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18909 - "GET /api/badges/search?query=Nikol HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Nikolay HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Nikola HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=744 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=74432 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=744322 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40g HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gma HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail. HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail.co HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail.com HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18581 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18581 - "GET /api/badges/search?query=7443227%40gmail.com HTTP/1.1" 200 OK
+INFO:     104.28.96.13:18583 - "GET /api/badges/75b1e02b-6622-4308-9ab9-cc5be93e24f3 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1219665]

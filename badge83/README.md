@@ -10,6 +10,9 @@ Il permet d'émettre et de vérifier des assertions conformes au modèle Open Ba
 - Émettre une assertion Open Badge (`POST /issue`) à partir de `name` et `email`.
 - Émettre un badge **baked** dans un PNG (`POST /issue-baked`) — l'assertion JSON est injectée dans l'image via un chunk `tEXt` conforme au standard Open Badges.
 - Ajouter automatiquement un **QR code visible** sur les badges PNG baked, pointant vers la page publique de vérification humaine.
+- Enrichir les assertions avec des métadonnées minimales de conformité : `@language`, `expires` et `evidence`.
+- Exposer un profil `Issuer` enrichi avec un bloc `verification` (`allowedOrigins`, `startsWith`).
+- Exposer un `BadgeClass` enrichi avec `tags` et `alignment`.
 - Vérifier une assertion par ID (`GET /verify/{id}` ou `GET /verify?badge_id=...`).
 - Vérifier un badge baked depuis un fichier PNG uploadé (`POST /verify-baked`) — extraction automatique de l'assertion depuis le chunk `openbadges`.
 - **Endpoints publics HostedBadge** — Servir l'Issuer, le BadgeClass et les Assertions via des URLs HTTP publiques pour validation externe (ex. `validator.openbadges.org`).
@@ -178,6 +181,55 @@ Si le port `8000` est déjà utilisé, choisissez un autre port :
 ```bash
 /home/ubuntu/projects/Mode83/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8010 --reload
 ```
+
+## Métadonnées Open Badges ajoutées
+
+Les émissions générées par Badge83 incluent désormais un socle minimal de métadonnées supplémentaires pour améliorer l'interopérabilité et préparer les validations externes.
+
+### Assertion
+
+Les assertions générées via `/issue` et `/issue-baked` contiennent maintenant :
+
+- `@language: "fr-FR"`
+- `expires` : date d'expiration calculée par défaut à `issuedOn + 365 jours`
+- `evidence` : tableau minimal contenant une preuve narrative locale
+- `verification` : bloc HostedBadge pointant vers l'URL publique de l'assertion
+
+Exemple simplifié :
+
+```json
+{
+  "@context": "https://w3id.org/openbadges/v2",
+  "@language": "fr-FR",
+  "type": "Assertion",
+  "issuedOn": "2026-04-24T12:00:00+00:00",
+  "expires": "2027-04-24T12:00:00+00:00",
+  "evidence": [
+    {
+      "type": "Evidence",
+      "narrative": "Validation pédagogique du parcours MODE83 pour Alice Example."
+    }
+  ]
+}
+```
+
+### Issuer
+
+Le template `issuer_template.json` expose désormais :
+
+- `@language: "fr-FR"`
+- `verification.allowedOrigins`
+- `verification.startsWith`
+
+### BadgeClass
+
+Le template `badgeclass_template.json` expose désormais :
+
+- `@language: "fr-FR"`
+- `tags`
+- `alignment`
+
+Ces ajouts restent volontairement minimaux afin de ne pas modifier le flux applicatif existant ni le baking PNG.
 
 ## Exécution des tests
 
