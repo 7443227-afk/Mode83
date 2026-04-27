@@ -69,7 +69,7 @@
                   <th>Nom</th>
                   <th>Email</th>
                   <th>Badge</th>
-                  <th>Issuer</th>
+                  <th>Émetteur</th>
                   <th>Date</th>
                   <th>Match</th>
                   <th>Actions</th>
@@ -162,11 +162,11 @@
         const summary = data.summary || {};
         const recipientDisplay = data.recipient_display || {};
         deskSummary.innerHTML = [
-          ['Assertion ID', data.assertion_id || summary.assertion_id || '—'],
+          ['Identifiant de l’assertion', data.assertion_id || summary.assertion_id || '—'],
           ['Nom / prénom', recipientDisplay.name || '—'],
           ['Email', recipientDisplay.email || '—'],
           ['Badge', summary.badge_name || '—'],
-          ['Issuer', issuerCheck.label || '—'],
+          ['Émetteur', issuerCheck.label || '—'],
           ['Organisation émettrice', issuerCheck.organization_label || '—'],
           ['Date de délivrance', recipientDisplay.issued_on || summary.issued_on || '—'],
         ].map(([label, value]) => `

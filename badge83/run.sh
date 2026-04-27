@@ -1,8 +1,8 @@
-#!/bin/bash
-# Script pour activer l'environnement virtuel et lancer l'application
+#!/usr/bin/env bash
+# Wrapper de compatibilité : le lancement sécurisé passe par badge83.sh,
+# qui charge badge83.env et démarre Uvicorn sur BADGE83_HOST:BADGE83_PORT.
 
-# Activer l'environnement virtuel
-source venv/bin/activate
+set -euo pipefail
 
-# Lancer l'application principale
-python app/main.py
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/badge83.sh" start

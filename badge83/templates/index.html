@@ -408,6 +408,7 @@
               </select>
               <a href="/verify-desk" class="btn btn-outline-primary">Bureau de vérification</a>
               <a href="/legacy" class="btn btn-outline-secondary">Legacy page</a>
+              <a href="/auth/logout" class="btn btn-outline-danger">Déconnexion</a>
             </div>
           </div>
           <div class="row status-grid g-3" id="statusSummaryRow">
@@ -859,6 +860,11 @@
           stats: ['Всего badges', 'JSON assertions', 'PNG baked', 'Hosted ready', 'Base URL', 'Latest badge'],
         },
       };
+
+      // L’interface d’administration est volontairement maintenue en français.
+      translations.en.downloadJsonBtn = translations.fr.downloadJsonBtn;
+      translations.en.downloadPngBtn = translations.fr.downloadPngBtn;
+      translations.en.openVerifyPageBtn = translations.fr.openVerifyPageBtn;
 
       let currentLang = 'fr';
 

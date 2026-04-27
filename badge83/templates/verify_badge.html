@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Badge83 Verification</title>
+    <title>Badge83 Vérification</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -57,15 +57,15 @@
         <div>
           <div class="d-flex align-items-center gap-2 mb-2">
             <span class="badge text-bg-dark">Badge83</span>
-            <span class="badge text-bg-primary">Verification Page</span>
+            <span class="badge text-bg-primary">Page de vérification</span>
           </div>
-          <h1 class="hero-title fw-bold mb-2">Badge verification</h1>
+          <h1 class="hero-title fw-bold mb-2">Vérification du badge</h1>
           <p class="text-muted mb-0">Page de consultation rapide pour vérifier un badge dans un contexte réel.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-          <a href="/" class="btn btn-outline-secondary">Back to control center</a>
+          <a href="/" class="btn btn-outline-secondary">Retour au centre de contrôle</a>
           {% if badge and badge.raw_assertion_url %}
-          <a href="{{ badge.raw_assertion_url }}" target="_blank" class="btn btn-primary">Open raw assertion</a>
+          <a href="{{ badge.raw_assertion_url }}" target="_blank" class="btn btn-primary">Ouvrir l’assertion brute</a>
           {% endif %}
         </div>
       </div>
@@ -73,14 +73,14 @@
       <section class="verify-card p-4 p-md-5 mb-4">
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
           <div>
-            <div class="label mb-1">Verification status</div>
+            <div class="label mb-1">Statut de vérification</div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <h2 class="h3 mb-0">{{ status_label }}</h2>
               <span class="badge text-bg-{{ status_tone }}">{{ status }}</span>
             </div>
           </div>
           <div>
-            <div class="label mb-1">Assertion ID</div>
+            <div class="label mb-1">Identifiant de l’assertion</div>
             <div class="mono small">{{ assertion_id }}</div>
           </div>
         </div>
@@ -99,19 +99,19 @@
           </div>
           <div class="col-12 col-md-6 col-xl-3">
             <div class="info-card p-3 h-100">
-              <div class="label mb-1">Issuer</div>
+              <div class="label mb-1">Émetteur</div>
               <div class="fw-semibold">{{ badge.issuer_name }}</div>
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
             <div class="info-card p-3 h-100">
-              <div class="label mb-1">Issued on</div>
+              <div class="label mb-1">Date d’émission</div>
               <div class="fw-semibold">{{ badge.issued_on or '—' }}</div>
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
             <div class="info-card p-3 h-100">
-              <div class="label mb-1">Recipient identity</div>
+              <div class="label mb-1">Identité du destinataire</div>
               <div class="fw-semibold mono small">{{ badge.recipient.identity or '—' }}</div>
             </div>
           </div>
@@ -120,31 +120,31 @@
         <div class="row g-3 mt-1">
           <div class="col-12 col-lg-8">
             <div class="info-card p-3 h-100">
-              <div class="label mb-2">Trust signals</div>
+              <div class="label mb-2">Indicateurs de confiance</div>
               <ul class="mb-0">
-                <li>Assertion enregistrée dans le registre local : <strong>{{ 'yes' if badge.has_json else 'no' }}</strong></li>
-                <li>PNG baked disponible : <strong>{{ 'yes' if badge.has_png else 'no' }}</strong></li>
-                <li>Hosted assertion URL :
+                <li>Assertion enregistrée dans le registre local : <strong>{{ 'oui' if badge.has_json else 'non' }}</strong></li>
+                <li>PNG baked disponible : <strong>{{ 'oui' if badge.has_png else 'non' }}</strong></li>
+                <li>URL de l’assertion hébergée :
                   {% if badge.raw_assertion_url %}
                   <a href="{{ badge.raw_assertion_url }}" target="_blank">{{ badge.raw_assertion_url }}</a>
                   {% else %}
-                  <strong>not available</strong>
+                  <strong>non disponible</strong>
                   {% endif %}
                 </li>
-                <li>Verification page URL: <span class="mono">{{ badge.verification_page_url }}</span></li>
+                <li>URL de la page de vérification : <span class="mono">{{ badge.verification_page_url }}</span></li>
               </ul>
             </div>
           </div>
           <div class="col-12 col-lg-4">
             <div class="info-card p-3 h-100">
-              <div class="label mb-2">Quick actions</div>
+              <div class="label mb-2">Actions rapides</div>
               <div class="d-grid gap-2">
-                <a href="{{ badge.json_url }}" class="btn btn-outline-primary" target="_blank">Download JSON</a>
+                <a href="{{ badge.json_url }}" class="btn btn-outline-primary" target="_blank">Télécharger le JSON</a>
                 {% if badge.has_png %}
-                <a href="{{ badge.png_url }}" class="btn btn-outline-success" target="_blank">Download PNG</a>
+                <a href="{{ badge.png_url }}" class="btn btn-outline-success" target="_blank">Télécharger le PNG</a>
                 {% endif %}
                 {% if badge.raw_assertion_url %}
-                <a href="{{ badge.raw_assertion_url }}" class="btn btn-primary" target="_blank">Open hosted assertion</a>
+                <a href="{{ badge.raw_assertion_url }}" class="btn btn-primary" target="_blank">Ouvrir l’assertion hébergée</a>
                 {% endif %}
               </div>
             </div>

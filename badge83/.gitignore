@@ -1,0 +1,18 @@
+# Ignore environment file containing secrets
+badge83.env
+
+# Ignore logs
+*.log
+
+# Ignore Python bytecode
+__pycache/
+*.py[cod]
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*~

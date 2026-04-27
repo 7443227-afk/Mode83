@@ -1,51 +1,257 @@
-INFO:     Started server process [1219665]
+INFO:     Started server process [1304676]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-INFO:     104.28.96.13:18459 - "GET / HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18459 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18459 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18459 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba/png HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18565 - "POST /issue-baked HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18565 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18597 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18597 - "GET /api/badges/f6efd721-fa57-4d33-bc21-6c74eda339ba HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18878 - "GET /api/badges/75b1e02b-6622-4308-9ab9-cc5be93e24f3 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18878 - "GET /api/badges/75b1e02b-6622-4308-9ab9-cc5be93e24f3/png HTTP/1.1" 200 OK
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-INFO:     82.122.8.33:60177 - "GET /verify/qr/75b1e02b-6622-4308-9ab9-cc5be93e24f3 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=S HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Sem HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18909 - "GET /api/badges/search?query=Semi HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Semin HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18909 - "GET /api/badges/search?query=Semi HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=N HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18909 - "GET /api/badges/search?query=Nikol HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Nikolay HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=Nikola HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=744 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=74432 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=744322 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40 HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40g HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gma HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail. HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail.co HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18908 - "GET /api/badges/search?query=7443227%40gmail.com HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18581 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18581 - "GET /api/badges/search?query=7443227%40gmail.com HTTP/1.1" 200 OK
-INFO:     104.28.96.13:18583 - "GET /api/badges/75b1e02b-6622-4308-9ab9-cc5be93e24f3 HTTP/1.1" 200 OK
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     172.225.158.157:0 - "GET /auth/login?next=/verify/badge/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     172.225.158.157:0 - "POST /auth/login HTTP/1.1" 303 See Other
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /verify/badge/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844/png HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     140.238.99.210:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     140.238.99.210:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [1219665]
+INFO:     Finished server process [1304676]
+own.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1304870]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1304890]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1304909]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1304931]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1304951]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1304974]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1304993]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305015]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305028]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305048]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305067]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305086]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305106]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305178]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [1305232]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.158.157:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.157:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1305232]
+INFO:     Started server process [1305619]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /verify-desk HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1305619]
+INFO:     Started server process [1305818]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1305818]
+INFO:     Started server process [1305884]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     45.205.1.8:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     45.205.1.8:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1305884]
+INFO:     Started server process [1307590]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     172.225.189.212:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
+INFO:     64.82.228.45:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     64.82.228.45:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     172.225.189.212:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     172.225.189.212:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     172.225.189.212:0 - "POST /auth/login HTTP/1.1" 303 See Other
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.212:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.212:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
+INFO:     185.18.222.147:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     185.18.222.147:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
+INFO:     216.73.217.91:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     216.73.217.91:0 - "GET /auth/login?next=/robots.txt HTTP/1.1" 200 OK
+INFO:     216.73.217.91:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     216.73.217.91:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
+INFO:     45.205.1.8:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     45.205.1.8:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     149.57.180.155:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     149.57.180.155:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/robots.txt HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/bot-connect.js HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/static/style/protect/index.js HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/assets/js/auth.js HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/js/lkk_ch.js HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/css/support_parent.css HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/js/twint_ch.js HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/static/style/sys_files/index.js HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/assets/js/qr_modal.js HTTP/1.1" 200 OK
+INFO:     155.2.225.177:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     155.2.225.177:0 - "GET /auth/login?next=/assets/js/message.js HTTP/1.1" 200 OK
+INFO:     20.193.146.159:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     20.193.146.159:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized

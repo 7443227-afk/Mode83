@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
+import secrets
+import time
 from typing import Any
 
 import httpx
 
 from fastapi import FastAPI, Form, Request, UploadFile, File, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_public_base_url
+from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_public_base_url
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
 from app.verifier import verify_badge, verify_baked_badge
@@ -26,6 +31,52 @@ def _compose_public_base_url() -> str:
 
 BASE_URL = _compose_public_base_url()
 OB_CONTENT_TYPE = 'application/ld+json; profile="https://w3id.org/openbadges/v2"'
+AUTH_COOKIE_NAME = "badge83_auth"
+AUTH_COOKIE_MAX_AGE = 60 * 60 * 8
+
+
+def _auth_signature(payload: str) -> str:
+    digest = hmac.new(get_auth_secret().encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
+def _make_auth_cookie(username: str) -> str:
+    issued_at = str(int(time.time()))
+    payload = base64.urlsafe_b64encode(f"{username}:{issued_at}".encode("utf-8")).decode("ascii").rstrip("=")
+    return f"{payload}.{_auth_signature(payload)}"
+
+
+def _decode_auth_cookie(cookie_value: str | None) -> str | None:
+    if not cookie_value or "." not in cookie_value:
+        return None
+
+    payload, signature = cookie_value.rsplit(".", 1)
+    if not hmac.compare_digest(signature, _auth_signature(payload)):
+        return None
+
+    try:
+        padded_payload = payload + "=" * (-len(payload) % 4)
+        decoded = base64.urlsafe_b64decode(padded_payload.encode("ascii")).decode("utf-8")
+        username, issued_at_raw = decoded.rsplit(":", 1)
+        issued_at = int(issued_at_raw)
+    except Exception:
+        return None
+
+    if int(time.time()) - issued_at > AUTH_COOKIE_MAX_AGE:
+        return None
+    return username
+
+
+def _is_auth_cookie_valid(request: Request) -> bool:
+    return _decode_auth_cookie(request.cookies.get(AUTH_COOKIE_NAME)) == get_auth_username()
+
+
+def _safe_next_url(next_url: str | None) -> str:
+    if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
+        return "/"
+    if next_url.startswith("/auth/"):
+        return "/"
+    return next_url
 
 
 @app.on_event("startup")
@@ -48,6 +99,63 @@ app.add_middleware(
 async def index(request: Request):
     """Affiche la nouvelle console d'administration Badge83."""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/auth/login", response_class=HTMLResponse)
+async def auth_login_page(request: Request, next: str | None = None):
+    """Affiche la page de connexion utilisée par Nginx auth_request."""
+    next_url = _safe_next_url(next)
+    if _is_auth_cookie_valid(request):
+        return RedirectResponse(url=next_url, status_code=303)
+    return templates.TemplateResponse("auth_login.html", {"request": request, "error": None, "next_url": next_url})
+
+
+@app.post("/auth/login")
+async def auth_login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    next_url: str = Form("/"),
+):
+    """Valide les identifiants et pose la session cookie vérifiée par Nginx."""
+    target_url = _safe_next_url(next_url)
+    credentials_ok = secrets.compare_digest(username, get_auth_username()) and secrets.compare_digest(
+        password,
+        get_auth_password(),
+    )
+    if not credentials_ok:
+        return templates.TemplateResponse(
+            "auth_login.html",
+            {"request": request, "error": "Identifiant ou mot de passe incorrect", "next_url": target_url},
+            status_code=401,
+        )
+
+    response = RedirectResponse(url=target_url, status_code=303)
+    response.set_cookie(
+        AUTH_COOKIE_NAME,
+        _make_auth_cookie(username),
+        max_age=AUTH_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+    return response
+
+
+@app.get("/auth/check")
+async def auth_check(request: Request):
+    """Endpoint interne pour Nginx auth_request : 204 si autorisé, 401 sinon."""
+    if _is_auth_cookie_valid(request):
+        return Response(status_code=204)
+    return Response(status_code=401)
+
+
+@app.get("/auth/logout")
+async def auth_logout():
+    """Supprime la cookie de session et renvoie vers la page de connexion."""
+    response = RedirectResponse(url="/auth/login", status_code=303)
+    response.delete_cookie(AUTH_COOKIE_NAME)
+    return response
 
 
 @app.get("/verify/badge/{assertion_id}", response_class=HTMLResponse)
@@ -148,7 +256,7 @@ async def verify_badge_qr_page(request: Request, assertion_id: str):
             "issued_on_display": _format_display_date(record.get("issued_on")),
             "recipient_name": admin_recipient.get("name") or "Non disponible",
             "recipient_email": admin_recipient.get("email") or "Non disponible",
-            "full_verification_url": f"/verify/badge/{assertion_id}",
+            "full_verification_url": f"/verify/badge/{assertion_id}" if is_valid and is_mode83 else None,
         },
     }
     return templates.TemplateResponse("verify_qr.html", context)
@@ -339,9 +447,13 @@ def _format_display_date(value: Any) -> str:
 def _build_issuer_check(assertion: dict[str, Any]) -> dict[str, Any]:
     issuer_ref = assertion.get("issuer", "")
     issuer_value = issuer_ref.get("id", "") if isinstance(issuer_ref, dict) else str(issuer_ref or "")
-    canonical_mode83_issuer = "http://mode83.ddns.net/issuers/main"
+    canonical_mode83_issuer = "https://mode83.ddns.net/issuers/main"
+    legacy_mode83_issuers = {
+        "http://mode83.ddns.net:8000/issuers/main",
+        "http://mode83.ddns.net/issuers/main",
+    }
     local_issuer_url = f"{BASE_URL.rstrip('/')}/issuers/main"
-    is_local = issuer_value in {local_issuer_url, canonical_mode83_issuer}
+    is_local = issuer_value in {local_issuer_url, canonical_mode83_issuer, *legacy_mode83_issuers}
 
     return {
         "issuer": issuer_value or "unknown",
@@ -581,7 +693,7 @@ async def api_delete_badge(assertion_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Public endpoints for HostedBadge verification (Open Badges 2.0)
+# Endpoints publics pour la vérification HostedBadge (Open Badges 2.0)
 # ---------------------------------------------------------------------------
 
 def _serve_json_file(file_path: Path) -> JSONResponse:

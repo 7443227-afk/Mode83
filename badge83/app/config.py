@@ -17,12 +17,16 @@ ISSUER_TEMPLATE = DATA_BASE / "issuer_template.json"
 BADGECLASS_TEMPLATE = DATA_BASE / "badgeclass_template.json"
 BADGE_PNG = DATA_BASE / "badge.png"
 
-DEFAULT_HOST = "0.0.0.0"
+DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
-DEFAULT_PUBLIC_SCHEME = "http"
+DEFAULT_PUBLIC_SCHEME = "https"
 DEFAULT_PUBLIC_HOST = "mode83.ddns.net"
-DEFAULT_BASE_URL = f"{DEFAULT_PUBLIC_SCHEME}://{DEFAULT_PUBLIC_HOST}:{DEFAULT_PORT}"
+DEFAULT_PUBLIC_PORT = 443
+DEFAULT_BASE_URL = f"{DEFAULT_PUBLIC_SCHEME}://{DEFAULT_PUBLIC_HOST}"
 DEFAULT_SEARCH_PEPPER = "badge83-dev-search-pepper"
+DEFAULT_AUTH_USERNAME = "admin"
+DEFAULT_AUTH_PASSWORD = "admin"
+DEFAULT_AUTH_SECRET = "badge83-dev-auth-secret-change-me"
 
 ROOT_VENV_DIR = WORKSPACE_DIR / ".venv"
 PROJECT_VENV_DIR = PROJECT_DIR / ".venv"
@@ -47,12 +51,12 @@ def get_public_base_url() -> str:
 
     public_scheme = os.environ.get("BADGE83_PUBLIC_SCHEME", DEFAULT_PUBLIC_SCHEME).strip() or DEFAULT_PUBLIC_SCHEME
     public_host = os.environ.get("BADGE83_PUBLIC_HOST", DEFAULT_PUBLIC_HOST).strip() or DEFAULT_PUBLIC_HOST
-    public_port = os.environ.get("BADGE83_PUBLIC_PORT") or os.environ.get("BADGE83_PORT") or str(DEFAULT_PORT)
+    public_port = os.environ.get("BADGE83_PUBLIC_PORT") or str(DEFAULT_PUBLIC_PORT)
 
     try:
         port_value = int(str(public_port).strip())
     except Exception:
-        port_value = DEFAULT_PORT
+        port_value = DEFAULT_PUBLIC_PORT
 
     is_standard_port = (public_scheme == "http" and port_value == 80) or (
         public_scheme == "https" and port_value == 443
@@ -64,6 +68,18 @@ def get_public_base_url() -> str:
 
 def get_search_pepper() -> str:
     return os.environ.get("BADGE83_SEARCH_PEPPER", DEFAULT_SEARCH_PEPPER)
+
+
+def get_auth_username() -> str:
+    return os.environ.get("BADGE83_AUTH_USERNAME", DEFAULT_AUTH_USERNAME).strip() or DEFAULT_AUTH_USERNAME
+
+
+def get_auth_password() -> str:
+    return os.environ.get("BADGE83_AUTH_PASSWORD", DEFAULT_AUTH_PASSWORD).strip() or DEFAULT_AUTH_PASSWORD
+
+
+def get_auth_secret() -> str:
+    return os.environ.get("BADGE83_AUTH_SECRET", DEFAULT_AUTH_SECRET).strip() or DEFAULT_AUTH_SECRET
 
 
 def get_registry_db_path() -> Path:
