@@ -32,9 +32,11 @@ https://mode83.ddns.net/issuers/main
 
 ## Protection par mot de passe
 
-Une authentification HTTP Basic a été activée au niveau Nginx.
+Une authentification applicative via `auth_request` Nginx a été activée au niveau Nginx.
 
-Sans authentification, les routes administratives, les API, les pages détaillées et les ressources Open Badges ne sont pas accessibles.
+Sans authentification, les routes administratives, les API et les pages détaillées ne sont pas accessibles.
+
+Les ressources publiques nécessaires à la validation externe Open Badges restent volontairement accessibles sans authentification.
 
 Les réponses attendues sont :
 
@@ -42,15 +44,11 @@ Les réponses attendues sont :
 /                         -> 401 sans mot de passe
 /api/badges               -> 401 sans mot de passe
 /verify/badge/<id>        -> 401 sans mot de passe
-/issuers/main             -> 401 sans mot de passe
-/badges/...               -> 401 sans mot de passe
-/assertions/...           -> 401 sans mot de passe
-/assets/...               -> 401 sans mot de passe
 ```
 
-## Exception publique conservée
+## Exceptions publiques conservées
 
-La seule page applicative laissée publique est la page mobile de vérification QR :
+La page applicative laissée publique est la page mobile de vérification QR :
 
 ```text
 /verify/qr/<id>
@@ -70,6 +68,17 @@ Elle ne doit pas afficher publiquement :
 - les liens directs vers JSON/PNG/API.
 
 Le lien vers la page détaillée n’est affiché que si le badge est valide et reconnu comme MODE83. Cette page détaillée reste protégée par mot de passe.
+
+Les endpoints Open Badges nécessaires au modèle `HostedBadge` sont également publics afin de permettre aux validateurs externes de résoudre la chaîne complète :
+
+```text
+/assertions/<id>              -> Assertion JSON-LD publique
+/issuers/main                 -> profil Issuer JSON-LD public
+/badges/blockchain-foundations -> BadgeClass JSON-LD public
+/assets/<image>.png           -> image publique du badge / issuer
+```
+
+Ces routes ne donnent pas accès à l’interface d’administration ni aux API internes. Elles exposent uniquement les objets publics requis par le standard Open Badges.
 
 ## Certificat TLS
 
@@ -116,8 +125,10 @@ Les contrôles suivants ont été effectués :
 /verify/qr/<id> sans authentification -> accessible, page minimale
 /verify/badge/<id> sans authentification -> 401
 /api/badges sans authentification    -> 401
-/issuers/main sans authentification  -> 401
-/issuers/main avec authentification  -> 200
+/assertions/<id> sans authentification -> 200, `application/ld+json`
+/issuers/main sans authentification    -> 200, `application/ld+json`
+/badges/... sans authentification      -> 200, `application/ld+json`
+/assets/... sans authentification      -> 200, `image/png`
 ```
 
 La suite de tests Python a été exécutée avec succès :
@@ -128,4 +139,20 @@ La suite de tests Python a été exécutée avec succès :
 
 ## Points d’attention
 
-Cette configuration privilégie la confidentialité. En contrepartie, les validateurs externes Open Badges ne peuvent plus résoudre librement les ressources JSON publiques sans authentification. Pour une phase de démonstration ou de validation externe, il faudra décider si certaines ressources Open Badges doivent redevenir publiques temporairement ou si la vérification doit rester strictement interne.
+Cette configuration privilégie la confidentialité de l’administration tout en conservant la compatibilité avec la validation externe Open Badges.
+
+Point d’équilibre retenu :
+
+- les ressources Open Badges publiques (`Assertion`, `Issuer`, `BadgeClass`, assets) sont accessibles sans authentification ;
+- les pages détaillées, l’administration et les API de gestion restent protégées ;
+- les données personnelles complètes ne doivent pas être rendues publiques dans les pages QR ou les vues non protégées.
+
+Le 27/04/2026, la configuration Nginx a été ajustée pour désactiver `auth_request` sur `/assertions/`, `/issuers/`, `/badges/` et `/assets/`, car les validateurs externes recevaient auparavant la page HTML de connexion au lieu du JSON-LD Open Badges.
+
+Le même jour, le profil `Issuer` a aussi été ajusté pour la compatibilité validator Open Badges :
+
+- `verification.type` est explicitement défini à `VerificationObject` ;
+- `verification.allowedOrigins` contient l’autorité seule (`mode83.ddns.net`) et non l’URL complète (`https://mode83.ddns.net`) ;
+- `verification.startsWith` conserve l’URL complète attendue pour les assertions (`https://mode83.ddns.net/assertions/`).
+
+Les réponses JSON-LD publiques déclarent aussi explicitement `charset=utf-8` dans leur `Content-Type` afin d’éviter qu’un client HTTP ancien ou un validateur ne décode les accents UTF-8 comme du Latin-1/Windows-1252 (`pédagogique` affiché en `pĂŠdagogique`).

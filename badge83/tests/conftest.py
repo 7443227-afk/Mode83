@@ -48,7 +48,8 @@ def isolated_issuer_env(tmp_path, monkeypatch, sample_png_bytes):
                 "type": "Issuer",
                 "name": "Mode83",
                 "verification": {
-                    "allowedOrigins": ["${BASE_URL}"],
+                    "type": "VerificationObject",
+                    "allowedOrigins": ["tests.mode83.local"],
                     "startsWith": ["${BASE_URL}/assertions/"],
                 },
             }

@@ -19,7 +19,7 @@ from fastapi.templating import Jinja2Templates
 from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_public_base_url
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
-from app.verifier import verify_badge, verify_baked_badge
+from app.verifier import deep_verify_baked_badge, verify_badge, verify_baked_badge
 
 app = FastAPI(title="Badge 83")
 templates = Jinja2Templates(directory="templates")
@@ -30,7 +30,7 @@ def _compose_public_base_url() -> str:
 
 
 BASE_URL = _compose_public_base_url()
-OB_CONTENT_TYPE = 'application/ld+json; profile="https://w3id.org/openbadges/v2"'
+OB_CONTENT_TYPE = 'application/ld+json; charset=utf-8; profile="https://w3id.org/openbadges/v2"'
 AUTH_COOKIE_NAME = "badge83_auth"
 AUTH_COOKIE_MAX_AGE = 60 * 60 * 8
 
@@ -320,10 +320,10 @@ async def verify_query(badge_id: str):
 
 
 @app.post("/verify-baked")
-async def verify_baked(badge: UploadFile = File(...)):
+async def verify_baked(badge: UploadFile = File(...), deep: bool = False):
     """Vérifie un badge Open Badges à partir d'un PNG baked uploadé."""
     png_data = await badge.read()
-    result = verify_baked_badge(png_data)
+    result = deep_verify_baked_badge(png_data) if deep else verify_baked_badge(png_data)
     return result
 
 

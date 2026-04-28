@@ -9,8 +9,9 @@
   "description": "Profil de l'émetteur MODE83 pour l'émission de badges Open Badges 2.0.",
   "image": "${BASE_URL}/assets/mode83-badge.png",
   "verification": {
+    "type": "VerificationObject",
     "allowedOrigins": [
-      "${BASE_URL}"
+      "mode83.ddns.net"
     ],
     "startsWith": [
       "${BASE_URL}/assertions/"

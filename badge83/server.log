@@ -1,50 +1,34 @@
-INFO:     Started server process [1340434]
+INFO:     Started server process [1385135]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     82.122.8.33:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
-INFO:     82.122.8.33:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
-INFO:     82.122.8.33:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
-INFO:     82.122.8.33:0 - "POST /auth/login HTTP/1.1" 401 Unauthorized
-INFO:     82.122.8.33:0 - "POST /auth/login HTTP/1.1" 303 See Other
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET / HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844/png HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /verify-desk HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET / HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /verify/qr/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /verify/badge/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
-INFO:     34.29.212.110:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     34.29.212.110:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET / HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "GET /api/badges/94dcd20f-0c5c-4b33-aa3a-91721761a844 HTTP/1.1" 200 OK
-INFO:     82.122.8.33:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     82.122.8.33:0 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     145.241.167.34:0 - "GET /assertions/d375364b-526c-4f8a-a813-b96b1569d57d HTTP/1.1" 200 OK
+INFO:     145.241.167.34:0 - "GET /assertions/d375364b-526c-4f8a-a813-b96b1569d57d HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /assertions/d375364b-526c-4f8a-a813-b96b1569d57d HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /assets/mode83-badge.png HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /issuers/main HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /assertions/d375364b-526c-4f8a-a813-b96b1569d57d HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /assets/mode83-badge.png HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /issuers/main HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges/d375364b-526c-4f8a-a813-b96b1569d57d HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges/d375364b-526c-4f8a-a813-b96b1569d57d/png HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     172.225.189.213:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.189.213:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /assertions/988ac225-cd52-43d9-b0d6-0412cde6a015 HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /badges/blockchain-foundations HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /assets/mode83-badge.png HTTP/1.1" 200 OK
+INFO:     136.124.34.41:0 - "GET /issuers/main HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [1340434]
+INFO:     Finished server process [1385135]

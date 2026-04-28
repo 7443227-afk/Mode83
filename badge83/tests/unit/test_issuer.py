@@ -44,7 +44,8 @@ def test_issue_badge_persists_assertion_and_metadata(isolated_issuer_env):
     assert persisted == assertion
     assert result["issuer"]["id"] == "https://tests.mode83.local/issuers/main"
     assert result["issuer"]["@language"] == "fr-FR"
-    assert result["issuer"]["verification"]["allowedOrigins"] == ["https://tests.mode83.local"]
+    assert result["issuer"]["verification"]["type"] == "VerificationObject"
+    assert result["issuer"]["verification"]["allowedOrigins"] == ["tests.mode83.local"]
     assert result["issuer"]["verification"]["startsWith"] == ["https://tests.mode83.local/assertions/"]
     assert result["badgeclass"]["id"] == "https://tests.mode83.local/badges/blockchain-foundations"
     assert result["badgeclass"]["@language"] == "fr-FR"
