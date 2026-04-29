@@ -442,6 +442,7 @@
             <button class="menu-btn active" data-view="registryView" data-i18n="menuRegistry">Registre des badges</button>
             <button class="menu-btn" data-view="inspectorView" data-i18n="menuInspector">Inspection et édition</button>
             <button class="menu-btn" data-view="issueView" data-i18n="menuIssue">Émission de badge</button>
+            <button class="menu-btn" data-view="constructorView">Constructeur de badge</button>
             <button class="menu-btn" data-view="verifyView" data-i18n="menuVerify">Vérification et HostedBadge</button>
             <a href="/verify-desk" class="menu-btn text-decoration-none d-block">Bureau de vérification</a>
             <button class="menu-btn" data-view="systemView" data-i18n="menuSystem">Sortie système</button>
@@ -560,6 +561,20 @@
                   <input id="issueEmail" name="email" type="email" class="form-control" required />
                 </div>
                 <div class="mb-3">
+                  <label id="issueTemplateLabel" class="form-label" for="issueTemplate">Modèle de badge</label>
+                  <select id="issueTemplate" class="form-select">
+                    <option value="">Badge standard MODE83</option>
+                  </select>
+                  <div class="form-text">Optionnel. Choisissez un modèle préparé dans le constructeur.</div>
+                </div>
+                <div id="issueTemplatePreviewWrap" class="border rounded-4 p-3 mb-3 d-none">
+                  <div class="fw-semibold mb-2">Aperçu du modèle sélectionné</div>
+                  <div class="text-center">
+                    <img id="issueTemplatePreview" class="badge-preview" alt="Aperçu du modèle sélectionné" />
+                  </div>
+                </div>
+                <div id="issueTemplateFields" class="border rounded-4 p-3 mb-3 d-none"></div>
+                <div class="mb-3">
                   <label id="issueModeLabel" class="form-label" for="issueMode">Mode d’émission</label>
                   <select id="issueMode" class="form-select">
                     <option value="json">Assertion JSON</option>
@@ -574,6 +589,154 @@
                 <button id="issueSubmitBtn" type="submit" class="btn btn-success w-100">Émettre le badge</button>
               </form>
               <div id="issueStatus" class="small text-muted">Remplissez les champs et choisissez le mode d’émission.</div>
+            </div>
+
+            <div id="constructorView" class="view-pane">
+              <div class="section-title">
+                <div>
+                  <h2 class="h5 mb-1">Constructeur de badge</h2>
+                  <p class="text-muted mb-0">Création de schémas, modèles visuels, textes superposés et aperçu PNG avec QR code.</p>
+                </div>
+                <button id="constructorRefreshBtn" class="btn btn-outline-primary btn-sm">Actualiser</button>
+              </div>
+
+              <div class="row g-4">
+                <div class="col-12 col-lg-5">
+                  <div class="border rounded-4 p-3 mb-3">
+                    <h3 class="h6">Nouveau schéma</h3>
+                    <form id="schemaForm">
+                      <div class="mb-2">
+                        <label class="form-label" for="schemaName">Nom du programme / schéma</label>
+                        <input id="schemaName" class="form-control" required placeholder="Ex. Blockchain Foundations" />
+                      </div>
+                      <div class="form-check form-switch mb-2">
+                        <input id="schemaDefaultFields" class="form-check-input" type="checkbox" checked />
+                        <label class="form-check-label" for="schemaDefaultFields">Ajouter les champs opérateur par défaut</label>
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label" for="schemaDescription">Description</label>
+                        <textarea id="schemaDescription" class="form-control" rows="2"></textarea>
+                      </div>
+                      <div class="row g-2 mb-2">
+                        <div class="col-7">
+                          <label class="form-label" for="schemaFieldLabel">Champ initial</label>
+                          <input id="schemaFieldLabel" class="form-control" placeholder="Ex. Courriel" />
+                        </div>
+                        <div class="col-5">
+                          <label class="form-label" for="schemaFieldType">Type</label>
+                          <select id="schemaFieldType" class="form-select">
+                            <option value="text">Texte</option>
+                            <option value="email">Email</option>
+                            <option value="number">Nombre</option>
+                            <option value="date">Date</option>
+                            <option value="textarea">Texte long</option>
+                          </select>
+                        </div>
+                      </div>
+                      <button class="btn btn-success w-100" type="submit">Créer le schéma</button>
+                    </form>
+                  </div>
+
+                  <div class="border rounded-4 p-3">
+                    <h3 class="h6">Nouveau modèle</h3>
+                    <form id="templateForm">
+                      <div class="mb-2">
+                        <label class="form-label" for="templateName">Nom du modèle</label>
+                        <input id="templateName" class="form-control" required placeholder="Ex. Badge standard MODE83" />
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label" for="templateSchema">Schéma associé</label>
+                        <select id="templateSchema" class="form-select"></select>
+                      </div>
+                      <div class="row g-2 mb-2">
+                        <div class="col-6">
+                          <label class="form-label" for="templateQrPlacement">Placement QR</label>
+                          <select id="templateQrPlacement" class="form-select">
+                            <option value="bottom-right">Bas droite</option>
+                            <option value="bottom-left">Bas gauche</option>
+                            <option value="top-right">Haut droite</option>
+                            <option value="top-left">Haut gauche</option>
+                            <option value="center">Centre</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label" for="templateQrSize">Taille QR</label>
+                          <input id="templateQrSize" class="form-control" type="number" min="0.05" max="1" step="0.01" value="0.22" />
+                        </div>
+                      </div>
+                      <div class="row g-2 mb-2">
+                        <div class="col-6">
+                          <label class="form-label" for="templateTextSource">Source du texte</label>
+                          <select id="templateTextSource" class="form-select">
+                            <option value="static">Texte fixe</option>
+                            <option value="name">Nom du participant</option>
+                            <option value="email">Email du participant</option>
+                            <option value="course_name">Nom du cours</option>
+                            <option value="certificate_number">Numéro de certificat</option>
+                            <option value="issue_date">Date d’émission</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label" for="templateText">Texte fixe</label>
+                          <input id="templateText" class="form-control" value="MODE83" />
+                        </div>
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label" for="templatePositionPreset">Position rapide</label>
+                        <select id="templatePositionPreset" class="form-select">
+                          <option value="custom">Position personnalisée</option>
+                          <option value="top-center">Haut centre</option>
+                          <option value="center">Centre</option>
+                          <option value="under-name">Sous le nom</option>
+                          <option value="bottom-left">Bas gauche</option>
+                          <option value="bottom-center">Bas centre</option>
+                          <option value="bottom-right">Bas droite</option>
+                        </select>
+                      </div>
+                      <div class="row g-2 mb-2">
+                        <div class="col-3">
+                          <label class="form-label" for="templateTextX">X</label>
+                          <input id="templateTextX" class="form-control" type="number" value="24" />
+                        </div>
+                        <div class="col-3">
+                          <label class="form-label" for="templateTextY">Y</label>
+                          <input id="templateTextY" class="form-control" type="number" value="24" />
+                        </div>
+                        <div class="col-3">
+                          <label class="form-label" for="templateTextSize">Taille</label>
+                          <input id="templateTextSize" class="form-control" type="number" min="8" max="96" value="24" />
+                        </div>
+                        <div class="col-3">
+                          <label class="form-label" for="templateTextColor">Couleur</label>
+                          <input id="templateTextColor" class="form-control form-control-color w-100" type="color" value="#0f172a" />
+                        </div>
+                      </div>
+                      <button id="templateAddOverlayBtn" class="btn btn-outline-primary w-100 mb-2" type="button">Ajouter ce texte au modèle</button>
+                      <button id="templateDraftPreviewBtn" class="btn btn-outline-secondary w-100 mb-2" type="button">Prévisualiser le brouillon</button>
+                      <div id="templateOverlayList" class="small text-muted mb-2">Aucun texte ajouté. Le texte courant sera utilisé si vous créez directement le modèle.</div>
+                      <button class="btn btn-success w-100" type="submit">Créer le modèle</button>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-7">
+                  <div class="border rounded-4 p-3 mb-3">
+                    <h3 class="h6">Schémas disponibles</h3>
+                    <div id="schemasList" class="small text-muted">Chargement…</div>
+                  </div>
+                  <div class="border rounded-4 p-3 mb-3">
+                    <h3 class="h6">Modèles disponibles</h3>
+                    <div id="templatesList" class="small text-muted">Chargement…</div>
+                  </div>
+                  <div class="border rounded-4 p-3">
+                    <h3 class="h6">Aperçu du modèle</h3>
+                    <div class="text-center mb-2">
+                      <img id="constructorPreview" class="badge-preview" alt="Aperçu du modèle" />
+                    </div>
+                    <div id="constructorStatus" class="small text-muted">Sélectionnez ou créez un modèle pour afficher l’aperçu.</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div id="verifyView" class="view-pane">
@@ -619,7 +782,7 @@
     </main>
 
     <script>
-      const state = { badges: [], filteredBadges: [], selectedId: null };
+      const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], templateOverlayDrafts: [] };
 
       const statsRow = document.getElementById('statsRow');
       const currentBadgeStatus = document.getElementById('currentBadgeStatus');
@@ -648,6 +811,10 @@
       const saveEditBtn = document.getElementById('saveEditBtn');
       const issuePanelForm = document.getElementById('issuePanelForm');
       const issueStatus = document.getElementById('issueStatus');
+      const issueTemplate = document.getElementById('issueTemplate');
+      const issueTemplateFields = document.getElementById('issueTemplateFields');
+      const issueTemplatePreviewWrap = document.getElementById('issueTemplatePreviewWrap');
+      const issueTemplatePreview = document.getElementById('issueTemplatePreview');
       const verifyBadgeId = document.getElementById('verifyBadgeId');
       const verifyIdBtn = document.getElementById('verifyIdBtn');
       const verifyAssertionUrl = document.getElementById('verifyAssertionUrl');
@@ -656,6 +823,17 @@
       const verifyOutput = document.getElementById('verifyOutput');
       const systemOutput = document.getElementById('systemOutput');
       const languageSelect = document.getElementById('languageSelect');
+      const schemaForm = document.getElementById('schemaForm');
+      const templateForm = document.getElementById('templateForm');
+      const constructorRefreshBtn = document.getElementById('constructorRefreshBtn');
+      const schemasList = document.getElementById('schemasList');
+      const templatesList = document.getElementById('templatesList');
+      const templateSchema = document.getElementById('templateSchema');
+      const templateAddOverlayBtn = document.getElementById('templateAddOverlayBtn');
+      const templateDraftPreviewBtn = document.getElementById('templateDraftPreviewBtn');
+      const templateOverlayList = document.getElementById('templateOverlayList');
+      const constructorPreview = document.getElementById('constructorPreview');
+      const constructorStatus = document.getElementById('constructorStatus');
 
       const translations = {
         fr: {
@@ -720,6 +898,7 @@
             registryView: 'Registre des badges',
             inspectorView: 'Inspection et édition',
             issueView: 'Émission de badge',
+            constructorView: 'Constructeur de badge',
             verifyView: 'Vérification et HostedBadge',
             systemView: 'Sortie système',
           },
@@ -787,6 +966,7 @@
             registryView: 'Badge registry',
             inspectorView: 'Inspector and editing',
             issueView: 'Badge issuing',
+            constructorView: 'Constructeur de badge',
             verifyView: 'Verification and HostedBadge',
             systemView: 'System output',
           },
@@ -854,6 +1034,7 @@
             registryView: 'Реестр badge’ей',
             inspectorView: 'Инспектор и редактирование',
             issueView: 'Выпуск badge',
+            constructorView: 'Constructeur de badge',
             verifyView: 'Проверка и HostedBadge',
             systemView: 'Системный вывод',
           },
@@ -1098,6 +1279,320 @@
         switchView('inspectorView');
       }
 
+      async function loadConstructor() {
+        const [schemasResponse, templatesResponse] = await Promise.all([
+          fetch('/badge-constructor/schemas'),
+          fetch('/badge-constructor/templates'),
+        ]);
+        const schemas = schemasResponse.ok ? await schemasResponse.json() : [];
+        const templates = templatesResponse.ok ? await templatesResponse.json() : [];
+        state.constructorSchemas = schemas;
+        state.constructorTemplates = templates;
+        refreshIssueTemplateOptions();
+
+        templateSchema.innerHTML = schemas.length
+          ? schemas.map((schema) => `<option value="${escapeHtml(schema.id)}">${escapeHtml(schema.name)}</option>`).join('')
+          : '<option value="">Aucun schéma disponible</option>';
+
+        schemasList.innerHTML = schemas.length
+          ? schemas.map((schema) => `
+              <div class="border rounded-3 p-2 mb-2 bg-light">
+                <div class="fw-semibold">${escapeHtml(schema.name)}</div>
+                <div>${escapeHtml(schema.description || 'Sans description')}</div>
+                <div class="text-muted">${(schema.fields || []).length} champ(s)</div>
+              </div>
+            `).join('')
+          : 'Aucun schéma pour le moment.';
+
+        templatesList.innerHTML = templates.length
+          ? templates.map((template) => `
+              <div class="border rounded-3 p-2 mb-2 bg-light">
+                <div class="d-flex justify-content-between gap-2 align-items-center">
+                  <div>
+                    <div class="fw-semibold">${escapeHtml(template.name)}</div>
+                    <div class="text-muted">Schéma : ${escapeHtml(template.schema_name || template.schema_id || 'Non associé')}</div>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary constructor-preview-btn" data-id="${escapeHtml(template.id)}">Aperçu</button>
+                    <button class="btn btn-sm btn-outline-secondary constructor-duplicate-btn" data-id="${escapeHtml(template.id)}">Dupliquer</button>
+                  </div>
+                </div>
+              </div>
+            `).join('')
+          : 'Aucun modèle pour le moment.';
+
+        templatesList.querySelectorAll('.constructor-preview-btn').forEach((button) => {
+          button.addEventListener('click', () => showConstructorPreview(button.dataset.id));
+        });
+        templatesList.querySelectorAll('.constructor-duplicate-btn').forEach((button) => {
+          button.addEventListener('click', () => duplicateConstructorTemplate(button.dataset.id));
+        });
+      }
+
+      function showConstructorPreview(templateId) {
+        constructorPreview.src = `/badge-constructor/templates/${encodeURIComponent(templateId)}/preview?ts=${Date.now()}`;
+        constructorPreview.classList.remove('d-none');
+        constructorStatus.textContent = `Aperçu du modèle ${templateId}`;
+      }
+
+      async function duplicateConstructorTemplate(templateId) {
+        const response = await fetch(`/badge-constructor/templates/${encodeURIComponent(templateId)}/duplicate`, { method: 'POST' });
+        const data = await response.json();
+        constructorStatus.textContent = data.message || 'Modèle dupliqué.';
+        setSystemOutput(data);
+        await loadConstructor();
+        if (data.id) showConstructorPreview(data.id);
+      }
+
+      function buildCurrentOverlay() {
+        const textSource = document.getElementById('templateTextSource').value;
+        const overlayText = document.getElementById('templateText').value.trim();
+        const base = {
+          position_x: Number(document.getElementById('templateTextX').value || 0),
+          position_y: Number(document.getElementById('templateTextY').value || 0),
+          font_size: Number(document.getElementById('templateTextSize').value || 24),
+          font_color: document.getElementById('templateTextColor').value || '#0f172a',
+        };
+        if (textSource === 'static') {
+          if (!overlayText) return null;
+          return { content_type: 'static', static_text: overlayText, ...base };
+        }
+        return { content_type: 'field', field_id: textSource, ...base };
+      }
+
+      function overlayLabel(overlay) {
+        const sourceLabels = {
+          name: 'Nom du participant',
+          email: 'Email du participant',
+          course_name: 'Nom du cours',
+          certificate_number: 'Numéro de certificat',
+          issue_date: 'Date d’émission',
+        };
+        return overlay.content_type === 'static'
+          ? `Texte fixe: ${overlay.static_text}`
+          : `Champ: ${sourceLabels[overlay.field_id] || overlay.field_id}`;
+      }
+
+      function renderTemplateOverlayDrafts() {
+        templateOverlayList.innerHTML = state.templateOverlayDrafts.length
+          ? state.templateOverlayDrafts.map((overlay, index) => `
+              <div class="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-1 bg-light">
+                <span>${escapeHtml(overlayLabel(overlay))} — x:${overlay.position_x}, y:${overlay.position_y}, ${overlay.font_size}px</span>
+                <button type="button" class="btn btn-sm btn-outline-danger template-remove-overlay-btn" data-index="${index}">Retirer</button>
+              </div>
+            `).join('')
+          : 'Aucun texte ajouté. Le texte courant sera utilisé si vous créez directement le modèle.';
+        templateOverlayList.querySelectorAll('.template-remove-overlay-btn').forEach((button) => {
+          button.addEventListener('click', () => {
+            state.templateOverlayDrafts.splice(Number(button.dataset.index), 1);
+            renderTemplateOverlayDrafts();
+          });
+        });
+      }
+
+      function collectTemplateOverlays() {
+        if (state.templateOverlayDrafts.length) return [...state.templateOverlayDrafts];
+        const current = buildCurrentOverlay();
+        return current ? [current] : [];
+      }
+
+      function applyTemplatePositionPreset() {
+        const preset = document.getElementById('templatePositionPreset').value;
+        const positions = {
+          'top-center': { x: 128, y: 24 },
+          'center': { x: 128, y: 112 },
+          'under-name': { x: 128, y: 148 },
+          'bottom-left': { x: 24, y: 214 },
+          'bottom-center': { x: 128, y: 214 },
+          'bottom-right': { x: 214, y: 214 },
+        };
+        if (!positions[preset]) return;
+        document.getElementById('templateTextX').value = positions[preset].x;
+        document.getElementById('templateTextY').value = positions[preset].y;
+      }
+
+      function buildTemplateDraftPayload() {
+        return {
+          name: document.getElementById('templateName').value || 'Brouillon',
+          schema_id: templateSchema.value || null,
+          text_overlays: collectTemplateOverlays(),
+          qr_code_placement: document.getElementById('templateQrPlacement').value,
+          qr_code_size: Number(document.getElementById('templateQrSize').value || 0.22),
+        };
+      }
+
+      async function previewTemplateDraft() {
+        const response = await fetch('/badge-constructor/templates/preview-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildTemplateDraftPayload()),
+        });
+        if (!response.ok) {
+          const error = await response.text();
+          constructorStatus.textContent = 'Erreur de prévisualisation du brouillon.';
+          setSystemOutput({ error });
+          return;
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        if (constructorPreview.dataset.objectUrl) {
+          URL.revokeObjectURL(constructorPreview.dataset.objectUrl);
+        }
+        constructorPreview.dataset.objectUrl = url;
+        constructorPreview.src = url;
+        constructorPreview.classList.remove('d-none');
+        constructorStatus.textContent = 'Aperçu du brouillon avec valeurs d’exemple.';
+      }
+
+      function refreshIssueTemplateOptions() {
+        if (!issueTemplate) return;
+        const currentValue = issueTemplate.value;
+        issueTemplate.innerHTML = '<option value="">Badge standard MODE83</option>' + state.constructorTemplates.map((template) => (
+          `<option value="${escapeHtml(template.id)}">${escapeHtml(template.name)}</option>`
+        )).join('');
+        if (currentValue && state.constructorTemplates.some((template) => template.id === currentValue)) {
+          issueTemplate.value = currentValue;
+        }
+        renderIssueTemplateFields();
+      }
+
+      function selectedIssueTemplate() {
+        return state.constructorTemplates.find((template) => template.id === issueTemplate.value) || null;
+      }
+
+      function selectedIssueSchema(template) {
+        if (!template || !template.schema_id) return null;
+        return state.constructorSchemas.find((schema) => schema.id === template.schema_id) || null;
+      }
+
+      function renderIssueTemplateFields() {
+        if (!issueTemplateFields) return;
+        const template = selectedIssueTemplate();
+        const schema = selectedIssueSchema(template);
+        const fields = (schema && schema.fields) ? schema.fields : [];
+
+        if (!template) {
+          issueTemplateFields.classList.add('d-none');
+          issueTemplateFields.innerHTML = '';
+          issueTemplatePreviewWrap.classList.add('d-none');
+          issueTemplatePreview.removeAttribute('src');
+          return;
+        }
+
+        document.getElementById('issueMode').value = 'png';
+        issueTemplatePreviewWrap.classList.remove('d-none');
+        issueTemplatePreview.src = `/badge-constructor/templates/${encodeURIComponent(template.id)}/preview?ts=${Date.now()}`;
+        issueTemplateFields.classList.remove('d-none');
+        issueTemplateFields.innerHTML = `
+          <div class="fw-semibold mb-2">Données du modèle : ${escapeHtml(template.name)}</div>
+          ${fields.length ? fields.map((field) => `
+            <div class="mb-2">
+              <label class="form-label" for="issueField_${escapeHtml(field.id)}">${escapeHtml(field.label)}${field.required ? ' *' : ''}</label>
+              ${field.field_type === 'textarea'
+                ? `<textarea id="issueField_${escapeHtml(field.id)}" class="form-control issue-template-field" data-field-id="${escapeHtml(field.id)}" ${field.required ? 'required' : ''}>${escapeHtml(field.default_value || '')}</textarea>`
+                : `<input id="issueField_${escapeHtml(field.id)}" class="form-control issue-template-field" type="${field.field_type === 'email' ? 'email' : field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'}" data-field-id="${escapeHtml(field.id)}" value="${escapeHtml(field.default_value || '')}" ${field.required ? 'required' : ''} />`}
+              ${field.description ? `<div class="form-text">${escapeHtml(field.description)}</div>` : ''}
+            </div>
+          `).join('') : '<div class="small text-muted">Ce modèle ne demande pas de champs supplémentaires. Le nom et l’email seront utilisés.</div>'}
+          <div class="small text-muted mt-2">Les champs seront enregistrés dans l’assertion et utilisés pour les textes dynamiques du modèle.</div>
+        `;
+      }
+
+      function collectIssueTemplateValues() {
+        const values = {};
+        issueTemplateFields.querySelectorAll('.issue-template-field').forEach((input) => {
+          values[input.dataset.fieldId] = input.value;
+        });
+        return values;
+      }
+
+      schemaForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const fieldLabel = document.getElementById('schemaFieldLabel').value.trim();
+        const fields = [];
+        if (document.getElementById('schemaDefaultFields').checked) {
+          fields.push(
+            { id: 'course_name', label: 'Nom du cours', field_type: 'text', required: true, position: 1 },
+            { id: 'certificate_number', label: 'Numéro de certificat', field_type: 'text', required: false, position: 2 },
+            { id: 'issue_date', label: 'Date d’émission', field_type: 'date', required: false, position: 3 }
+          );
+        }
+        if (fieldLabel) {
+          fields.push({
+            label: fieldLabel,
+            field_type: document.getElementById('schemaFieldType').value,
+            required: true,
+            position: fields.length + 1,
+          });
+        }
+        const response = await fetch('/badge-constructor/schemas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('schemaName').value,
+            description: document.getElementById('schemaDescription').value,
+            fields,
+          }),
+        });
+        const data = await response.json();
+        constructorStatus.textContent = data.message || 'Schéma enregistré.';
+        setSystemOutput(data);
+        schemaForm.reset();
+        await loadConstructor();
+      });
+
+      templateForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const text_overlays = collectTemplateOverlays();
+        const response = await fetch('/badge-constructor/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('templateName').value,
+            schema_id: templateSchema.value || null,
+            text_overlays,
+            qr_code_placement: document.getElementById('templateQrPlacement').value,
+            qr_code_size: Number(document.getElementById('templateQrSize').value || 0.22),
+          }),
+        });
+        const data = await response.json();
+        constructorStatus.textContent = data.message || 'Modèle enregistré.';
+        setSystemOutput(data);
+        templateForm.reset();
+        document.getElementById('templateQrSize').value = '0.22';
+        document.getElementById('templateTextSource').value = 'static';
+        document.getElementById('templateText').value = 'MODE83';
+        document.getElementById('templateTextX').value = '24';
+        document.getElementById('templateTextY').value = '24';
+        document.getElementById('templateTextSize').value = '24';
+        document.getElementById('templateTextColor').value = '#0f172a';
+        document.getElementById('templatePositionPreset').value = 'custom';
+        state.templateOverlayDrafts = [];
+        renderTemplateOverlayDrafts();
+        await loadConstructor();
+        if (data.id) showConstructorPreview(data.id);
+      });
+
+      constructorRefreshBtn.addEventListener('click', () => loadConstructor().catch((error) => setSystemOutput({ error: 'Erreur constructeur', details: String(error) })));
+      document.getElementById('templatePositionPreset').addEventListener('change', applyTemplatePositionPreset);
+      templateDraftPreviewBtn.addEventListener('click', () => previewTemplateDraft().catch((error) => setSystemOutput({ error: 'Erreur preview brouillon', details: String(error) })));
+      templateAddOverlayBtn.addEventListener('click', () => {
+        const overlay = buildCurrentOverlay();
+        if (!overlay) {
+          constructorStatus.textContent = 'Ajoutez un texte fixe ou choisissez une source dynamique.';
+          return;
+        }
+        state.templateOverlayDrafts.push(overlay);
+        renderTemplateOverlayDrafts();
+        constructorStatus.textContent = 'Texte ajouté au modèle en préparation.';
+      });
+      document.getElementById('templateTextSource').addEventListener('change', () => {
+        const isStatic = document.getElementById('templateTextSource').value === 'static';
+        document.getElementById('templateText').disabled = !isStatic;
+        document.getElementById('templateText').placeholder = isStatic ? 'Ex. MODE83' : 'Valeur remplie lors de l’émission';
+      });
+      issueTemplate.addEventListener('change', renderIssueTemplateFields);
+
       issuePanelForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         issueStatus.textContent = currentLang === 'fr' ? 'Émission du badge…' : currentLang === 'en' ? 'Issuing badge…' : 'Выпуск badge…';
@@ -1106,11 +1601,17 @@
         const name = document.getElementById('issueName').value;
         const email = document.getElementById('issueEmail').value;
         const file = document.getElementById('issueBadgeImage').files[0];
+        const templateId = issueTemplate.value;
 
         const formData = new FormData();
         formData.append('name', name);
         formData.append('email', email);
         if (file) formData.append('badge_image', file);
+
+        if (templateId && mode !== 'png') {
+          issueStatus.textContent = 'Les modèles sont disponibles pour le PNG baked. Sélectionnez le mode PNG baked.';
+          return;
+        }
 
         if (mode === 'json') {
           const response = await fetch('/issue', { method: 'POST', body: formData });
@@ -1121,7 +1622,13 @@
           await loadDashboard(data.badge?.assertion_id || null);
           switchView('registryView');
         } else {
-          const response = await fetch('/issue-baked', { method: 'POST', body: formData });
+          const response = templateId
+            ? await fetch(`/badge-constructor/templates/${encodeURIComponent(templateId)}/issue-baked`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, field_values: collectIssueTemplateValues() }),
+              })
+            : await fetch('/issue-baked', { method: 'POST', body: formData });
           if (!response.ok) {
             const error = await response.text();
             issueStatus.textContent = currentLang === 'fr' ? 'Erreur lors de l’émission du PNG.' : currentLang === 'en' ? 'PNG issuing error.' : 'Ошибка выпуска PNG.';
@@ -1238,7 +1745,12 @@
       filterPng.addEventListener('change', applyFilter);
       filterHosted.addEventListener('change', applyFilter);
       refreshBtn.addEventListener('click', () => loadDashboard(state.selectedId));
-      menuButtons.forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+      menuButtons.forEach((button) => button.addEventListener('click', () => {
+        switchView(button.dataset.view);
+        if (button.dataset.view === 'constructorView') {
+          loadConstructor().catch((error) => setSystemOutput({ error: 'Erreur constructeur', details: String(error) }));
+        }
+      }));
       languageSelect.addEventListener('change', () => {
         currentLang = languageSelect.value;
         applyTranslations();
@@ -1247,6 +1759,7 @@
       loadDashboard().catch((error) => {
         setSystemOutput({ error: 'Init failed', details: String(error) });
       });
+      loadConstructor().catch(() => {});
       applyTranslations();
     </script>
   </body>

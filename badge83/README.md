@@ -9,6 +9,8 @@ Il permet d'émettre et de vérifier des assertions conformes au modèle Open Ba
 
 - Émettre une assertion Open Badge (`POST /issue`) à partir de `name` et `email`.
 - Émettre un badge **baked** dans un PNG (`POST /issue-baked`) — l'assertion JSON est injectée dans l'image via un chunk `tEXt` conforme au standard Open Badges.
+- Créer des modèles de badges via un **constructeur opérateur** : schémas de champs, textes dynamiques, QR configurable, preview de brouillon et duplication de modèles.
+- Émettre un PNG baked depuis un modèle préparé (`POST /badge-constructor/templates/{template_id}/issue-baked`) avec valeurs dynamiques conservées dans l'assertion.
 - Ajouter automatiquement un **QR code visible** sur les badges PNG baked, pointant vers la page publique de vérification humaine.
 - Enrichir les assertions avec des métadonnées minimales de conformité : `@language`, `expires` et `evidence`.
 - Exposer un profil `Issuer` enrichi avec un bloc `verification` (`allowedOrigins`, `startsWith`).
@@ -270,6 +272,53 @@ curl -X POST -F "name=Alice" -F "email=alice@example.org" http://127.0.0.1:8000/
 
 # Vérification d'un badge baked (upload PNG)
 curl -X POST -F "badge=@badge.png" http://127.0.0.1:8000/verify-baked
+```
+
+### Constructeur de badges
+
+Une vue `Constructeur de badge` permet de préparer des modèles réutilisables avant l'émission.
+
+Le workflow actuel est le suivant :
+
+1. créer un schéma de programme avec des champs opérateur ;
+2. créer un modèle visuel associé ;
+3. ajouter un ou plusieurs textes superposés ;
+4. choisir pour chaque texte une source : texte fixe, nom du participant, email, cours, numéro, date ;
+5. choisir une position rapide ou des coordonnées X/Y ;
+6. prévisualiser le brouillon avant sauvegarde ;
+7. enregistrer le modèle ;
+8. utiliser ce modèle dans l'écran existant `Émission de badge`.
+
+Lorsqu'un modèle est sélectionné dans l'écran d'émission, le mode passe en `PNG baked`, les champs du schéma sont affichés et les valeurs saisies sont utilisées pour générer le PNG final.
+
+Endpoints principaux :
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /badge-constructor/schemas` | Liste des schémas actifs |
+| `POST /badge-constructor/schemas` | Création d'un schéma |
+| `GET /badge-constructor/templates` | Liste des modèles actifs |
+| `POST /badge-constructor/templates` | Création d'un modèle |
+| `POST /badge-constructor/templates/preview-draft` | Aperçu PNG d'un brouillon non sauvegardé |
+| `GET /badge-constructor/templates/{id}/preview` | Aperçu PNG d'un modèle sauvegardé |
+| `POST /badge-constructor/templates/{id}/duplicate` | Duplication d'un modèle |
+| `POST /badge-constructor/templates/{id}/issue-baked` | Émission d'un PNG baked à partir d'un modèle |
+
+Les assertions émises depuis un modèle conservent les informations suivantes :
+
+```json
+{
+  "badge83_template": {
+    "id": "...",
+    "name": "...",
+    "schema_id": "..."
+  },
+  "field_values": {
+    "course_name": "...",
+    "certificate_number": "...",
+    "issue_date": "..."
+  }
+}
 ```
 
 ### Bureau de vérification

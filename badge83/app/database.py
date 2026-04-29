@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -77,6 +78,53 @@ def create_tables(conn: sqlite3.Connection):
             CREATE INDEX IF NOT EXISTS idx_assertion_name_hash
             ON assertions(name_hash)
         ''')
+        
+        # Tables du constructeur de badges
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS badge_schemas (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                fields TEXT,  -- Tableau JSON de définitions de champs
+                is_active BOOLEAN DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT
+            )
+        ''')
+        
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS badge_templates (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                schema_id TEXT,  -- Référence à badge_schemas
+                background_image TEXT,  -- Chemin ou base64
+                text_overlays TEXT,  -- Tableau JSON de configurations de textes superposés
+                qr_code_placement TEXT DEFAULT 'bottom-right',
+                qr_code_size REAL DEFAULT 0.22,
+                qr_code_offset_x INTEGER DEFAULT 0,
+                qr_code_offset_y INTEGER DEFAULT 0,
+                qr_code_foreground_color TEXT DEFAULT '#000000',
+                qr_code_background_color TEXT DEFAULT '#FFFFFF',
+                qr_code_error_correction TEXT DEFAULT 'M',
+                qr_code_border INTEGER DEFAULT 2,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY (schema_id) REFERENCES badge_schemas(id)
+            )
+        ''')
+        
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_badge_schemas_name
+            ON badge_schemas(name)
+        ''')
+        
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_badge_templates_name
+            ON badge_templates(name)
+        ''')
+    
     conn.commit()
 
 
@@ -281,3 +329,214 @@ def close_connection(conn: sqlite3.Connection):
     """Ferme la connexion à la base de données."""
     if conn:
         conn.close()
+
+
+# Fonctions de base de données du constructeur de badges
+def add_badge_schema(conn: sqlite3.Connection, schema_data: Dict[str, Any]) -> str:
+    """Ajoute un nouveau schéma de badge à la base de données."""
+    now = datetime.now(timezone.utc).isoformat()
+    schema_id = schema_data.get('id')
+    with conn:
+        conn.execute('''
+            INSERT INTO badge_schemas (id, name, description, fields, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            schema_id,
+            schema_data.get('name'),
+            schema_data.get('description'),
+            json.dumps(schema_data.get('fields', []), ensure_ascii=False),
+            schema_data.get('is_active', True),
+            schema_data.get('created_at') or now,
+            schema_data.get('updated_at') or now
+        ))
+        conn.commit()
+        return schema_id
+
+
+def get_badge_schema_by_id(conn: sqlite3.Connection, schema_id: str) -> Optional[Dict[str, Any]]:
+    """Récupère un schéma de badge par identifiant."""
+    cursor = conn.execute('''
+        SELECT * FROM badge_schemas WHERE id = ?
+    ''', (schema_id,))
+    row = cursor.fetchone()
+    if row:
+        result = dict(row)
+        if result.get("fields"):
+            try:
+                result["fields"] = json.loads(result["fields"])
+            except Exception:
+                pass
+        return result
+    return None
+
+
+def get_all_badge_schemas(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """Récupère tous les schémas de badge actifs."""
+    cursor = conn.execute('''
+        SELECT * FROM badge_schemas WHERE is_active = 1 ORDER BY name
+    ''')
+    schemas = []
+    for row in cursor.fetchall():
+        result = dict(row)
+        if result.get("fields"):
+            try:
+                result["fields"] = json.loads(result["fields"])
+            except Exception:
+                pass
+        schemas.append(result)
+    return schemas
+
+
+def update_badge_schema(conn: sqlite3.Connection, schema_data: Dict[str, Any]) -> bool:
+    """Met à jour un schéma de badge existant."""
+    updated_at = schema_data.get('updated_at') or datetime.now(timezone.utc).isoformat()
+    with conn:
+        cursor = conn.execute('''
+            UPDATE badge_schemas
+            SET name = ?, description = ?, fields = ?, is_active = ?, updated_at = ?
+            WHERE id = ?
+        ''', (
+            schema_data.get('name'),
+            schema_data.get('description'),
+            json.dumps(schema_data.get('fields', []), ensure_ascii=False),
+            schema_data.get('is_active', True),
+            updated_at,
+            schema_data.get('id')
+        ))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_badge_schema(conn: sqlite3.Connection, schema_id: str) -> bool:
+    """Supprime logiquement un schéma de badge en désactivant is_active."""
+    with conn:
+        cursor = conn.execute('''
+            UPDATE badge_schemas
+            SET is_active = 0, updated_at = ?
+            WHERE id = ?
+        ''', (
+            datetime.now(timezone.utc).isoformat(),
+            schema_id
+        ))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def add_badge_template(conn: sqlite3.Connection, template_data: Dict[str, Any]) -> str:
+    """Ajoute un nouveau modèle de badge à la base de données."""
+    now = datetime.now(timezone.utc).isoformat()
+    template_id = template_data.get('id')
+    with conn:
+        conn.execute('''
+            INSERT INTO badge_templates (
+                id, name, description, schema_id, background_image, text_overlays,
+                qr_code_placement, qr_code_size, qr_code_offset_x, qr_code_offset_y,
+                qr_code_foreground_color, qr_code_background_color,
+                qr_code_error_correction, qr_code_border, is_active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            template_id,
+            template_data.get('name'),
+            template_data.get('description'),
+            template_data.get('schema_id'),
+            template_data.get('background_image'),
+            json.dumps(template_data.get('text_overlays', []), ensure_ascii=False),
+            template_data.get('qr_code_placement', 'bottom-right'),
+            template_data.get('qr_code_size', 0.22),
+            template_data.get('qr_code_offset_x', 0),
+            template_data.get('qr_code_offset_y', 0),
+            template_data.get('qr_code_foreground_color', '#000000'),
+            template_data.get('qr_code_background_color', '#FFFFFF'),
+            template_data.get('qr_code_error_correction', 'M'),
+            template_data.get('qr_code_border', 2),
+            template_data.get('is_active', True),
+            template_data.get('created_at') or now,
+            template_data.get('updated_at') or now
+        ))
+        conn.commit()
+        return template_id
+
+
+def get_badge_template_by_id(conn: sqlite3.Connection, template_id: str) -> Optional[Dict[str, Any]]:
+    """Récupère un modèle de badge par identifiant."""
+    cursor = conn.execute('''
+        SELECT * FROM badge_templates WHERE id = ?
+    ''', (template_id,))
+    row = cursor.fetchone()
+    if row:
+        result = dict(row)
+        if result.get("text_overlays"):
+            try:
+                result["text_overlays"] = json.loads(result["text_overlays"])
+            except Exception:
+                pass
+        return result
+    return None
+
+
+def get_all_badge_templates(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """Récupère tous les modèles de badge actifs."""
+    cursor = conn.execute('''
+        SELECT bt.*, bs.name as schema_name 
+        FROM badge_templates bt
+        LEFT JOIN badge_schemas bs ON bt.schema_id = bs.id
+        WHERE bt.is_active = 1
+        ORDER BY bt.name
+    ''')
+    templates = []
+    for row in cursor.fetchall():
+        result = dict(row)
+        if result.get("text_overlays"):
+            try:
+                result["text_overlays"] = json.loads(result["text_overlays"])
+            except Exception:
+                pass
+        templates.append(result)
+    return templates
+
+
+def update_badge_template(conn: sqlite3.Connection, template_data: Dict[str, Any]) -> bool:
+    """Met à jour un modèle de badge existant."""
+    updated_at = template_data.get('updated_at') or datetime.now(timezone.utc).isoformat()
+    with conn:
+        cursor = conn.execute('''
+            UPDATE badge_templates
+            SET name = ?, description = ?, schema_id = ?, background_image = ?, text_overlays = ?,
+                qr_code_placement = ?, qr_code_size = ?, qr_code_offset_x = ?, qr_code_offset_y = ?,
+                qr_code_foreground_color = ?, qr_code_background_color = ?,
+                qr_code_error_correction = ?, qr_code_border = ?, updated_at = ?
+            WHERE id = ?
+        ''', (
+            template_data.get('name'),
+            template_data.get('description'),
+            template_data.get('schema_id'),
+            template_data.get('background_image'),
+            json.dumps(template_data.get('text_overlays', []), ensure_ascii=False),
+            template_data.get('qr_code_placement', 'bottom-right'),
+            template_data.get('qr_code_size', 0.22),
+            template_data.get('qr_code_offset_x', 0),
+            template_data.get('qr_code_offset_y', 0),
+            template_data.get('qr_code_foreground_color', '#000000'),
+            template_data.get('qr_code_background_color', '#FFFFFF'),
+            template_data.get('qr_code_error_correction', 'M'),
+            template_data.get('qr_code_border', 2),
+            updated_at,
+            template_data.get('id')
+        ))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_badge_template(conn: sqlite3.Connection, template_id: str) -> bool:
+    """Supprime logiquement un modèle de badge en désactivant is_active."""
+    with conn:
+        cursor = conn.execute('''
+            UPDATE badge_templates
+            SET is_active = 0, updated_at = ?
+            WHERE id = ?
+        ''', (
+            datetime.now(timezone.utc).isoformat(),
+            template_id
+        ))
+        conn.commit()
+        return cursor.rowcount > 0

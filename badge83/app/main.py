@@ -20,8 +20,10 @@ from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
 from app.verifier import deep_verify_baked_badge, verify_badge, verify_baked_badge
+from app.routes.badge_constructor import router as badge_constructor_router
 
 app = FastAPI(title="Badge 83")
+app.include_router(badge_constructor_router)
 templates = Jinja2Templates(directory="templates")
 
 
@@ -82,6 +84,9 @@ def _safe_next_url(next_url: str | None) -> str:
 @app.on_event("startup")
 async def startup_registry_sync():
     ISSUED_DIR.mkdir(parents=True, exist_ok=True)
+    # Initialise le schéma de base de données du constructeur de badges
+    from app.database import init_db_schema
+    init_db_schema()
     import_assertions_from_directory(ISSUED_DIR)
 
 # ---------------------------------------------------------------------------

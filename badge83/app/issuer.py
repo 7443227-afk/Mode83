@@ -20,7 +20,7 @@ from app.config import (
     get_search_pepper,
 )
 from app.database import sync_assertion_record
-from app.qr import make_verification_qr_url, overlay_qr_on_badge
+from app.qr import make_verification_qr_url, overlay_qr_on_badge, overlay_text_on_badge
 
 
 def _compose_public_base_url() -> str:
@@ -237,6 +237,93 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         source_png = BADGE_PNG.read_bytes()
 
     qr_ready_png = overlay_qr_on_badge(source_png, verification_page_url)
+    baked_png = bake_badge_from_bytes(qr_ready_png, assertion)
+
+    baked_path = BAKED_DIR / f"{assertion_id}.png"
+    baked_path.write_bytes(baked_png)
+
+    return {
+        "assertion_id": assertion_id,
+        "assertion": assertion,
+        "baked_png_path": str(baked_path),
+        "baked_download_filename": baked_download_filename,
+        "baked_png_bytes": baked_png,
+        "verification_page_url": verification_page_url,
+        "issuer": issuer,
+        "badgeclass": badgeclass,
+    }
+
+
+def issue_baked_badge_from_template(
+    *,
+    name: str,
+    email: str,
+    template: dict,
+    field_values: dict | None = None,
+    png_data: bytes | None = None,
+) -> dict:
+    """Émet un PNG baked à partir d'un modèle visuel du constructeur."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    BAKED_DIR.mkdir(parents=True, exist_ok=True)
+
+    issuer = _load_template(ISSUER_TEMPLATE)
+    badgeclass = _load_template(BADGECLASS_TEMPLATE)
+    field_values = field_values or {}
+
+    assertion_id = str(uuid4())
+    issued_on = datetime.now(timezone.utc).isoformat()
+    baked_download_filename = _build_baked_download_filename(issued_on)
+
+    base_url = get_base_url()
+    issuer_url = f"{base_url}/issuers/main"
+    badge_url = f"{base_url}/badges/blockchain-foundations"
+    assertion_url = f"{base_url}/assertions/{assertion_id}"
+    verification_page_url = make_verification_qr_url(base_url, assertion_id)
+
+    assertion = _build_enriched_assertion(
+        assertion_url=assertion_url,
+        badge_url=badge_url,
+        issuer_url=issuer_url,
+        base_url=base_url,
+        assertion_id=assertion_id,
+        issued_on=issued_on,
+        name=name,
+        email=email,
+    )
+    assertion["badge83_template"] = {
+        "id": template.get("id"),
+        "name": template.get("name"),
+        "schema_id": template.get("schema_id"),
+    }
+    assertion["field_values"] = field_values
+
+    badge_path = DATA_DIR / f"{assertion_id}.json"
+    with badge_path.open("w", encoding="utf-8") as file:
+        json.dump(assertion, file, ensure_ascii=False, indent=2)
+
+    sync_assertion_record(assertion_id, assertion)
+
+    source_png = png_data or BADGE_PNG.read_bytes()
+    render_values = {
+        "name": name,
+        "recipient_name": name,
+        "email": email,
+        "recipient_email": email,
+        **field_values,
+    }
+    rendered_png = overlay_text_on_badge(source_png, template.get("text_overlays", []), field_values=render_values)
+    qr_ready_png = overlay_qr_on_badge(
+        rendered_png,
+        verification_page_url,
+        placement=template.get("qr_code_placement", "bottom-right"),
+        size_ratio=float(template.get("qr_code_size", 0.22)),
+        offset_x=int(template.get("qr_code_offset_x", 0)),
+        offset_y=int(template.get("qr_code_offset_y", 0)),
+        foreground_color=template.get("qr_code_foreground_color", "#000000"),
+        background_color=template.get("qr_code_background_color", "#FFFFFF"),
+        error_correction=template.get("qr_code_error_correction", "M"),
+        border=int(template.get("qr_code_border", 2)),
+    )
     baked_png = bake_badge_from_bytes(qr_ready_png, assertion)
 
     baked_path = BAKED_DIR / f"{assertion_id}.png"

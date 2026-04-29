@@ -1,5 +1,4 @@
-"""
-Utilitaires de baking / unbaking PNG pour Open Badges.
+"""Utilitaires de baking / unbaking PNG pour Open Badges.
 
 Baking = injection d'une assertion JSON dans un PNG via un chunk texte
 avec le mot-clé ``openbadges`` (selon la spécification Open Badges).
@@ -9,30 +8,21 @@ les nouveaux badges sont désormais bakés via un chunk ``tEXt``. L'unbaking
 reste compatible avec ``tEXt`` et ``iTXt`` afin de continuer à lire les badges
 déjà émis avec l'ancien format.
 """
-
 from __future__ import annotations
-
 import json
 import struct
 import zlib
 from pathlib import Path
 from typing import Any
 
-# Signature PNG : 8 octets
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-
-# Mot-clé utilisé dans le chunk texte PNG selon la spécification Open Badges
 OB_KEYWORD = "openbadges"
 
 
-# ---------------------------------------------------------------------------
-# Baking — injection du JSON dans un PNG
-# ---------------------------------------------------------------------------
-
-def _make_text_chunk(keyword: str, text: str) -> bytes:
+def _make_tEXt_chunk(keyword: str, text: str) -> bytes:
     """Construit un chunk PNG ``tEXt`` hérité.
 
-    Format :  length (4B) | type (4B) | keyword | NUL | text | CRC (4B)
+    Format : length (4B) | type (4B) | keyword | NUL | text | CRC (4B)
     """
     payload = keyword.encode("latin-1") + b"\x00" + text.encode("utf-8")
     chunk_type = b"tEXt"
@@ -40,24 +30,34 @@ def _make_text_chunk(keyword: str, text: str) -> bytes:
     return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
 
 
-def _make_itxt_chunk(keyword: str, text: str) -> bytes:
+def _make_iTXt_chunk(keyword: str, text: str, compress: bool = False) -> bytes:
     """Construit un chunk PNG ``iTXt`` avec du texte UTF-8.
 
     Format iTXt :
-      keyword\\x00 compression_flag compression_method language_tag\\x00
-      translated_keyword\\x00 text
+    keyword\\x00 compression_flag compression_method language_tag\\x00
+    translated_keyword\\x00 text
 
     Le texte UTF-8 est stocké non compressé avec les champs langue/traduction vides.
+    Si ``compress`` est True, le texte est compressé avec zlib (deflate).
     """
-    payload = (
-        keyword.encode("latin-1")
-        + b"\x00"                # terminateur du mot-clé
-        + b"\x00"                # flag de compression : 0 = non compressé
-        + b"\x00"                # méthode de compression
-        + b"\x00"                # tag de langue vide
-        + b"\x00"                # mot-clé traduit vide
-        + text.encode("utf-8")
-    )
+    keyword_part = keyword.encode("latin-1") + b"\x00"
+    comp_flag = 1 if compress else 0
+    comp_method = 0  # 0 = deflate
+    lang_tag = b"\x00"
+    trans_keyword = b"\x00"
+    if compress:
+        compressed = zlib.compress(text.encode("utf-8"))
+        payload = (keyword_part +
+                   bytes([comp_flag, comp_method]) +
+                   lang_tag +
+                   trans_keyword +
+                   compressed)
+    else:
+        payload = (keyword_part +
+                   bytes([comp_flag, comp_method]) +
+                   lang_tag +
+                   trans_keyword +
+                   text.encode("utf-8"))
     chunk_type = b"iTXt"
     crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
     return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
@@ -69,11 +69,10 @@ def _insert_chunk_before_iend(png_data: bytes, chunk: bytes) -> bytes:
     Si aucun ``IEND`` n'est trouvé, le chunk est simplement ajouté à la fin.
     """
     iend_marker = b"IEND"
-    # Recherche du champ type "IEND"
     idx = png_data.rfind(iend_marker)
     if idx == -1:
         return png_data + chunk
-    # Les 4 octets avant IEND sont son champ length ; on insère notre chunk
+    # Les 4 octets avant IEND sont le champ length ; on insère notre chunk
     # juste avant ce champ length.
     insert_pos = idx - 4
     if insert_pos < 0:
@@ -90,16 +89,12 @@ def _remove_existing_ob_chunk(png_data: bytes) -> bytes:
     if png_data[:8] != PNG_SIGNATURE:
         raise ValueError("Fichier PNG invalide (signature incorrecte)")
 
+    ob_keyword = OB_KEYWORD.encode("latin-1")
     result = bytearray(png_data[:8])
     pos = 8
-
-    ob_removed = False
-
     while pos + 8 <= len(png_data):
         length = struct.unpack(">I", png_data[pos:pos + 4])[0]
         chunk_type = png_data[pos + 4:pos + 8]
-
-        chunk_start = pos
         chunk_end = pos + 4 + 4 + length + 4  # length + type + data + crc
 
         if chunk_end > len(png_data):
@@ -112,22 +107,14 @@ def _remove_existing_ob_chunk(png_data: bytes) -> bytes:
 
             if chunk_type == b"tEXt":
                 nul_idx = data.find(b"\x00")
-                if nul_idx != -1:
-                    kw = data[:nul_idx].decode("latin-1")
-                    if kw == OB_KEYWORD:
-                        should_skip = True
-                        ob_removed = True
+                should_skip = nul_idx != -1 and data[:nul_idx] == ob_keyword
 
             elif chunk_type == b"iTXt":
                 nul_idx = data.find(b"\x00")
-                if nul_idx != -1:
-                    kw = data[:nul_idx].decode("latin-1")
-                    if kw == OB_KEYWORD:
-                        should_skip = True
-                        ob_removed = True
+                should_skip = nul_idx != -1 and data[:nul_idx] == ob_keyword
 
         if not should_skip:
-            result.extend(png_data[chunk_start:chunk_end])
+            result.extend(png_data[pos:chunk_end])
 
         pos = chunk_end
 
@@ -147,7 +134,7 @@ def bake_badge(png_path: Path | str, assertion: dict[str, Any]) -> bytes:
     png_data = _remove_existing_ob_chunk(png_data)
 
     assertion_json = json.dumps(assertion, ensure_ascii=False, separators=(",", ":"))
-    chunk = _make_text_chunk(OB_KEYWORD, assertion_json)
+    chunk = _make_tEXt_chunk(OB_KEYWORD, assertion_json)
 
     return _insert_chunk_before_iend(png_data, chunk)
 
@@ -160,13 +147,9 @@ def bake_badge_from_bytes(png_data: bytes, assertion: dict[str, Any]) -> bytes:
     """
     png_data = _remove_existing_ob_chunk(png_data)
     assertion_json = json.dumps(assertion, ensure_ascii=False, separators=(",", ":"))
-    chunk = _make_text_chunk(OB_KEYWORD, assertion_json)
+    chunk = _make_tEXt_chunk(OB_KEYWORD, assertion_json)
     return _insert_chunk_before_iend(png_data, chunk)
 
-
-# ---------------------------------------------------------------------------
-# Unbaking — extraction du JSON depuis un PNG baké
-# ---------------------------------------------------------------------------
 
 def _extract_text_from_itxt(data: bytes) -> tuple[str, str] | None:
     """Analyse le payload d'un chunk ``iTXt`` et retourne ``(keyword, text)``.
@@ -234,8 +217,8 @@ def unbake_badge(png_data: bytes) -> dict[str, Any]:
     while pos + 8 <= len(png_data):
         length = struct.unpack(">I", png_data[pos:pos + 4])[0]
         chunk_type = png_data[pos + 4:pos + 8]
-
         chunk_end = pos + 4 + 4 + length + 4
+
         if chunk_end > len(png_data):
             break
 
