@@ -638,7 +638,10 @@
                   </div>
 
                   <div class="border rounded-4 p-3">
-                    <h3 class="h6">Nouveau modèle</h3>
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                      <h3 id="templateFormTitle" class="h6 mb-0">Nouveau modèle</h3>
+                      <button id="templateCancelEditBtn" class="btn btn-sm btn-outline-secondary d-none" type="button">Annuler</button>
+                    </div>
                     <form id="templateForm">
                       <div class="mb-2">
                         <label class="form-label" for="templateName">Nom du modèle</label>
@@ -711,10 +714,13 @@
                           <input id="templateTextColor" class="form-control form-control-color w-100" type="color" value="#0f172a" />
                         </div>
                       </div>
-                      <button id="templateAddOverlayBtn" class="btn btn-outline-primary w-100 mb-2" type="button">Ajouter ce texte au modèle</button>
+                      <div class="d-flex gap-2 mb-2">
+                        <button id="templateAddOverlayBtn" class="btn btn-outline-primary w-100" type="button">Ajouter ce texte au modèle</button>
+                        <button id="templateCancelOverlayEditBtn" class="btn btn-outline-secondary d-none" type="button">Annuler</button>
+                      </div>
                       <button id="templateDraftPreviewBtn" class="btn btn-outline-secondary w-100 mb-2" type="button">Prévisualiser le brouillon</button>
                       <div id="templateOverlayList" class="small text-muted mb-2">Aucun texte ajouté. Le texte courant sera utilisé si vous créez directement le modèle.</div>
-                      <button class="btn btn-success w-100" type="submit">Créer le modèle</button>
+                      <button id="templateSubmitBtn" class="btn btn-success w-100" type="submit">Créer le modèle</button>
                     </form>
                   </div>
                 </div>
@@ -782,7 +788,7 @@
     </main>
 
     <script>
-      const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], templateOverlayDrafts: [] };
+      const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], templateOverlayDrafts: [], editingTemplateId: null, editingOverlayIndex: null };
 
       const statsRow = document.getElementById('statsRow');
       const currentBadgeStatus = document.getElementById('currentBadgeStatus');
@@ -830,8 +836,12 @@
       const templatesList = document.getElementById('templatesList');
       const templateSchema = document.getElementById('templateSchema');
       const templateAddOverlayBtn = document.getElementById('templateAddOverlayBtn');
+      const templateCancelOverlayEditBtn = document.getElementById('templateCancelOverlayEditBtn');
       const templateDraftPreviewBtn = document.getElementById('templateDraftPreviewBtn');
       const templateOverlayList = document.getElementById('templateOverlayList');
+      const templateFormTitle = document.getElementById('templateFormTitle');
+      const templateSubmitBtn = document.getElementById('templateSubmitBtn');
+      const templateCancelEditBtn = document.getElementById('templateCancelEditBtn');
       const constructorPreview = document.getElementById('constructorPreview');
       const constructorStatus = document.getElementById('constructorStatus');
 
@@ -1312,8 +1322,9 @@
                     <div class="fw-semibold">${escapeHtml(template.name)}</div>
                     <div class="text-muted">Schéma : ${escapeHtml(template.schema_name || template.schema_id || 'Non associé')}</div>
                   </div>
-                  <div class="d-flex gap-2">
+                  <div class="d-flex gap-2 flex-wrap justify-content-end">
                     <button class="btn btn-sm btn-outline-primary constructor-preview-btn" data-id="${escapeHtml(template.id)}">Aperçu</button>
+                    <button class="btn btn-sm btn-outline-success constructor-edit-btn" data-id="${escapeHtml(template.id)}">Modifier</button>
                     <button class="btn btn-sm btn-outline-secondary constructor-duplicate-btn" data-id="${escapeHtml(template.id)}">Dupliquer</button>
                   </div>
                 </div>
@@ -1324,9 +1335,61 @@
         templatesList.querySelectorAll('.constructor-preview-btn').forEach((button) => {
           button.addEventListener('click', () => showConstructorPreview(button.dataset.id));
         });
+        templatesList.querySelectorAll('.constructor-edit-btn').forEach((button) => {
+          button.addEventListener('click', () => startEditConstructorTemplate(button.dataset.id));
+        });
         templatesList.querySelectorAll('.constructor-duplicate-btn').forEach((button) => {
           button.addEventListener('click', () => duplicateConstructorTemplate(button.dataset.id));
         });
+      }
+
+      function resetTemplateForm() {
+        state.editingTemplateId = null;
+        templateForm.reset();
+        templateFormTitle.textContent = 'Nouveau modèle';
+        templateSubmitBtn.textContent = 'Créer le modèle';
+        templateSubmitBtn.classList.remove('btn-primary');
+        templateSubmitBtn.classList.add('btn-success');
+        templateCancelEditBtn.classList.add('d-none');
+        document.getElementById('templateQrPlacement').value = 'bottom-right';
+        document.getElementById('templateQrSize').value = '0.22';
+        document.getElementById('templateTextSource').value = 'static';
+        document.getElementById('templateText').value = 'MODE83';
+        document.getElementById('templateText').disabled = false;
+        document.getElementById('templateText').placeholder = 'Ex. MODE83';
+        document.getElementById('templateTextX').value = '24';
+        document.getElementById('templateTextY').value = '24';
+        document.getElementById('templateTextSize').value = '24';
+        document.getElementById('templateTextColor').value = '#0f172a';
+        document.getElementById('templatePositionPreset').value = 'custom';
+        state.templateOverlayDrafts = [];
+        resetOverlayEditor();
+        renderTemplateOverlayDrafts();
+      }
+
+      function startEditConstructorTemplate(templateId) {
+        const template = state.constructorTemplates.find((item) => item.id === templateId);
+        if (!template) {
+          constructorStatus.textContent = 'Modèle introuvable dans la liste chargée.';
+          return;
+        }
+        state.editingTemplateId = template.id;
+        templateFormTitle.textContent = `Modifier le modèle : ${template.name}`;
+        templateSubmitBtn.textContent = 'Enregistrer les modifications';
+        templateSubmitBtn.classList.remove('btn-success');
+        templateSubmitBtn.classList.add('btn-primary');
+        templateCancelEditBtn.classList.remove('d-none');
+        document.getElementById('templateName').value = template.name || '';
+        templateSchema.value = template.schema_id || '';
+        document.getElementById('templateQrPlacement').value = template.qr_code_placement || 'bottom-right';
+        document.getElementById('templateQrSize').value = String(template.qr_code_size || 0.22);
+        state.templateOverlayDrafts = Array.isArray(template.text_overlays)
+          ? template.text_overlays.map((overlay) => ({ ...overlay }))
+          : [];
+        resetOverlayEditor();
+        renderTemplateOverlayDrafts();
+        showConstructorPreview(template.id);
+        constructorStatus.textContent = 'Mode édition actif. Modifiez les champs puis enregistrez.';
       }
 
       function showConstructorPreview(templateId) {
@@ -1378,16 +1441,66 @@
           ? state.templateOverlayDrafts.map((overlay, index) => `
               <div class="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-1 bg-light">
                 <span>${escapeHtml(overlayLabel(overlay))} — x:${overlay.position_x}, y:${overlay.position_y}, ${overlay.font_size}px</span>
-                <button type="button" class="btn btn-sm btn-outline-danger template-remove-overlay-btn" data-index="${index}">Retirer</button>
+                <div class="d-flex gap-1">
+                  <button type="button" class="btn btn-sm btn-outline-primary template-edit-overlay-btn" data-index="${index}">Modifier</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger template-remove-overlay-btn" data-index="${index}">Retirer</button>
+                </div>
               </div>
             `).join('')
           : 'Aucun texte ajouté. Le texte courant sera utilisé si vous créez directement le modèle.';
+        templateOverlayList.querySelectorAll('.template-edit-overlay-btn').forEach((button) => {
+          button.addEventListener('click', () => startEditTemplateOverlay(Number(button.dataset.index)));
+        });
         templateOverlayList.querySelectorAll('.template-remove-overlay-btn').forEach((button) => {
           button.addEventListener('click', () => {
-            state.templateOverlayDrafts.splice(Number(button.dataset.index), 1);
+            const index = Number(button.dataset.index);
+            state.templateOverlayDrafts.splice(index, 1);
+            if (state.editingOverlayIndex === index) {
+              resetOverlayEditor();
+            } else if (state.editingOverlayIndex !== null && state.editingOverlayIndex > index) {
+              state.editingOverlayIndex -= 1;
+            }
             renderTemplateOverlayDrafts();
           });
         });
+      }
+
+      function resetOverlayEditor() {
+        state.editingOverlayIndex = null;
+        templateAddOverlayBtn.textContent = 'Ajouter ce texte au modèle';
+        templateAddOverlayBtn.classList.remove('btn-primary');
+        templateAddOverlayBtn.classList.add('btn-outline-primary');
+        templateCancelOverlayEditBtn.classList.add('d-none');
+        document.getElementById('templateTextSource').value = 'static';
+        document.getElementById('templateText').value = 'MODE83';
+        document.getElementById('templateText').disabled = false;
+        document.getElementById('templateText').placeholder = 'Ex. MODE83';
+        document.getElementById('templateTextX').value = '24';
+        document.getElementById('templateTextY').value = '24';
+        document.getElementById('templateTextSize').value = '24';
+        document.getElementById('templateTextColor').value = '#0f172a';
+        document.getElementById('templatePositionPreset').value = 'custom';
+      }
+
+      function startEditTemplateOverlay(index) {
+        const overlay = state.templateOverlayDrafts[index];
+        if (!overlay) return;
+        state.editingOverlayIndex = index;
+        const source = overlay.content_type === 'static' ? 'static' : overlay.field_id;
+        document.getElementById('templateTextSource').value = source || 'static';
+        document.getElementById('templateText').value = overlay.content_type === 'static' ? (overlay.static_text || '') : '';
+        document.getElementById('templateTextX').value = overlay.position_x ?? 0;
+        document.getElementById('templateTextY').value = overlay.position_y ?? 0;
+        document.getElementById('templateTextSize').value = overlay.font_size ?? 24;
+        document.getElementById('templateTextColor').value = overlay.font_color || '#0f172a';
+        const isStatic = document.getElementById('templateTextSource').value === 'static';
+        document.getElementById('templateText').disabled = !isStatic;
+        document.getElementById('templateText').placeholder = isStatic ? 'Ex. MODE83' : 'Valeur remplie lors de l’émission';
+        templateAddOverlayBtn.textContent = 'Mettre à jour ce texte';
+        templateAddOverlayBtn.classList.remove('btn-outline-primary');
+        templateAddOverlayBtn.classList.add('btn-primary');
+        templateCancelOverlayEditBtn.classList.remove('d-none');
+        constructorStatus.textContent = `Modification du texte ${index + 1}. Ajustez les champs puis mettez à jour.`;
       }
 
       function collectTemplateOverlays() {
@@ -1544,10 +1657,14 @@
       templateForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const text_overlays = collectTemplateOverlays();
-        const response = await fetch('/badge-constructor/templates', {
-          method: 'POST',
+        const editingTemplateId = state.editingTemplateId;
+        const response = await fetch(
+          editingTemplateId ? `/badge-constructor/templates/${encodeURIComponent(editingTemplateId)}` : '/badge-constructor/templates',
+          {
+          method: editingTemplateId ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            id: editingTemplateId || undefined,
             name: document.getElementById('templateName').value,
             schema_id: templateSchema.value || null,
             text_overlays,
@@ -1556,24 +1673,28 @@
           }),
         });
         const data = await response.json();
+        if (!response.ok) {
+          constructorStatus.textContent = editingTemplateId ? 'Erreur lors de la mise à jour du modèle.' : 'Erreur lors de la création du modèle.';
+          setSystemOutput(data);
+          return;
+        }
         constructorStatus.textContent = data.message || 'Modèle enregistré.';
         setSystemOutput(data);
-        templateForm.reset();
-        document.getElementById('templateQrSize').value = '0.22';
-        document.getElementById('templateTextSource').value = 'static';
-        document.getElementById('templateText').value = 'MODE83';
-        document.getElementById('templateTextX').value = '24';
-        document.getElementById('templateTextY').value = '24';
-        document.getElementById('templateTextSize').value = '24';
-        document.getElementById('templateTextColor').value = '#0f172a';
-        document.getElementById('templatePositionPreset').value = 'custom';
-        state.templateOverlayDrafts = [];
-        renderTemplateOverlayDrafts();
+        resetTemplateForm();
         await loadConstructor();
-        if (data.id) showConstructorPreview(data.id);
+        if (editingTemplateId) showConstructorPreview(editingTemplateId);
+        else if (data.id) showConstructorPreview(data.id);
       });
 
       constructorRefreshBtn.addEventListener('click', () => loadConstructor().catch((error) => setSystemOutput({ error: 'Erreur constructeur', details: String(error) })));
+      templateCancelEditBtn.addEventListener('click', () => {
+        resetTemplateForm();
+        constructorStatus.textContent = 'Modification annulée. Vous pouvez créer un nouveau modèle.';
+      });
+      templateCancelOverlayEditBtn.addEventListener('click', () => {
+        resetOverlayEditor();
+        constructorStatus.textContent = 'Modification du texte annulée.';
+      });
       document.getElementById('templatePositionPreset').addEventListener('change', applyTemplatePositionPreset);
       templateDraftPreviewBtn.addEventListener('click', () => previewTemplateDraft().catch((error) => setSystemOutput({ error: 'Erreur preview brouillon', details: String(error) })));
       templateAddOverlayBtn.addEventListener('click', () => {
@@ -1582,9 +1703,15 @@
           constructorStatus.textContent = 'Ajoutez un texte fixe ou choisissez une source dynamique.';
           return;
         }
-        state.templateOverlayDrafts.push(overlay);
+        if (state.editingOverlayIndex !== null) {
+          state.templateOverlayDrafts[state.editingOverlayIndex] = overlay;
+          resetOverlayEditor();
+          constructorStatus.textContent = 'Texte mis à jour dans le modèle en préparation.';
+        } else {
+          state.templateOverlayDrafts.push(overlay);
+          constructorStatus.textContent = 'Texte ajouté au modèle en préparation.';
+        }
         renderTemplateOverlayDrafts();
-        constructorStatus.textContent = 'Texte ajouté au modèle en préparation.';
       });
       document.getElementById('templateTextSource').addEventListener('change', () => {
         const isStatic = document.getElementById('templateTextSource').value === 'static';

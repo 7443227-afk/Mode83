@@ -241,6 +241,17 @@ Depuis la racine de l'espace de travail :
 /home/ubuntu/projects/Mode83/.venv/bin/python -m pytest /home/ubuntu/projects/Mode83/badge83/tests -q
 ```
 
+La suite couvre notamment le noyau d'émission/baking, la base SQLite locale et le constructeur de badges. Les tests du constructeur vérifient la création, la modification et l'émission depuis un modèle modifié.
+
+Pour lancer uniquement les tests API du constructeur :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+/home/ubuntu/projects/Mode83/.venv/bin/python -m pytest tests/unit/test_badge_constructor_api.py -q
+```
+
+Documentation détaillée : [`docs/tests-constructeur-badge-040526.md`](docs/tests-constructeur-badge-040526.md).
+
 Test spécifique de la couche base de données :
 
 ```bash
@@ -301,6 +312,7 @@ Endpoints principaux :
 | `POST /badge-constructor/templates` | Création d'un modèle |
 | `POST /badge-constructor/templates/preview-draft` | Aperçu PNG d'un brouillon non sauvegardé |
 | `GET /badge-constructor/templates/{id}/preview` | Aperçu PNG d'un modèle sauvegardé |
+| `PUT /badge-constructor/templates/{id}` | Modification d'un modèle existant |
 | `POST /badge-constructor/templates/{id}/duplicate` | Duplication d'un modèle |
 | `POST /badge-constructor/templates/{id}/issue-baked` | Émission d'un PNG baked à partir d'un modèle |
 
@@ -320,6 +332,10 @@ Les assertions émises depuis un modèle conservent les informations suivantes :
   }
 }
 ```
+
+Le constructeur permet aussi de modifier un modèle existant depuis l'interface : bouton `Modifier` dans la liste des modèles, édition du nom, du schéma, des paramètres QR et des textes superposés, puis sauvegarde via `PUT /badge-constructor/templates/{id}`. Chaque texte superposé peut également être modifié individuellement depuis la liste des textes du modèle.
+
+Guide utilisateur détaillé : [`docs/guide-edition-modele-constructeur.md`](docs/guide-edition-modele-constructeur.md).
 
 ### Bureau de vérification
 
