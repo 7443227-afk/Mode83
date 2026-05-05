@@ -1,40 +1,43 @@
-INFO:     Started server process [1644579]
+INFO:     Started server process [1669464]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     104.28.144.148:0 - "GET /auth/login HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "POST /auth/login HTTP/1.1" 303 See Other
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET / HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     104.28.144.148:0 - "GET /auth/login?next=/apple-touch-icon-precomposed.png HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     104.28.144.148:0 - "GET /auth/login?next=/favicon.ico HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/login?next=/apple-touch-icon.png HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /api/badges/a9a090a1-d66a-4ddf-bbfe-76484c9986e0 HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /api/badges/a9a090a1-d66a-4ddf-bbfe-76484c9986e0/png HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     45.205.1.8:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     45.205.1.8:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /badge-constructor/templates/4197ef6c-d34f-4aed-8623-100b17b244d7/preview?ts=1777886794976 HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /badge-constructor/templates/1888877d-563d-4b08-bc5c-d7eecf5c4b6a/preview?ts=1777886796310 HTTP/1.1" 200 OK
-INFO:     104.28.144.148:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.144.148:0 - "GET /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/preview?ts=1777886798152 HTTP/1.1" 200 OK
+INFO:     140.248.41.27:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     140.248.41.27:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
+INFO:     140.248.41.27:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     140.248.41.27:0 - "GET /auth/login?next=/favicon.ico HTTP/1.1" 200 OK
+INFO:     140.248.41.27:0 - "POST /auth/login HTTP/1.1" 303 See Other
+INFO:     140.248.41.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     140.248.41.27:0 - "GET / HTTP/1.1" 200 OK
+INFO:     140.248.41.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     140.248.41.27:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     104.28.96.13:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.13:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     104.28.96.13:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.13:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     140.248.41.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     140.248.41.27:0 - "GET /api/badges/a9a090a1-d66a-4ddf-bbfe-76484c9986e0 HTTP/1.1" 200 OK
+INFO:     104.28.96.13:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.13:0 - "GET /api/badges/a9a090a1-d66a-4ddf-bbfe-76484c9986e0/png HTTP/1.1" 200 OK
+INFO:     104.28.96.13:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     104.28.96.13:0 - "GET /auth/login?next=/apple-touch-icon-precomposed.png HTTP/1.1" 200 OK
+INFO:     104.28.96.13:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     104.28.96.12:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
+INFO:     104.28.96.13:0 - "GET /auth/login?next=/apple-touch-icon.png HTTP/1.1" 200 OK
+INFO:     104.28.96.13:0 - "GET /auth/login?next=/favicon.ico HTTP/1.1" 200 OK
+INFO:     104.28.96.13:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.13:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     140.248.41.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     140.248.41.27:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     104.28.96.12:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.12:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     104.28.96.12:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.12:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     104.28.96.12:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.12:0 - "GET /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/preview?ts=1777981789113 HTTP/1.1" 200 OK
+INFO:     104.28.96.12:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     104.28.96.12:0 - "GET /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/preview?ts=1777981795233 HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [1644579]
+INFO:     Finished server process [1669464]

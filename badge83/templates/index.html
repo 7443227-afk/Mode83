@@ -604,23 +604,28 @@
                 <div class="col-12 col-lg-5">
                   <div class="border rounded-4 p-3 mb-3">
                     <h3 class="h6">Nouveau schéma</h3>
+                    <p class="small text-muted mb-3">Étape 1 — Définissez les informations que l’opérateur devra remplir lors de l’émission du badge.</p>
                     <form id="schemaForm">
                       <div class="mb-2">
                         <label class="form-label" for="schemaName">Nom du programme / schéma</label>
                         <input id="schemaName" class="form-control" required placeholder="Ex. Blockchain Foundations" />
+                        <div class="form-text">Exemple : nom de la formation ou du programme à certifier.</div>
                       </div>
                       <div class="form-check form-switch mb-2">
                         <input id="schemaDefaultFields" class="form-check-input" type="checkbox" checked />
                         <label class="form-check-label" for="schemaDefaultFields">Ajouter les champs opérateur par défaut</label>
+                        <div class="form-text">Ajoute automatiquement le cours, le numéro de certificat et la date d’émission.</div>
                       </div>
                       <div class="mb-2">
                         <label class="form-label" for="schemaDescription">Description</label>
                         <textarea id="schemaDescription" class="form-control" rows="2"></textarea>
+                        <div class="form-text">Optionnel. Cette note aide à reconnaître le schéma dans la liste.</div>
                       </div>
                       <div class="row g-2 mb-2">
                         <div class="col-7">
                           <label class="form-label" for="schemaFieldLabel">Champ initial</label>
                           <input id="schemaFieldLabel" class="form-control" placeholder="Ex. Courriel" />
+                          <div class="form-text">Optionnel si les champs par défaut suffisent.</div>
                         </div>
                         <div class="col-5">
                           <label class="form-label" for="schemaFieldType">Type</label>
@@ -642,14 +647,17 @@
                       <h3 id="templateFormTitle" class="h6 mb-0">Nouveau modèle</h3>
                       <button id="templateCancelEditBtn" class="btn btn-sm btn-outline-secondary d-none" type="button">Annuler</button>
                     </div>
+                    <p class="small text-muted mb-3">Étape 2 — Préparez l’apparence du badge : QR code, textes fixes et textes dynamiques liés aux champs.</p>
                     <form id="templateForm">
                       <div class="mb-2">
                         <label class="form-label" for="templateName">Nom du modèle</label>
                         <input id="templateName" class="form-control" required placeholder="Ex. Badge standard MODE83" />
+                        <div class="form-text">Nom visible uniquement pour l’opérateur dans cette interface.</div>
                       </div>
                       <div class="mb-2">
                         <label class="form-label" for="templateSchema">Schéma associé</label>
                         <select id="templateSchema" class="form-select"></select>
+                        <div class="form-text">Le schéma détermine les champs disponibles pour les textes dynamiques.</div>
                       </div>
                       <div class="row g-2 mb-2">
                         <div class="col-6">
@@ -665,6 +673,7 @@
                         <div class="col-6">
                           <label class="form-label" for="templateQrSize">Taille QR</label>
                           <input id="templateQrSize" class="form-control" type="number" min="0.05" max="1" step="0.01" value="0.22" />
+                          <div class="form-text">Valeur conseillée : 0.18 à 0.28.</div>
                         </div>
                       </div>
                       <div class="row g-2 mb-2">
@@ -682,6 +691,7 @@
                         <div class="col-6">
                           <label class="form-label" for="templateText">Texte fixe</label>
                           <input id="templateText" class="form-control" value="MODE83" />
+                          <div class="form-text">Utilisé seulement si la source est “Texte fixe”.</div>
                         </div>
                       </div>
                       <div class="mb-2">
@@ -695,6 +705,7 @@
                           <option value="bottom-center">Bas centre</option>
                           <option value="bottom-right">Bas droite</option>
                         </select>
+                        <div class="form-text">Vous pouvez ensuite ajuster précisément avec les coordonnées X/Y.</div>
                       </div>
                       <div class="row g-2 mb-2">
                         <div class="col-3">
@@ -728,10 +739,12 @@
                 <div class="col-12 col-lg-7">
                   <div class="border rounded-4 p-3 mb-3">
                     <h3 class="h6">Schémas disponibles</h3>
+                    <p class="small text-muted mb-2">Étape 3 — Vérifiez les programmes déjà préparés avant de créer un modèle.</p>
                     <div id="schemasList" class="small text-muted">Chargement…</div>
                   </div>
                   <div class="border rounded-4 p-3 mb-3">
                     <h3 class="h6">Modèles disponibles</h3>
+                    <p class="small text-muted mb-2">Étape 4 — Prévisualisez, modifiez ou dupliquez un modèle existant.</p>
                     <div id="templatesList" class="small text-muted">Chargement…</div>
                   </div>
                   <div class="border rounded-4 p-3">
@@ -1312,7 +1325,9 @@
                 <div class="text-muted">${(schema.fields || []).length} champ(s)</div>
               </div>
             `).join('')
-          : 'Aucun schéma pour le moment.';
+          : `<div class="alert alert-info mb-0 py-2">
+              Aucun schéma pour le moment. Commencez par créer un schéma à gauche, par exemple avec les champs opérateur par défaut.
+            </div>`;
 
         templatesList.innerHTML = templates.length
           ? templates.map((template) => `
@@ -1321,6 +1336,7 @@
                   <div>
                     <div class="fw-semibold">${escapeHtml(template.name)}</div>
                     <div class="text-muted">Schéma : ${escapeHtml(template.schema_name || template.schema_id || 'Non associé')}</div>
+                    <div class="text-muted small">${(template.text_overlays || []).length} texte(s) sur le badge · QR ${escapeHtml(template.qr_code_placement || 'bottom-right')}</div>
                   </div>
                   <div class="d-flex gap-2 flex-wrap justify-content-end">
                     <button class="btn btn-sm btn-outline-primary constructor-preview-btn" data-id="${escapeHtml(template.id)}">Aperçu</button>
@@ -1330,7 +1346,13 @@
                 </div>
               </div>
             `).join('')
-          : 'Aucun modèle pour le moment.';
+          : `<div class="alert alert-info mb-0 py-2">
+              Aucun modèle pour le moment. Créez d’abord un schéma, puis préparez un modèle visuel avec textes et QR code.
+            </div>`;
+
+        if (!schemas.length) {
+          constructorStatus.textContent = 'Aucun schéma disponible : créez un schéma avant de préparer un modèle.';
+        }
 
         templatesList.querySelectorAll('.constructor-preview-btn').forEach((button) => {
           button.addEventListener('click', () => showConstructorPreview(button.dataset.id));
@@ -1393,14 +1415,22 @@
       }
 
       function showConstructorPreview(templateId) {
+        const template = state.constructorTemplates.find((item) => item.id === templateId);
         constructorPreview.src = `/badge-constructor/templates/${encodeURIComponent(templateId)}/preview?ts=${Date.now()}`;
         constructorPreview.classList.remove('d-none');
-        constructorStatus.textContent = `Aperçu du modèle ${templateId}`;
+        constructorStatus.textContent = template
+          ? `Aperçu du modèle « ${template.name} ».`
+          : `Aperçu du modèle ${templateId}`;
       }
 
       async function duplicateConstructorTemplate(templateId) {
         const response = await fetch(`/badge-constructor/templates/${encodeURIComponent(templateId)}/duplicate`, { method: 'POST' });
         const data = await response.json();
+        if (!response.ok) {
+          constructorStatus.textContent = 'Erreur lors de la duplication du modèle.';
+          setSystemOutput(data);
+          return;
+        }
         constructorStatus.textContent = data.message || 'Modèle dupliqué.';
         setSystemOutput(data);
         await loadConstructor();
@@ -1440,14 +1470,16 @@
         templateOverlayList.innerHTML = state.templateOverlayDrafts.length
           ? state.templateOverlayDrafts.map((overlay, index) => `
               <div class="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-1 bg-light">
-                <span>${escapeHtml(overlayLabel(overlay))} — x:${overlay.position_x}, y:${overlay.position_y}, ${overlay.font_size}px</span>
+                <span>${escapeHtml(overlayLabel(overlay))} — position X:${overlay.position_x}, Y:${overlay.position_y}, taille ${overlay.font_size}px</span>
                 <div class="d-flex gap-1">
                   <button type="button" class="btn btn-sm btn-outline-primary template-edit-overlay-btn" data-index="${index}">Modifier</button>
                   <button type="button" class="btn btn-sm btn-outline-danger template-remove-overlay-btn" data-index="${index}">Retirer</button>
                 </div>
               </div>
             `).join('')
-          : 'Aucun texte ajouté. Le texte courant sera utilisé si vous créez directement le modèle.';
+          : `<div class="alert alert-light border mb-0 py-2">
+              Aucun texte ajouté. Choisissez une source, une position, puis cliquez sur “Ajouter ce texte au modèle”.
+            </div>`;
         templateOverlayList.querySelectorAll('.template-edit-overlay-btn').forEach((button) => {
           button.addEventListener('click', () => startEditTemplateOverlay(Number(button.dataset.index)));
         });
