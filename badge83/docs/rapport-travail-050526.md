@@ -25,10 +25,26 @@ Après les modifications UX, la suite de tests a été relancée avec succès :
 21 passed
 ```
 
-## Fichier modifié
+Après l'ajout des tests unitaires dédiés au positionnement QR personnalisé, la suite complète a de nouveau été exécutée :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+/home/ubuntu/projects/Mode83/.venv/bin/python -m pytest tests -q
+```
+
+Résultat :
+
+```text
+23 passed in 1.05s
+```
+
+## Fichiers modifiés
 
 ```text
 badge83/templates/index.html
+badge83/templates/verify_qr.html
+badge83/app/qr.py
+badge83/tests/unit/test_qr.py
 ```
 
 ## Améliorations apportées au constructeur
@@ -80,6 +96,58 @@ Le statut de prévisualisation affiche le nom du modèle quand il est connu, au 
 
 La duplication d’un modèle gère aussi explicitement le cas d’erreur côté interface.
 
+### 6. Déplacement visuel du QR code
+
+Le constructeur permet maintenant de déplacer le QR code directement sur l’aperçu du modèle.
+
+Fonctionnement ajouté côté interface :
+
+- affichage d’une poignée visuelle `QR` sur l’aperçu ;
+- déplacement par glisser-déposer ;
+- passage automatique du placement QR en mode `custom` ;
+- conservation des coordonnées dans l’état de l’interface ;
+- envoi des champs `qr_code_offset_x` et `qr_code_offset_y` lors de la prévisualisation d’un brouillon et lors de l’enregistrement d’un modèle.
+
+Objectif : permettre à l’opérateur d’ajuster le QR code sans devoir raisonner uniquement avec des positions prédéfinies.
+
+### 7. Correction du placement QR personnalisé côté rendu
+
+La fonction `overlay_qr_on_badge` dans `badge83/app/qr.py` a été ajustée pour le mode `custom`.
+
+Avant cette correction, les coordonnées personnalisées pouvaient être appliquées deux fois : comme position de base puis comme décalage.
+
+Désormais, le mode `custom` utilise le coin haut gauche comme base et applique `offset_x` / `offset_y` comme position absolue contrôlée.
+
+### 8. Page QR plus lisible pour un humain
+
+La page mobile de vérification par QR affiche maintenant en priorité les informations compréhensibles pour un utilisateur :
+
+- titulaire du badge ;
+- email du titulaire ;
+- identifiant public conservé en information technique secondaire.
+
+Les données proviennent de `admin_recipient` dans l’assertion locale, déjà préparées côté backend par la route `/verify/qr/{assertion_id}`.
+
+Objectif : éviter qu’un utilisateur scannant le QR voie principalement un hash ou un identifiant technique, et afficher directement à qui le badge est associé.
+
+### 9. Test automatique du placement QR personnalisé
+
+Un nouveau fichier de test a été ajouté :
+
+```text
+badge83/tests/unit/test_qr.py
+```
+
+Il couvre :
+
+- la génération d'un PNG modifié avec `placement="custom"` ;
+- l'utilisation des coordonnées `offset_x` et `offset_y` ;
+- la conservation des dimensions du PNG source ;
+- la présence d'une modification visuelle dans la zone attendue du QR ;
+- la limitation du QR aux bords du badge lorsque les coordonnées sont trop grandes.
+
+Ces tests sécurisent la partie backend correspondant au déplacement du QR code dans l'interface.
+
 ## Périmètre volontairement non modifié
 
 Les éléments suivants n’ont pas été changés aujourd’hui :
@@ -89,7 +157,9 @@ Les éléments suivants n’ont pas été changés aujourd’hui :
 - baking PNG ;
 - registre SQLite ;
 - configuration Nginx/auth_request ;
-- logique de validation publique QR/HostedBadge.
+- logique de validation publique QR/HostedBadge ;
+- format des assertions Open Badges ;
+- structure des données persistées, les champs `qr_code_offset_x` et `qr_code_offset_y` étant déjà prévus côté backend.
 
 ## Recommandations pour la suite
 
@@ -99,3 +169,12 @@ Priorités proposées :
 2. Vérifier le confort d’usage sur écran portable/tablette.
 3. Rendre les presets de position adaptatifs à la taille réelle de l’image de fond.
 4. Ajouter, plus tard, un test end-to-end navigateur si le constructeur devient critique en production.
+5. Poursuivre l’amélioration des interfaces opérateur : registre plus lisible, carte de résultat après émission, notifications compréhensibles et séparation entre mode opérateur et mode expert.
+
+## Plan associé
+
+Un plan de travail pour la suite des améliorations d’interface a été préparé :
+
+```text
+badge83/docs/plan-amelioration-interfaces-operateur-060526.md
+```

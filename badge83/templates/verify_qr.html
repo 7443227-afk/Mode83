@@ -169,6 +169,16 @@
           </div>
           {% else %}
           <div class="fact">
+            <div class="label">Titulaire du badge</div>
+            <div class="value">{{ badge.recipient_name }}</div>
+          </div>
+
+          <div class="fact">
+            <div class="label">Email du titulaire</div>
+            <div class="value mono">{{ badge.recipient_email }}</div>
+          </div>
+
+          <div class="fact">
             <div class="label">Identifiant public de vérification</div>
             <div class="value mono">{{ assertion_id }}</div>
           </div>

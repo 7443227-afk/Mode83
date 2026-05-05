@@ -80,6 +80,10 @@ Ce document décrit le plan de test complet pour l'application Badge83, une impl
 - Test avec différents formats d'image
 - Test avec images de différentes tailles
 - Vérification du positionnement du QR code
+- Test du placement personnalisé `placement="custom"` avec coordonnées `offset_x` / `offset_y`
+- Test de limitation aux bords lorsque les coordonnées dépassent les dimensions du badge
+- Vérification que le PNG généré reste lisible et conserve les dimensions du PNG source
+- Vérification que l'image est effectivement modifiée dans la zone attendue du QR code
 
 ### 3.2. Tests d'API
 
@@ -139,6 +143,8 @@ Ce document décrit le plan de test complet pour l'application Badge83, une impl
 - Test de génération QR → superposition → vérification mobile
 - Test de l'expérience utilisateur mobile
 - Test de la redirection vers page de vérification complète
+- Test de cohérence entre les coordonnées définies dans l'interface de construction et le rendu backend du PNG final
+- Test manuel complémentaire du glisser-déposer QR dans le navigateur, car ce comportement relève de l'interface frontend
 
 #### 3.3.2. Validation des données
 
@@ -201,6 +207,7 @@ Ce document décrit le plan de test complet pour l'application Badge83, une impl
 - `pytest` pour les tests unitaires et d'intégration
 - `FastAPI TestClient` pour les tests d'API
 - `coverage.py` pour le rapport de couverture
+- `Pillow` pour créer et comparer des PNG de test en mémoire
 
 ### 5.2. Rapports
 
@@ -231,6 +238,7 @@ Ce document décrit le plan de test complet pour l'application Badge83, une impl
 - À chaque commit (CI/CD)
 - Avant chaque déploiement
 - Rapport quotidien d'exécution
+- Après toute modification du rendu PNG ou du positionnement QR
 
 ### 7.2. Tests manuels
 

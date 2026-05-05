@@ -87,7 +87,7 @@ def overlay_qr_on_badge(
     elif placement == "center":
         base_x, base_y = (width - panel_width) // 2, (height - panel_height) // 2
     elif placement == "custom":
-        base_x, base_y = offset_x, offset_y
+        base_x, base_y = 0, 0
     else:
         # Par défaut : en bas à droite
         base_x, base_y = width - panel_width, height - panel_height

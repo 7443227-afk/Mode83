@@ -171,6 +171,108 @@ Elle confirme également que la centralisation initiale de la configuration n'a 
 
 ---
 
+## 5 bis. Mise à jour — 05/05/2026 — tests QR personnalisés
+
+À la suite des améliorations apportées au déplacement du QR code dans le constructeur de badges, un nouveau fichier de test unitaire a été ajouté :
+
+```text
+badge83/tests/unit/test_qr.py
+```
+
+### Objectif
+
+Sécuriser le comportement de la fonction :
+
+```text
+overlay_qr_on_badge
+```
+
+en particulier pour le placement personnalisé du QR code :
+
+```text
+placement="custom"
+```
+
+Ce point est important car l'interface permet maintenant à l'opérateur de déplacer le QR code par glisser-déposer. Les coordonnées produites par l'interface sont ensuite transmises au backend avec :
+
+```text
+qr_code_offset_x
+qr_code_offset_y
+```
+
+### Tests ajoutés
+
+Deux tests couvrent le comportement principal.
+
+#### 1. Placement personnalisé valide
+
+Test :
+
+```text
+test_overlay_qr_on_badge_custom_position_returns_modified_png
+```
+
+Ce test vérifie que :
+
+- un PNG source est créé en mémoire ;
+- un QR code est superposé avec `placement="custom"` ;
+- les coordonnées `offset_x=40` et `offset_y=50` sont acceptées ;
+- le résultat reste un PNG lisible ;
+- la taille de l'image reste identique ;
+- l'image obtenue est bien différente de l'image source ;
+- la zone attendue du QR code contient des pixels modifiés.
+
+#### 2. Limitation aux bords du badge
+
+Test :
+
+```text
+test_overlay_qr_on_badge_custom_position_is_clamped_to_badge_bounds
+```
+
+Ce test vérifie le cas limite où l'interface ou un appel API envoie des coordonnées très grandes :
+
+```text
+offset_x=10000
+offset_y=10000
+```
+
+Le résultat attendu est que le QR code reste dans les limites du badge, grâce à la logique de limitation déjà présente dans `overlay_qr_on_badge`.
+
+### Commandes exécutées
+
+Test ciblé du module QR :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+/home/ubuntu/projects/Mode83/.venv/bin/python -m pytest tests/unit/test_qr.py -q
+```
+
+Résultat :
+
+```text
+2 passed in 0.08s
+```
+
+Suite complète :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+/home/ubuntu/projects/Mode83/.venv/bin/python -m pytest tests -q
+```
+
+Résultat :
+
+```text
+23 passed in 1.05s
+```
+
+### Remarque technique
+
+Les comparaisons d'images sont réalisées en RGB, même si les images sont manipulées en RGBA. Cette approche évite un faux négatif possible avec `ImageChops.difference(...).getbbox()` lorsque la différence porte sur les canaux couleur mais que le canal alpha reste inchangé.
+
+---
+
 ## 6. Limites actuelles
 
 Cette première série de tests reste volontairement ciblée.
@@ -178,10 +280,11 @@ Cette première série de tests reste volontairement ciblée.
 À ce stade, ne sont pas encore couverts automatiquement :
 
 - `badge83/app/verifier.py`
-- `badge83/app/qr.py`
 - les routes FastAPI de `badge83/app/main.py`
 - les scénarios d'intégration complets émission → baking → vérification HTTP
 - les tests de conformité externe avec un validateur Open Badges tiers
+
+Le module `badge83/app/qr.py` dispose désormais d'une première couverture ciblée pour le placement QR personnalisé. Les positions prédéfinies et la cohérence complète avec l'interface restent à compléter si nécessaire.
 
 Autrement dit, le socle est prêt, mais la campagne de test n'en est qu'à sa première étape.
 
@@ -207,7 +310,7 @@ Le principal bénéfice obtenu aujourd'hui est donc moins le nombre brut de test
 Les prolongements naturels sont les suivants :
 
 1. ajouter des tests unitaires pour `verifier.py` ;
-2. ajouter des tests unitaires pour `qr.py` ;
+2. compléter les tests unitaires de `qr.py` pour les placements prédéfinis, les tailles extrêmes et la cohérence visuelle attendue ;
 3. créer les premiers tests API avec `FastAPI TestClient` ;
 4. mettre en place au moins un scénario d'intégration complet ;
 5. documenter ensuite une matrice claire entre fonctionnalités et fichiers de test.
