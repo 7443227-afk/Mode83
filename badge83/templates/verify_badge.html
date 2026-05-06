@@ -49,6 +49,16 @@
       .hero-title {
         font-size: clamp(1.8rem, 4vw, 2.6rem);
       }
+
+      .technical-details summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .technical-details[open] summary {
+        margin-bottom: 0.85rem;
+      }
     </style>
   </head>
   <body>
@@ -64,9 +74,6 @@
         </div>
         <div class="d-flex gap-2 flex-wrap">
           <a href="/" class="btn btn-outline-secondary">Retour au centre de contrôle</a>
-          {% if badge and badge.raw_assertion_url %}
-          <a href="{{ badge.raw_assertion_url }}" target="_blank" class="btn btn-primary">Ouvrir l’assertion brute</a>
-          {% endif %}
         </div>
       </div>
 
@@ -79,10 +86,6 @@
               <span class="badge text-bg-{{ status_tone }}">{{ status }}</span>
             </div>
           </div>
-          <div>
-            <div class="label mb-1">Identifiant de l’assertion</div>
-            <div class="mono small">{{ assertion_id }}</div>
-          </div>
         </div>
 
         {% if not_found %}
@@ -93,14 +96,20 @@
         <div class="row g-3">
           <div class="col-12 col-md-6 col-xl-3">
             <div class="info-card p-3 h-100">
-              <div class="label mb-1">Badge</div>
-              <div class="fw-semibold">{{ badge.badge_name }}</div>
+              <div class="label mb-1">Titulaire</div>
+              <div class="fw-semibold">{{ badge.name or 'Non disponible' }}</div>
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
             <div class="info-card p-3 h-100">
-              <div class="label mb-1">Émetteur</div>
-              <div class="fw-semibold">{{ badge.issuer_name }}</div>
+              <div class="label mb-1">Email</div>
+              <div class="fw-semibold mono small">{{ badge.email or 'Non disponible' }}</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="info-card p-3 h-100">
+              <div class="label mb-1">Badge</div>
+              <div class="fw-semibold">{{ badge.badge_name }}</div>
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
@@ -109,47 +118,63 @@
               <div class="fw-semibold">{{ badge.issued_on or '—' }}</div>
             </div>
           </div>
-          <div class="col-12 col-md-6 col-xl-3">
-            <div class="info-card p-3 h-100">
-              <div class="label mb-1">Identité du destinataire</div>
-              <div class="fw-semibold mono small">{{ badge.recipient.identity or '—' }}</div>
-            </div>
-          </div>
         </div>
 
         <div class="row g-3 mt-1">
-          <div class="col-12 col-lg-8">
+          <div class="col-12 col-lg-7">
             <div class="info-card p-3 h-100">
-              <div class="label mb-2">Indicateurs de confiance</div>
+              <div class="label mb-2">Confiance</div>
               <ul class="mb-0">
+                <li>Émetteur : <strong>{{ badge.issuer_name }}</strong></li>
                 <li>Assertion enregistrée dans le registre local : <strong>{{ 'oui' if badge.has_json else 'non' }}</strong></li>
                 <li>PNG baked disponible : <strong>{{ 'oui' if badge.has_png else 'non' }}</strong></li>
-                <li>URL de l’assertion hébergée :
-                  {% if badge.raw_assertion_url %}
-                  <a href="{{ badge.raw_assertion_url }}" target="_blank">{{ badge.raw_assertion_url }}</a>
-                  {% else %}
-                  <strong>non disponible</strong>
-                  {% endif %}
-                </li>
-                <li>URL de la page de vérification : <span class="mono">{{ badge.verification_page_url }}</span></li>
               </ul>
             </div>
           </div>
-          <div class="col-12 col-lg-4">
+          <div class="col-12 col-lg-5">
             <div class="info-card p-3 h-100">
               <div class="label mb-2">Actions rapides</div>
               <div class="d-grid gap-2">
-                <a href="{{ badge.json_url }}" class="btn btn-outline-primary" target="_blank">Télécharger le JSON</a>
                 {% if badge.has_png %}
                 <a href="{{ badge.png_url }}" class="btn btn-outline-success" target="_blank">Télécharger le PNG</a>
                 {% endif %}
-                {% if badge.raw_assertion_url %}
-                <a href="{{ badge.raw_assertion_url }}" class="btn btn-primary" target="_blank">Ouvrir l’assertion hébergée</a>
-                {% endif %}
+                <a href="{{ badge.verification_page_url }}" class="btn btn-outline-secondary">Copier / consulter cette page</a>
               </div>
             </div>
           </div>
         </div>
+
+        <details class="technical-details info-card p-3 mt-3">
+          <summary>Afficher les détails techniques</summary>
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">
+              <div class="label mb-1">Identifiant de l’assertion</div>
+              <div class="mono small">{{ assertion_id }}</div>
+            </div>
+            <div class="col-12 col-lg-6">
+              <div class="label mb-1">Identité Open Badges du destinataire</div>
+              <div class="mono small">{{ badge.recipient.identity or '—' }}</div>
+            </div>
+            <div class="col-12">
+              <div class="label mb-1">URL de la page de vérification</div>
+              <div class="mono small">{{ badge.verification_page_url }}</div>
+            </div>
+            <div class="col-12">
+              <div class="label mb-1">URL de l’assertion hébergée</div>
+              {% if badge.raw_assertion_url %}
+              <a class="mono small" href="{{ badge.raw_assertion_url }}" target="_blank">{{ badge.raw_assertion_url }}</a>
+              {% else %}
+              <div class="mono small">non disponible</div>
+              {% endif %}
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+              <a href="{{ badge.json_url }}" class="btn btn-outline-primary btn-sm" target="_blank">Télécharger le JSON</a>
+              {% if badge.raw_assertion_url %}
+              <a href="{{ badge.raw_assertion_url }}" class="btn btn-outline-secondary btn-sm" target="_blank">Ouvrir l’assertion brute</a>
+              {% endif %}
+            </div>
+          </div>
+        </details>
         {% endif %}
       </section>
     </main>

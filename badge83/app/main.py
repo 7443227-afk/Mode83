@@ -306,6 +306,7 @@ async def issue_baked(name: str = Form(...), email: str = Form(...), badge_image
         media_type="image/png",
         headers={
             "Content-Disposition": f'attachment; filename="{result.get("baked_download_filename", f"badge-{result["assertion_id"]}.png")}"',
+            "X-Badge83-Assertion-Id": result["assertion_id"],
         },
     )
 
@@ -486,6 +487,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
 
     recipient = assertion.get("recipient", {}) if isinstance(assertion.get("recipient"), dict) else {}
     verification = assertion.get("verification", {}) if isinstance(assertion.get("verification"), dict) else {}
+    admin_recipient = assertion.get("admin_recipient", {}) if isinstance(assertion.get("admin_recipient"), dict) else {}
 
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
@@ -495,6 +497,9 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     return {
         "assertion_id": assertion_id,
         "issued_on": assertion.get("issuedOn"),
+        "issued_on_display": _format_display_date(assertion.get("issuedOn")),
+        "name": admin_recipient.get("name"),
+        "email": admin_recipient.get("email"),
         "has_json": json_path.exists(),
         "has_png": png_path.exists(),
         "json_url": f"/api/badges/{assertion_id}/json",

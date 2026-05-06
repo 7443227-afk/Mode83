@@ -77,6 +77,27 @@ Avant d'enregistrer un modèle ou une modification :
 
 La prévisualisation utilise des valeurs d'exemple pour les textes dynamiques, par exemple un nom, un email, un cours, un numéro de certificat et une date.
 
+## Positionner le QR code avec des marges de sécurité
+
+Le constructeur permet de déplacer le QR code directement sur l'aperçu du badge. Cette liberté est utile pour adapter le rendu au modèle graphique, mais elle doit rester encadrée pour préserver la lisibilité au scan.
+
+Règles opérateur recommandées :
+
+1. garder une marge visuelle autour du QR code ;
+2. éviter les zones contenant du texte important : nom, email, intitulé du badge, date ou numéro de certificat ;
+3. ne pas placer le QR code trop près des bords du badge ;
+4. vérifier systématiquement le rendu dans **Prévisualiser le brouillon** ;
+5. émettre un badge de test après une modification importante du placement.
+
+Règles techniques à conserver dans l'outil :
+
+- le QR code doit rester entièrement dans les limites du PNG ;
+- les coordonnées personnalisées doivent être bornées par rapport à la taille réelle de l'image ;
+- une marge de sécurité par défaut doit être prévue pour éviter un placement accidentel sur une zone critique ;
+- le scan du QR code doit être testé lorsque le modèle visuel change fortement.
+
+Cette règle suit le principe retenu pour Badge83 : donner de la flexibilité à l'opérateur sans créer de risque de badge visuellement valide mais difficilement vérifiable.
+
 ## Utiliser le modèle modifié pour émettre un badge
 
 Après modification :
@@ -95,3 +116,4 @@ Le PNG généré utilise la dernière version enregistrée du modèle.
 - Les badges déjà émis ne sont pas régénérés automatiquement.
 - Pour créer une variante sans toucher au modèle original, utiliser **Dupliquer**, puis modifier la copie.
 - Après une modification importante, il est recommandé d'émettre un badge de test et de le vérifier via l'outil de vérification PNG.
+- Après un déplacement manuel du QR code, vérifier aussi le scan depuis un téléphone afin de confirmer que la marge et le contraste restent suffisants.

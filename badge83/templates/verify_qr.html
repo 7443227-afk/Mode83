@@ -138,6 +138,18 @@
         gap: 10px;
       }
 
+      .technical-details {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .technical-details summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
       .btn {
         display: block;
         text-align: center;
@@ -179,8 +191,18 @@
           </div>
 
           <div class="fact">
-            <div class="label">Identifiant public de vérification</div>
-            <div class="value mono">{{ assertion_id }}</div>
+            <div class="label">Badge</div>
+            <div class="value">{{ badge.badge_name }}</div>
+          </div>
+
+          <div class="fact">
+            <div class="label">Émetteur</div>
+            <div class="value">{{ badge.issuer_label }}</div>
+          </div>
+
+          <div class="fact">
+            <div class="label">Date de délivrance</div>
+            <div class="value">{{ badge.issued_on_display or 'Non disponible' }}</div>
           </div>
 
           <div class="chips">
@@ -191,6 +213,14 @@
               {{ 'Émis par MODE83' if badge.is_mode83 else 'Émetteur externe' }}
             </div>
           </div>
+
+          <details class="technical-details">
+            <summary>Informations techniques</summary>
+            <div class="fact">
+              <div class="label">Identifiant public de vérification</div>
+              <div class="value mono">{{ assertion_id }}</div>
+            </div>
+          </details>
           {% endif %}
         </div>
 

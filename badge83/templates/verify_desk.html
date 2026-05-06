@@ -12,6 +12,11 @@
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
       .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
       .badge-preview { max-width: 100%; max-height: 260px; border: 1px solid #dbe5f0; border-radius: 0.75rem; background: #fff; }
+      .result-hero { border-radius: 1rem; padding: 1rem; background: #f8fafc; border: 1px solid #dbe5f0; }
+      .result-hero.success { background: #ecfdf5; border-color: #bbf7d0; }
+      .result-hero.warning { background: #fffbeb; border-color: #fde68a; }
+      .technical-details summary { cursor: pointer; color: #64748b; font-weight: 700; }
+      .technical-details[open] summary { margin-bottom: 0.75rem; }
     </style>
   </head>
   <body>
@@ -51,12 +56,20 @@
         <div id="deskError" class="alert alert-danger d-none"></div>
         <div id="deskIssuerNotice" class="alert d-none"></div>
 
+        <div id="deskHumanResult" class="result-hero mb-4"></div>
         <div id="deskSummary" class="summary-grid mb-4"></div>
 
-        <div class="mb-4">
-          <h3 class="h5">Capacités de rapprochement</h3>
-          <ul id="deskCapabilities" class="mb-0"></ul>
-        </div>
+        <details class="technical-details panel p-3 mb-4">
+          <summary>Détails techniques et capacités de rapprochement</summary>
+          <div class="mb-3">
+            <h3 class="h6">Capacités de rapprochement</h3>
+            <ul id="deskCapabilities" class="mb-0"></ul>
+          </div>
+          <div>
+            <h3 class="h6">Assertion analysée</h3>
+            <div id="deskTechnicalSummary" class="small text-muted"></div>
+          </div>
+        </details>
 
         <div>
           <h3 class="h5">Autres certificats liés</h3>
@@ -89,8 +102,10 @@
       const deskStatus = document.getElementById('deskStatus');
       const deskError = document.getElementById('deskError');
       const deskIssuerNotice = document.getElementById('deskIssuerNotice');
+      const deskHumanResult = document.getElementById('deskHumanResult');
       const deskSummary = document.getElementById('deskSummary');
       const deskCapabilities = document.getElementById('deskCapabilities');
+      const deskTechnicalSummary = document.getElementById('deskTechnicalSummary');
       const deskRelatedEmpty = document.getElementById('deskRelatedEmpty');
       const deskRelatedTable = document.getElementById('deskRelatedTable');
       const deskRelatedBody = document.getElementById('deskRelatedBody');
@@ -131,8 +146,11 @@
         deskIssuerNotice.textContent = '';
         deskStatus.className = 'badge text-bg-secondary';
         deskStatus.textContent = 'Analyse en cours';
+        deskHumanResult.className = 'result-hero mb-4';
+        deskHumanResult.textContent = '';
         deskSummary.innerHTML = '';
         deskCapabilities.innerHTML = '';
+        deskTechnicalSummary.innerHTML = '';
         deskRelatedBody.innerHTML = '';
         deskRelatedTable.classList.add('d-none');
         deskRelatedEmpty.classList.remove('d-none');
@@ -148,6 +166,8 @@
           deskStatus.textContent = 'Invalide';
           deskError.classList.remove('d-none');
           deskError.textContent = data.error || 'Vérification impossible';
+          deskHumanResult.className = 'result-hero warning mb-4';
+          deskHumanResult.innerHTML = '<div class="h5 mb-1">Badge non vérifiable</div><div>Le PNG chargé ne contient pas une preuve exploitable ou l’assertion est inaccessible.</div>';
           return;
         }
 
@@ -161,18 +181,37 @@
 
         const summary = data.summary || {};
         const recipientDisplay = data.recipient_display || {};
+        deskHumanResult.className = `result-hero ${issuerCheck.is_local ? 'success' : 'warning'} mb-4`;
+        deskHumanResult.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+              <div class="h4 mb-1">Badge valide</div>
+              <div class="text-muted">${issuerCheck.is_local ? 'Émetteur MODE83 confirmé.' : 'Badge valide, mais émetteur externe.'}</div>
+            </div>
+            <span class="badge ${issuerCheck.is_local ? 'text-bg-success' : 'text-bg-warning'}">${issuerCheck.is_local ? 'MODE83' : 'Externe'}</span>
+          </div>
+        `;
         deskSummary.innerHTML = [
-          ['Identifiant de l’assertion', data.assertion_id || summary.assertion_id || '—'],
           ['Nom / prénom', recipientDisplay.name || '—'],
           ['Email', recipientDisplay.email || '—'],
           ['Badge', summary.badge_name || '—'],
           ['Émetteur', issuerCheck.label || '—'],
-          ['Organisation émettrice', issuerCheck.organization_label || '—'],
           ['Date de délivrance', recipientDisplay.issued_on || summary.issued_on || '—'],
         ].map(([label, value]) => `
           <div class="border rounded-3 p-3 bg-light">
             <div class="small text-muted">${esc(label)}</div>
-            <div class="fw-semibold ${label.includes('ID') ? 'mono small' : ''}">${esc(value)}</div>
+            <div class="fw-semibold">${esc(value)}</div>
+          </div>
+        `).join('');
+
+        deskTechnicalSummary.innerHTML = [
+          ['Identifiant de l’assertion', data.assertion_id || summary.assertion_id || '—'],
+          ['Organisation émettrice', issuerCheck.organization_label || '—'],
+          ['Statut émetteur', issuerCheck.status || '—'],
+        ].map(([label, value]) => `
+          <div class="mb-2">
+            <div class="small text-muted">${esc(label)}</div>
+            <div class="mono small">${esc(value)}</div>
           </div>
         `).join('');
 
@@ -209,7 +248,13 @@
               <td>
                 <div class="d-flex gap-2 flex-wrap">
                   <a class="btn btn-sm btn-outline-secondary" href="${esc(item.verification_page_url)}" target="_blank">Voir</a>
-                  <a class="btn btn-sm btn-outline-primary" href="${esc(item.json_url)}" target="_blank">JSON</a>
+                  <details class="technical-details">
+                    <summary class="btn btn-sm btn-outline-primary">Expert</summary>
+                    <div class="mt-2 d-grid gap-1">
+                      <div class="mono small">${esc(item.assertion_id)}</div>
+                      <a class="btn btn-sm btn-outline-primary" href="${esc(item.json_url)}" target="_blank">JSON</a>
+                    </div>
+                  </details>
                   ${item.png_url ? `<a class="btn btn-sm btn-outline-success" href="${esc(item.png_url)}" target="_blank">PNG</a>` : ''}
                 </div>
               </td>

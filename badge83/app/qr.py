@@ -7,6 +7,32 @@ from PIL import Image, ImageOps, ImageDraw, ImageFont
 from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
 
 
+QR_SAFE_MARGIN_PX = 12
+
+
+def _qr_safe_margin(width: int, height: int, panel_width: int, panel_height: int) -> int:
+    """Retourne une marge de sécurité qui garde le QR lisible sans bloquer les petits badges."""
+    max_possible_margin = max(0, min((width - panel_width) // 2, (height - panel_height) // 2))
+    return min(QR_SAFE_MARGIN_PX, max_possible_margin)
+
+
+def _clamp_qr_position(
+    x: int,
+    y: int,
+    width: int,
+    height: int,
+    panel_width: int,
+    panel_height: int,
+) -> tuple[int, int]:
+    """Limite la position du QR dans une zone sûre, avec marge par défaut."""
+    safe_margin = _qr_safe_margin(width, height, panel_width, panel_height)
+    min_x = safe_margin
+    min_y = safe_margin
+    max_x = max(min_x, width - panel_width - safe_margin)
+    max_y = max(min_y, height - panel_height - safe_margin)
+    return min(max(x, min_x), max_x), min(max(y, min_y), max_y)
+
+
 def make_verification_qr_url(base_url: str, assertion_id: str) -> str:
     normalized_base = base_url.rstrip("/")
     return f"{normalized_base}/verify/qr/{assertion_id}"
@@ -92,13 +118,16 @@ def overlay_qr_on_badge(
         # Par défaut : en bas à droite
         base_x, base_y = width - panel_width, height - panel_height
     
-    # Applique les décalages
-    pos_x = max(0, base_x + offset_x)
-    pos_y = max(0, base_y + offset_y)
-    
-    # Garantit que le QR code reste dans les limites du badge
-    pos_x = min(pos_x, width - panel_width)
-    pos_y = min(pos_y, height - panel_height)
+    # Applique les décalages et garde le QR dans une zone lisible.
+    # La marge de sécurité évite un placement accidentel trop proche des bords.
+    pos_x, pos_y = _clamp_qr_position(
+        base_x + offset_x,
+        base_y + offset_y,
+        width,
+        height,
+        panel_width,
+        panel_height,
+    )
 
     composed = badge.copy()
     composed.alpha_composite(qr_panel, (pos_x, pos_y))

@@ -58,6 +58,16 @@ Après vérification réussie, la page affiche :
 - `Organisation émettrice`
 - `Date de délivrance`
 
+Les informations humaines doivent rester prioritaires dans l'interface : statut visuel, titulaire, email, badge, organisme émetteur et date. L'objectif est qu'un opérateur ou un recruteur comprenne immédiatement si le badge est exploitable, sans devoir lire l'assertion Open Badges brute.
+
+Les détails techniques doivent être accessibles, mais ils ne doivent pas être affichés en premier niveau. La pratique retenue est d'utiliser un bouton ou panneau escamotable de type :
+
+- **Afficher les détails techniques** ;
+- **Vue avancée** ;
+- **Assertion JSON brute**.
+
+Ce panneau peut contenir l'assertion JSON extraite, les identifiants techniques, les URLs HostedBadge et les informations utiles à un expert. Il reste donc possible d'auditer la preuve technique, tout en conservant une page simple pour l'usage courant.
+
 ### Format de date
 
 La date est affichée au format :
@@ -161,6 +171,8 @@ Si le PNG ne contient pas un badge baked exploitable, la page :
 - affiche un message d’erreur lisible ;
 - n’affiche pas de faux résultat.
 
+Les erreurs techniques détaillées peuvent être conservées dans le panneau avancé, mais le message principal doit indiquer l'action suivante possible : choisir un autre PNG, vérifier que le fichier est bien un badge baked, ou contacter un administrateur.
+
 ---
 
 ## 9. Intérêt pour la démonstration
@@ -182,6 +194,7 @@ Parmi les évolutions désormais pertinentes pour la suite du projet :
 
 - ajout d’un QR code pointant vers une page de vérification publique ;
 - enrichissement du rapport de vérification ;
+- généralisation d'un panneau **détails techniques / vue avancée** pour masquer l'assertion JSON brute par défaut ;
 - amélioration du rapprochement entre certificats ;
 - réflexion sur une **base de données locale** pour stocker proprement :
   - les badges émis ;

@@ -554,11 +554,11 @@
                 <table class="table align-middle table-hover" id="badgesTable">
                   <thead class="table-light sticky-top">
                     <tr>
-                      <th>ID</th>
-                      <th>Дата</th>
+                      <th>Titulaire</th>
+                      <th>Email</th>
                       <th>Badge</th>
-                      <th>Recipient</th>
-                      <th>Assets</th>
+                      <th>Date</th>
+                      <th>Statut</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -659,6 +659,7 @@
                 <button id="issueSubmitBtn" type="submit" class="btn btn-success w-100">Émettre le badge</button>
               </form>
               <div id="issueStatus" class="small text-muted">Remplissez les champs et choisissez le mode d’émission.</div>
+              <div id="issueResultCard" class="border rounded-4 p-3 mt-3 bg-light d-none"></div>
             </div>
 
             <div id="constructorView" class="view-pane">
@@ -876,6 +877,8 @@
 
     <script>
       const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], templateOverlayDrafts: [], editingTemplateId: null, editingOverlayIndex: null, draggingOverlayIndex: null, qrOffsetX: 0, qrOffsetY: 0, draggingQr: false };
+      const QR_SAFE_MARGIN = 12;
+      let certificateNumberCheckTimer = null;
 
       const statsRow = document.getElementById('statsRow');
       const currentBadgeStatus = document.getElementById('currentBadgeStatus');
@@ -904,6 +907,7 @@
       const saveEditBtn = document.getElementById('saveEditBtn');
       const issuePanelForm = document.getElementById('issuePanelForm');
       const issueStatus = document.getElementById('issueStatus');
+      const issueResultCard = document.getElementById('issueResultCard');
       const issueTemplate = document.getElementById('issueTemplate');
       const issueTemplateFields = document.getElementById('issueTemplateFields');
       const issueTemplatePreviewWrap = document.getElementById('issueTemplatePreviewWrap');
@@ -1204,6 +1208,55 @@
         verifyOutput.textContent = JSON.stringify(data, null, 2);
       }
 
+      function renderIssueResultCard({ name, email, mode, assertionId, filename, certificateNumber, templateName }) {
+        const verificationUrl = assertionId ? `/verify/badge/${encodeURIComponent(assertionId)}` : null;
+        const qrUrl = assertionId ? `/verify/qr/${encodeURIComponent(assertionId)}` : null;
+        const pngUrl = assertionId ? `/api/badges/${encodeURIComponent(assertionId)}/png` : null;
+        const jsonUrl = assertionId ? `/api/badges/${encodeURIComponent(assertionId)}/json` : null;
+        issueResultCard.classList.remove('d-none');
+        issueResultCard.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div>
+              <div class="small text-muted text-uppercase">Résultat d’émission</div>
+              <div class="h5 mb-1">Badge émis avec succès</div>
+              <div class="text-muted">${escapeHtml(templateName || (mode === 'png' ? 'PNG baked' : 'Assertion JSON'))}</div>
+            </div>
+            ${certificateNumber ? `<span class="badge text-bg-primary">N° ${escapeHtml(certificateNumber)}</span>` : ''}
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-6">
+              <div class="small text-muted">Titulaire</div>
+              <div class="fw-semibold">${escapeHtml(name || '—')}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="small text-muted">Email</div>
+              <div class="fw-semibold mono small">${escapeHtml(email || '—')}</div>
+            </div>
+            <div class="col-12">
+              <div class="small text-muted">Identifiant public</div>
+              <div class="mono small">${escapeHtml(assertionId || 'Non disponible')}</div>
+            </div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            ${pngUrl && mode === 'png' ? `<a class="btn btn-sm btn-success" href="${pngUrl}" target="_blank">Télécharger PNG</a>` : ''}
+            ${verificationUrl ? `<a class="btn btn-sm btn-outline-primary" href="${verificationUrl}" target="_blank">Page de vérification</a>` : ''}
+            ${qrUrl ? `<a class="btn btn-sm btn-outline-secondary" href="${qrUrl}" target="_blank">Page QR</a>` : ''}
+            ${jsonUrl ? `<a class="btn btn-sm btn-outline-dark" href="${jsonUrl}" target="_blank">JSON expert</a>` : ''}
+            <button type="button" id="issueSimilarBtn" class="btn btn-sm btn-outline-success">Émettre un autre badge similaire</button>
+          </div>
+          ${filename ? `<div class="small text-muted mt-2">Fichier téléchargé : ${escapeHtml(filename)}</div>` : ''}
+        `;
+        const similarBtn = document.getElementById('issueSimilarBtn');
+        if (similarBtn) {
+          similarBtn.addEventListener('click', () => {
+            document.getElementById('issueName').value = '';
+            document.getElementById('issueEmail').value = '';
+            issueStatus.textContent = 'Vous pouvez saisir un nouveau titulaire avec le même modèle.';
+            document.getElementById('issueName').focus();
+          });
+        }
+      }
+
       function renderStats(stats) {
         const labels = t('stats');
         const items = [
@@ -1260,26 +1313,38 @@
         }
 
         badgesTbody.innerHTML = state.filteredBadges.map((item) => {
-          const recipient = item.recipient?.identity ? `${item.recipient.identity}` : '—';
+          const holderName = item.name || item.assertion?.admin_recipient?.name || 'Non disponible';
+          const holderEmail = item.email || item.assertion?.admin_recipient?.email || 'Non disponible';
+          const certificateNumber = item.assertion?.field_values?.certificate_number || null;
           return `
             <tr data-id="${escapeHtml(item.assertion_id)}" class="${state.selectedId === item.assertion_id ? 'table-active' : ''}">
-              <td class="mono small">${escapeHtml(item.assertion_id)}</td>
-              <td class="small">${escapeHtml(item.issued_on || '—')}</td>
+              <td>
+                <div class="fw-semibold">${escapeHtml(holderName)}</div>
+                ${certificateNumber ? `<div class="small text-muted">N° ${escapeHtml(certificateNumber)}</div>` : ''}
+              </td>
+              <td class="mono small">${escapeHtml(holderEmail)}</td>
               <td>
                 <div class="fw-semibold">${escapeHtml(item.badge_name)}</div>
                 <div class="text-muted small">${escapeHtml(item.issuer_name)}</div>
               </td>
-              <td class="mono small">${escapeHtml(recipient.slice(0, 26))}${recipient.length > 26 ? '…' : ''}</td>
+              <td class="small">${escapeHtml(item.issued_on_display || item.issued_on || '—')}</td>
               <td>
-                ${item.has_json ? '<span class="badge text-bg-primary me-1">JSON</span>' : ''}
-                ${item.has_png ? '<span class="badge text-bg-success">PNG</span>' : ''}
+                ${item.has_json ? '<span class="badge text-bg-primary me-1">Assertion</span>' : '<span class="badge text-bg-warning me-1">JSON absent</span>'}
+                ${item.has_png ? '<span class="badge text-bg-success">PNG</span>' : '<span class="badge text-bg-secondary">PNG absent</span>'}
               </td>
               <td>
                 <div class="d-flex gap-1 flex-wrap">
-                  <button class="btn btn-sm btn-outline-primary action-view" data-id="${escapeHtml(item.assertion_id)}">View</button>
-                  <a class="btn btn-sm btn-outline-dark" href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">Verify</a>
-                  <a class="btn btn-sm btn-outline-secondary" href="${escapeHtml(item.json_url)}" target="_blank">JSON</a>
+                  <button class="btn btn-sm btn-outline-primary action-view" data-id="${escapeHtml(item.assertion_id)}">Consulter</button>
+                  <a class="btn btn-sm btn-outline-dark" href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">Vérifier</a>
                   ${item.has_png ? `<a class="btn btn-sm btn-outline-success" href="${escapeHtml(item.png_url)}" target="_blank">PNG</a>` : ''}
+                  <details class="technical-details">
+                    <summary class="btn btn-sm btn-outline-secondary">Expert</summary>
+                    <div class="mt-2 d-grid gap-1">
+                      <div class="mono small">${escapeHtml(item.assertion_id)}</div>
+                      <a class="btn btn-sm btn-outline-secondary" href="${escapeHtml(item.json_url)}" target="_blank">JSON</a>
+                      <a class="btn btn-sm btn-outline-secondary" href="/verify/qr/${encodeURIComponent(item.assertion_id)}" target="_blank">QR</a>
+                    </div>
+                  </details>
                 </div>
               </td>
             </tr>
@@ -1560,12 +1625,25 @@
         return qrTargetSize + quietZone * 2;
       }
 
+      function qrSafeMargin(metrics, panelSize) {
+        const maxPossibleMargin = Math.max(0, Math.min(
+          Math.floor((metrics.naturalWidth - panelSize) / 2),
+          Math.floor((metrics.naturalHeight - panelSize) / 2),
+        ));
+        return Math.min(QR_SAFE_MARGIN, maxPossibleMargin);
+      }
+
+      function clampQrCoordinate(value, min, max) {
+        return Math.min(Math.max(value, min), Math.max(min, max));
+      }
+
       function qrBasePosition(placement, metrics, panelSize) {
-        const maxX = Math.max(0, metrics.naturalWidth - panelSize);
-        const maxY = Math.max(0, metrics.naturalHeight - panelSize);
-        if (placement === 'top-left') return { x: 0, y: 0 };
-        if (placement === 'top-right') return { x: maxX, y: 0 };
-        if (placement === 'bottom-left') return { x: 0, y: maxY };
+        const margin = qrSafeMargin(metrics, panelSize);
+        const maxX = Math.max(margin, metrics.naturalWidth - panelSize - margin);
+        const maxY = Math.max(margin, metrics.naturalHeight - panelSize - margin);
+        if (placement === 'top-left') return { x: margin, y: margin };
+        if (placement === 'top-right') return { x: maxX, y: margin };
+        if (placement === 'bottom-left') return { x: margin, y: maxY };
         if (placement === 'center') return { x: Math.round(maxX / 2), y: Math.round(maxY / 2) };
         if (placement === 'custom') return { x: Number(state.qrOffsetX || 0), y: Number(state.qrOffsetY || 0) };
         return { x: maxX, y: maxY };
@@ -1577,11 +1655,12 @@
         const base = qrBasePosition(placement, metrics, panelSize);
         const offsetX = placement === 'custom' ? 0 : Number(state.qrOffsetX || 0);
         const offsetY = placement === 'custom' ? 0 : Number(state.qrOffsetY || 0);
-        const maxX = Math.max(0, metrics.naturalWidth - panelSize);
-        const maxY = Math.max(0, metrics.naturalHeight - panelSize);
+        const margin = qrSafeMargin(metrics, panelSize);
+        const maxX = Math.max(margin, metrics.naturalWidth - panelSize - margin);
+        const maxY = Math.max(margin, metrics.naturalHeight - panelSize - margin);
         return {
-          x: Math.min(Math.max(0, base.x + offsetX), maxX),
-          y: Math.min(Math.max(0, base.y + offsetY), maxY),
+          x: clampQrCoordinate(base.x + offsetX, margin, maxX),
+          y: clampQrCoordinate(base.y + offsetY, margin, maxY),
           size: panelSize,
         };
       }
@@ -1691,8 +1770,17 @@
         const metrics = constructorPreviewMetrics();
         const panelSize = qrPanelNaturalSize(metrics);
         const displaySize = panelSize * metrics.scaleX;
-        const displayX = Math.min(Math.max(event.clientX - imageRect.left - displaySize / 2, 0), Math.max(0, metrics.width - displaySize));
-        const displayY = Math.min(Math.max(event.clientY - imageRect.top - displaySize / 2, 0), Math.max(0, metrics.height - displaySize));
+        const margin = qrSafeMargin(metrics, panelSize);
+        const displayMarginX = margin * metrics.scaleX;
+        const displayMarginY = margin * metrics.scaleY;
+        const displayX = Math.min(
+          Math.max(event.clientX - imageRect.left - displaySize / 2, displayMarginX),
+          Math.max(displayMarginX, metrics.width - displaySize - displayMarginX),
+        );
+        const displayY = Math.min(
+          Math.max(event.clientY - imageRect.top - displaySize / 2, displayMarginY),
+          Math.max(displayMarginY, metrics.height - displaySize - displayMarginY),
+        );
         const nextX = Math.round(displayX / metrics.scaleX);
         const nextY = Math.round(displayY / metrics.scaleY);
 
@@ -1908,10 +1996,56 @@
                 ? `<textarea id="issueField_${escapeHtml(field.id)}" class="form-control issue-template-field" data-field-id="${escapeHtml(field.id)}" ${field.required ? 'required' : ''}>${escapeHtml(field.default_value || '')}</textarea>`
                 : `<input id="issueField_${escapeHtml(field.id)}" class="form-control issue-template-field" type="${field.field_type === 'email' ? 'email' : field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'}" data-field-id="${escapeHtml(field.id)}" value="${escapeHtml(field.default_value || '')}" ${field.required ? 'required' : ''} />`}
               ${field.description ? `<div class="form-text">${escapeHtml(field.description)}</div>` : ''}
+              ${field.id === 'certificate_number' ? '<div id="certificateNumberHelp" class="form-text">Chargement du prochain numéro…</div>' : ''}
             </div>
           `).join('') : '<div class="small text-muted">Ce modèle ne demande pas de champs supplémentaires. Le nom et l’email seront utilisés.</div>'}
           <div class="small text-muted mt-2">Les champs seront enregistrés dans l’assertion et utilisés pour les textes dynamiques du modèle.</div>
         `;
+        prepareCertificateNumberField(template.id);
+      }
+
+      async function fetchCertificateNumberStatus(templateId, value = '') {
+        const query = value ? `?value=${encodeURIComponent(value)}` : '';
+        const response = await fetch(`/badge-constructor/templates/${encodeURIComponent(templateId)}/certificate-number${query}`);
+        if (!response.ok) return null;
+        return response.json();
+      }
+
+      async function prepareCertificateNumberField(templateId) {
+        const input = issueTemplateFields.querySelector('[data-field-id="certificate_number"]');
+        const help = document.getElementById('certificateNumberHelp');
+        if (!input || !help || !templateId) return;
+
+        const status = await fetchCertificateNumberStatus(templateId);
+        if (!status) {
+          help.textContent = 'Le numéro peut être saisi manuellement. Il sera vérifié lors de l’émission.';
+          return;
+        }
+
+        if (!input.value.trim()) {
+          input.value = status.next_certificate_number || '';
+        }
+        help.textContent = `Numéro proposé automatiquement : ${status.next_certificate_number}. Vous pouvez le modifier manuellement.`;
+
+        input.addEventListener('input', () => {
+          window.clearTimeout(certificateNumberCheckTimer);
+          certificateNumberCheckTimer = window.setTimeout(async () => {
+            const currentValue = input.value.trim();
+            if (!currentValue) {
+              help.className = 'form-text text-muted';
+              help.textContent = `Vide : le prochain numéro disponible (${status.next_certificate_number}) sera utilisé automatiquement.`;
+              return;
+            }
+            const check = await fetchCertificateNumberStatus(templateId, currentValue);
+            if (check?.exists) {
+              help.className = 'form-text text-danger fw-semibold';
+              help.textContent = check.warning || 'Ce numéro existe déjà pour ce modèle.';
+            } else {
+              help.className = 'form-text text-success';
+              help.textContent = 'Numéro disponible pour ce modèle.';
+            }
+          }, 250);
+        });
       }
 
       function collectIssueTemplateValues() {
@@ -2036,12 +2170,15 @@
       issuePanelForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         issueStatus.textContent = currentLang === 'fr' ? 'Émission du badge…' : currentLang === 'en' ? 'Issuing badge…' : 'Выпуск badge…';
+        issueResultCard.classList.add('d-none');
+        issueResultCard.innerHTML = '';
 
         const mode = document.getElementById('issueMode').value;
         const name = document.getElementById('issueName').value;
         const email = document.getElementById('issueEmail').value;
         const file = document.getElementById('issueBadgeImage').files[0];
         const templateId = issueTemplate.value;
+        const selectedTemplateName = selectedIssueTemplate()?.name || null;
 
         const formData = new FormData();
         formData.append('name', name);
@@ -2058,21 +2195,30 @@
           const data = await response.json();
           issueStatus.textContent = currentLang === 'fr' ? 'Assertion JSON émise.' : currentLang === 'en' ? 'JSON assertion issued.' : 'JSON assertion выпущен.';
           setSystemOutput(data);
+          renderIssueResultCard({
+            name,
+            email,
+            mode: 'json',
+            assertionId: data.badge?.assertion_id,
+            templateName: 'Assertion JSON',
+          });
           issuePanelForm.reset();
           await loadDashboard(data.badge?.assertion_id || null);
-          switchView('registryView');
         } else {
+          const fieldValues = collectIssueTemplateValues();
           const response = templateId
             ? await fetch(`/badge-constructor/templates/${encodeURIComponent(templateId)}/issue-baked`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, field_values: collectIssueTemplateValues() }),
+                body: JSON.stringify({ name, email, field_values: fieldValues }),
               })
             : await fetch('/issue-baked', { method: 'POST', body: formData });
           if (!response.ok) {
-            const error = await response.text();
-            issueStatus.textContent = currentLang === 'fr' ? 'Erreur lors de l’émission du PNG.' : currentLang === 'en' ? 'PNG issuing error.' : 'Ошибка выпуска PNG.';
-            setSystemOutput({ error });
+            const errorPayload = await response.json().catch(async () => ({ detail: await response.text() }));
+            issueStatus.textContent = response.status === 409
+              ? `Attention : ${errorPayload.detail || 'ce numéro de certificat existe déjà.'}`
+              : currentLang === 'fr' ? 'Erreur lors de l’émission du PNG.' : currentLang === 'en' ? 'PNG issuing error.' : 'Ошибка выпуска PNG.';
+            setSystemOutput(errorPayload);
             return;
           }
           const blob = await response.blob();
@@ -2080,17 +2226,29 @@
           const a = document.createElement('a');
           const disposition = response.headers.get('Content-Disposition') || 'attachment; filename="badge.png"';
           const match = disposition.match(/filename="([^"]+)"/);
+          const assertionId = response.headers.get('X-Badge83-Assertion-Id');
           a.href = url;
           a.download = match ? match[1] : 'badge.png';
           document.body.appendChild(a);
           a.click();
           a.remove();
           URL.revokeObjectURL(url);
-          issueStatus.textContent = currentLang === 'fr' ? 'PNG baked émis et téléchargé.' : currentLang === 'en' ? 'Baked PNG issued and downloaded.' : 'PNG baked выпущен и скачан.';
-          setSystemOutput({ status: 'baked', filename: a.download });
+          const certificateNumber = response.headers.get('X-Badge83-Certificate-Number');
+          issueStatus.textContent = certificateNumber
+            ? `PNG baked émis et téléchargé. Numéro de certificat : ${certificateNumber}.`
+            : currentLang === 'fr' ? 'PNG baked émis et téléchargé.' : currentLang === 'en' ? 'Baked PNG issued and downloaded.' : 'PNG baked выпущен и скачан.';
+          setSystemOutput({ status: 'baked', filename: a.download, assertion_id: assertionId, certificate_number: certificateNumber });
+          renderIssueResultCard({
+            name,
+            email,
+            mode: 'png',
+            assertionId,
+            filename: a.download,
+            certificateNumber,
+            templateName: selectedTemplateName,
+          });
           issuePanelForm.reset();
-          await loadDashboard();
-          switchView('registryView');
+          await loadDashboard(assertionId || null);
         }
       });
 

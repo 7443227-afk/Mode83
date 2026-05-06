@@ -6,6 +6,11 @@ Améliorer le confort d'utilisation de Badge83 pour un opérateur non technique,
 
 Le but n'est pas de modifier le modèle Open Badges ni la logique de validation, mais de rendre l'interface plus lisible, plus sûre et plus rapide pour les usages quotidiens.
 
+À la suite du retour du curateur du 06/05/2026, deux règles UX sont confirmées comme structurantes :
+
+- conserver un accès aux preuves techniques, mais masquer l'assertion JSON brute derrière une action explicite de type **détails techniques** ou **vue avancée** ;
+- encadrer le positionnement libre du QR code par des marges de sécurité et des limites par défaut, afin d'éviter qu'il soit placé sur un texte important ou trop près des bords.
+
 ## Interfaces concernées
 
 - `badge83/templates/index.html` : centre de contrôle administrateur.
@@ -85,6 +90,8 @@ L'opérateur sait clairement si le badge a été émis, où le télécharger et 
   - avertissement ;
   - information.
 - Conserver le JSON technique dans un panneau « détails techniques » ou « mode expert ».
+- Sur les pages de vérification, afficher d'abord un statut visuel et un résumé humain : valide / invalide, titulaire, email, badge, émetteur, date.
+- Placer l'assertion JSON brute, les URLs techniques et les identifiants longs dans un panneau escamotable intitulé « détails techniques » ou « vue avancée ».
 - Normaliser les messages d'erreur :
   - PNG non valide ;
   - badge introuvable ;
@@ -141,6 +148,7 @@ Le bureau de vérification doit pouvoir être utilisé par une personne de secr�
   - émetteur ;
   - état de confiance.
 - Déplacer les identifiants techniques dans une zone secondaire.
+- Prévoir, si des informations Open Badges avancées doivent être exposées, un bloc replié par défaut plutôt qu'un affichage JSON immédiat.
 - Prévoir une stratégie d'affichage public de l'email : complet, masqué ou caché selon le niveau de confidentialité attendu.
 
 ### Critère de réussite
@@ -156,10 +164,20 @@ Après scan QR, la première information visible doit répondre à la question :
   - grille de positionnement ;
   - boutons d'alignement ;
   - verrouillage du QR ;
+  - marges de sécurité par défaut autour du QR ;
+  - contrôle visuel si le QR recouvre une zone textuelle importante ;
   - liste des calques ;
   - annuler/rétablir ;
   - zoom du preview.
 - Clarifier la différence entre schéma de données et modèle visuel.
+
+### Règles de sécurité QR à appliquer
+
+- Le QR code doit rester dans les limites de l'image, même en mode personnalisé.
+- Une marge minimale par défaut doit être conservée par rapport aux bords.
+- L'opérateur doit être encouragé à éviter les zones contenant le nom, l'email, le titre du badge ou la date.
+- La prévisualisation doit rester obligatoire avant sauvegarde d'un modèle modifié.
+- Un test de scan réel doit être recommandé après tout changement important de modèle graphique.
 
 ### Critère de réussite
 

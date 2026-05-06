@@ -4,7 +4,7 @@ from io import BytesIO
 
 from PIL import Image, ImageChops
 
-from app.qr import overlay_qr_on_badge
+from app.qr import QR_SAFE_MARGIN_PX, overlay_qr_on_badge
 
 
 def _make_plain_png(size: tuple[int, int] = (400, 300), color=(255, 255, 255, 255)) -> bytes:
@@ -41,6 +41,32 @@ def test_overlay_qr_on_badge_custom_position_returns_modified_png():
     expected_qr_area = result.crop((40, 50, 180, 190))
     assert _rgb_difference_bbox(
         Image.new("RGBA", expected_qr_area.size, (255, 255, 255, 255)), expected_qr_area
+    ) is not None
+
+
+def test_overlay_qr_on_badge_custom_position_respects_safe_margin():
+    source_png = _make_plain_png(size=(400, 300))
+
+    result_png = overlay_qr_on_badge(
+        source_png,
+        "https://tests.mode83.local/verify/qr/safe-margin",
+        placement="custom",
+        size_ratio=0.22,
+        offset_x=0,
+        offset_y=0,
+    )
+
+    with Image.open(BytesIO(source_png)) as source_image, Image.open(BytesIO(result_png)) as result_image:
+        source = source_image.convert("RGBA")
+        result = result_image.convert("RGBA")
+
+    unsafe_corner = result.crop((0, 0, QR_SAFE_MARGIN_PX, QR_SAFE_MARGIN_PX))
+    source_corner = source.crop((0, 0, QR_SAFE_MARGIN_PX, QR_SAFE_MARGIN_PX))
+    assert _rgb_difference_bbox(source_corner, unsafe_corner) is None
+
+    safe_area = result.crop((QR_SAFE_MARGIN_PX, QR_SAFE_MARGIN_PX, 180, 190))
+    assert _rgb_difference_bbox(
+        Image.new("RGBA", safe_area.size, (255, 255, 255, 255)), safe_area
     ) is not None
 
 

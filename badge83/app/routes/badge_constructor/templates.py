@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import sqlite3
+import json
+import re
 from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Body
 from fastapi.responses import Response
 from typing import List
 import base64
 
-from app.config import BADGE_PNG
+from app.config import BADGE_PNG, ISSUED_DIR
 from app.database import init_db_schema, close_connection
 from app.database import (
     add_badge_template, get_badge_template_by_id, get_all_badge_templates,
@@ -72,6 +74,56 @@ def _load_template_background(template: dict) -> bytes:
         except Exception:
             pass
     return BADGE_PNG.read_bytes()
+
+
+def _iter_template_certificate_numbers(template_id: str) -> list[str]:
+    """Retourne les numéros déjà émis pour un modèle donné."""
+    numbers: list[str] = []
+    if not ISSUED_DIR.exists():
+        return numbers
+
+    for assertion_path in ISSUED_DIR.glob("*.json"):
+        try:
+            assertion = json.loads(assertion_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        template_meta = assertion.get("badge83_template", {}) if isinstance(assertion.get("badge83_template"), dict) else {}
+        if template_meta.get("id") != template_id:
+            continue
+
+        field_values = assertion.get("field_values", {}) if isinstance(assertion.get("field_values"), dict) else {}
+        certificate_number = str(field_values.get("certificate_number") or "").strip()
+        if certificate_number:
+            numbers.append(certificate_number)
+
+    return numbers
+
+
+def _next_certificate_number(existing_numbers: list[str]) -> str:
+    """Génère le prochain numéro en conservant si possible le préfixe et le padding."""
+    if not existing_numbers:
+        return "001"
+
+    parsed: list[tuple[int, str, int]] = []
+    for number in existing_numbers:
+        match = re.search(r"^(.*?)(\d+)$", number)
+        if match:
+            prefix, digits = match.groups()
+            parsed.append((int(digits), prefix, len(digits)))
+
+    if not parsed:
+        return str(len(existing_numbers) + 1).zfill(3)
+
+    highest_value, prefix, width = max(parsed, key=lambda item: item[0])
+    return f"{prefix}{str(highest_value + 1).zfill(width)}"
+
+
+def _certificate_number_exists(template_id: str, certificate_number: str) -> bool:
+    normalized = str(certificate_number or "").strip()
+    if not normalized:
+        return False
+    return normalized in _iter_template_certificate_numbers(template_id)
 
 
 @router.post("/templates", response_model=dict)
@@ -195,12 +247,26 @@ def issue_badge_from_template(
             raise HTTPException(status_code=400, detail="Le nom et l'email sont obligatoires")
 
         schema_id = template.get("schema_id")
+        schema_fields = []
         if schema_id:
             schema = get_badge_schema_by_id(db, schema_id)
-            for field in (schema or {}).get("fields", []):
+            schema_fields = (schema or {}).get("fields", [])
+            for field in schema_fields:
                 field_id = field.get("id")
                 if field.get("required") and field_id and not str(field_values.get(field_id, "")).strip():
                     raise HTTPException(status_code=400, detail=f"Champ obligatoire manquant : {field.get('label') or field_id}")
+
+        has_certificate_number_field = any(field.get("id") == "certificate_number" for field in schema_fields)
+        certificate_number = str(field_values.get("certificate_number") or "").strip()
+        if has_certificate_number_field or certificate_number:
+            if not certificate_number:
+                certificate_number = _next_certificate_number(_iter_template_certificate_numbers(template_id))
+                field_values["certificate_number"] = certificate_number
+            elif _certificate_number_exists(template_id, certificate_number):
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Le numéro de certificat {certificate_number} existe déjà pour ce modèle",
+                )
 
         png_data = _load_template_background(template)
         result = issue_baked_badge_from_template(
@@ -216,12 +282,37 @@ def issue_badge_from_template(
             headers={
                 "Content-Disposition": f'attachment; filename="{result.get("baked_download_filename", f"badge-{result["assertion_id"]}.png")}"',
                 "X-Badge83-Assertion-Id": result["assertion_id"],
+                **({"X-Badge83-Certificate-Number": certificate_number} if certificate_number else {}),
             },
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/templates/{template_id}/certificate-number", response_model=dict)
+def get_template_certificate_number_status(template_id: str, value: str | None = None, db: sqlite3.Connection = Depends(get_db)):
+    """Retourne le prochain numéro de certificat et vérifie l'unicité d'une valeur saisie."""
+    template = get_badge_template_by_id(db, template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Modèle introuvable")
+
+    existing_numbers = _iter_template_certificate_numbers(template_id)
+    checked_value = str(value or "").strip()
+    exists = checked_value in existing_numbers if checked_value else False
+    return {
+        "template_id": template_id,
+        "next_certificate_number": _next_certificate_number(existing_numbers),
+        "existing_count": len(existing_numbers),
+        "checked_value": checked_value or None,
+        "exists": exists,
+        "warning": (
+            f"Le numéro de certificat {checked_value} existe déjà pour ce modèle"
+            if exists
+            else None
+        ),
+    }
 
 
 @router.put("/templates/{template_id}", response_model=dict)
