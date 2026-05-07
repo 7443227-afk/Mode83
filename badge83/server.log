@@ -429,3 +429,171 @@ INFO:     172.225.158.143:0 - "GET /auth/check HTTP/1.0" 204 No Content
 INFO:     172.225.158.143:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778158667360 HTTP/1.1" 200 OK
 INFO:     172.225.158.143:0 - "GET /auth/check HTTP/1.0" 204 No Content
 INFO:     172.225.158.143:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778158677878 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET / HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges/50f6c430-f8b0-4e07-b035-b89d96139288 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges/50f6c430-f8b0-4e07-b035-b89d96139288/png HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159018772 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "PUT /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159091336 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/1888877d-563d-4b08-bc5c-d7eecf5c4b6a/preview?ts=1778159104618 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "PUT /badge-constructor/templates/1888877d-563d-4b08-bc5c-d7eecf5c4b6a HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/1888877d-563d-4b08-bc5c-d7eecf5c4b6a/preview?ts=1778159115966 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159129049 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "PUT /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159174750 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159182879 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "POST /badge-constructor/templates/preview-draft HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "POST /badge-constructor/templates/preview-draft HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "PUT /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159322957 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "POST /badge-constructor/templates/preview-draft HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159381793 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "PUT /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "PUT /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 290, in app
+    async with AsyncExitStack() as async_exit_stack:
+  File "/usr/lib/python3.12/contextlib.py", line 754, in __aexit__
+    raise exc_details[1]
+  File "/usr/lib/python3.12/contextlib.py", line 737, in __aexit__
+    cb_suppress = await cb(*exc_details)
+                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/contextlib.py", line 217, in __aexit__
+    await anext(self.gen)
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/fastapi/concurrency.py", line 37, in contextmanager_in_threadpool
+    await anyio.to_thread.run_sync(
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/ubuntu/projects/Mode83/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/ubuntu/projects/Mode83/badge83/app/routes/badge_constructor/templates.py", line 31, in get_db
+    close_connection(conn)
+  File "/home/ubuntu/projects/Mode83/badge83/app/database.py", line 331, in close_connection
+    conn.close()
+sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 263190508204416 and this is thread id 263190518755712.
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159507898 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159509642 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778159545508 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number?value=05-0 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number?value=05-03 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "POST /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/issue-baked HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges/50f6c430-f8b0-4e07-b035-b89d96139288 HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges/671bb3b6-79a3-4ce6-9626-4d250b97217b HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     172.225.158.142:0 - "GET /api/badges/671bb3b6-79a3-4ce6-9626-4d250b97217b/png HTTP/1.1" 200 OK
+INFO:     172.225.158.142:0 - "GET /verify/qr/671bb3b6-79a3-4ce6-9626-4d250b97217b HTTP/1.1" 200 OK
+INFO:     46.151.178.13:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized

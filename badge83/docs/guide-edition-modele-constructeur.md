@@ -8,6 +8,7 @@ La modification d'un modèle permet de corriger ou d'adapter :
 
 - le nom du modèle ;
 - le schéma associé ;
+- le fond PNG du badge ;
 - la position et la taille du QR code ;
 - les textes affichés sur le PNG ;
 - les textes dynamiques liés aux champs remplis lors de l'émission.
@@ -27,7 +28,7 @@ Dans le bloc **Modèles disponibles** :
 3. la zone de formulaire passe de **Nouveau modèle** à **Modifier le modèle** ;
 4. le nom, le schéma, les paramètres QR et les textes du modèle sont chargés dans le formulaire ;
 5. modifier les valeurs souhaitées ;
-6. cliquer sur **Enregistrer les modifications**.
+6. cliquer sur **Enregistrer** en haut du formulaire ou sur **Enregistrer les modifications** en bas du formulaire.
 
 Après l'enregistrement :
 
@@ -36,6 +37,26 @@ Après l'enregistrement :
 - l'aperçu du modèle modifié est affiché.
 
 Pour sortir du mode modification sans enregistrer, cliquer sur **Annuler** en haut du formulaire du modèle.
+
+## Choisir ou réinitialiser le fond PNG
+
+Le constructeur permet d'associer un fond PNG à chaque modèle de badge.
+
+Pour utiliser un fond personnalisé :
+
+1. dans le formulaire du modèle, choisir un fichier dans **Fond PNG du badge** ;
+2. vérifier le rendu avec **Prévisualiser le brouillon** ;
+3. enregistrer le modèle.
+
+Si aucun fichier n'est choisi, Badge83 utilise automatiquement le fond standard défini par le projet.
+
+Lors de la modification d'un modèle existant :
+
+- si aucun nouveau fichier n'est sélectionné, le fond déjà enregistré est conservé ;
+- si un nouveau PNG est sélectionné, il remplace le fond précédent ;
+- le bouton **Utiliser le fond standard** permet de supprimer le fond personnalisé et de revenir au badge standard.
+
+Le fichier fourni doit être un PNG valide. Une vérification est effectuée côté interface et côté serveur afin d'éviter l'enregistrement d'un fichier non compatible.
 
 ## Modifier un texte superposé
 
@@ -54,6 +75,41 @@ Pour modifier un texte :
 4. cliquer sur **Mettre à jour ce texte**.
 
 Pour annuler la modification du texte en cours, cliquer sur **Annuler** à côté du bouton de mise à jour du texte.
+
+## Positionner précisément les textes sur le badge
+
+Le constructeur dispose d'une zone de prévisualisation agrandie et d'outils de précision pour placer les textes destinés à être intégrés dans le PNG final.
+
+### Zoom de la prévisualisation
+
+Dans le bloc **Aperçu du modèle**, le sélecteur **Zoom** permet de choisir :
+
+- **Fit** : ajuste l'image à la largeur disponible ;
+- **100%** ;
+- **150%** ;
+- **200%** ;
+- **300%**.
+
+Le zoom ne modifie pas les coordonnées enregistrées. Il sert uniquement à améliorer le confort de placement dans l'interface. Les positions restent calculées en pixels réels du PNG.
+
+### Déplacement à la souris
+
+Les textes ajoutés au modèle apparaissent sous forme de poignées visuelles sur le badge. L'opérateur peut les déplacer directement par glisser-déposer.
+
+Lors du déplacement :
+
+- les coordonnées X/Y sont mises à jour dans les champs du formulaire ;
+- le texte sélectionné est mis en évidence ;
+- le statut affiche la position courante du texte.
+
+### Déplacement fin au pixel
+
+Sous la prévisualisation, les boutons directionnels **↑ ↓ ← →** permettent d'ajuster le texte sélectionné :
+
+- clic simple : déplacement de **1 pixel** ;
+- `Shift` + clic : déplacement de **10 pixels**.
+
+Cette fonction est recommandée pour finaliser l'alignement après un premier placement à la souris.
 
 ## Ajouter un nouveau texte
 
@@ -76,6 +132,17 @@ Avant d'enregistrer un modèle ou une modification :
 4. enregistrer le modèle uniquement lorsque le rendu est correct.
 
 La prévisualisation utilise des valeurs d'exemple pour les textes dynamiques, par exemple un nom, un email, un cours, un numéro de certificat et une date.
+
+## Dupliquer ou supprimer un modèle
+
+Dans le bloc **Modèles disponibles**, chaque modèle propose plusieurs actions :
+
+- **Aperçu** : affiche le rendu du modèle ;
+- **Modifier** : charge le modèle dans le formulaire ;
+- **Dupliquer** : crée une copie du modèle pour préparer une variante ;
+- **Supprimer** : retire le modèle de la liste des modèles disponibles.
+
+La suppression demande une confirmation avant exécution. Elle désactive le modèle dans la base afin qu'il ne soit plus proposé pour les nouvelles émissions. Les badges déjà émis ne sont pas régénérés ni supprimés.
 
 ## Positionner le QR code avec des marges de sécurité
 
