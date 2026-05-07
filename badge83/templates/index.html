@@ -716,7 +716,10 @@
                   <div class="border rounded-4 p-3">
                     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                       <h3 id="templateFormTitle" class="h6 mb-0">Nouveau modèle</h3>
-                      <button id="templateCancelEditBtn" class="btn btn-sm btn-outline-secondary d-none" type="button">Annuler</button>
+                      <div class="d-flex gap-2">
+                        <button id="templateSaveEditTopBtn" class="btn btn-sm btn-primary d-none" type="button">Enregistrer</button>
+                        <button id="templateCancelEditBtn" class="btn btn-sm btn-outline-secondary d-none" type="button">Annuler</button>
+                      </div>
                     </div>
                     <p class="small text-muted mb-3">Étape 2 — Préparez l’apparence du badge : QR code, textes fixes et textes dynamiques liés aux champs.</p>
                     <form id="templateForm">
@@ -729,6 +732,12 @@
                         <label class="form-label" for="templateSchema">Schéma associé</label>
                         <select id="templateSchema" class="form-select"></select>
                         <div class="form-text">Le schéma détermine les champs disponibles pour les textes dynamiques.</div>
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label" for="templateBackgroundImage">Fond PNG du badge</label>
+                        <input id="templateBackgroundImage" class="form-control" type="file" accept=".png,image/png" />
+                        <div id="templateBackgroundHelp" class="form-text">Optionnel. Si aucun PNG n’est choisi, le fond standard MODE83 sera utilisé.</div>
+                        <button id="templateBackgroundResetBtn" class="btn btn-sm btn-outline-secondary mt-2 d-none" type="button">Utiliser le fond standard</button>
                       </div>
                       <div class="row g-2 mb-2">
                         <div class="col-6">
@@ -881,7 +890,7 @@
     </main>
 
     <script>
-      const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], templateOverlayDrafts: [], editingTemplateId: null, editingOverlayIndex: null, draggingOverlayIndex: null, qrOffsetX: 0, qrOffsetY: 0, draggingQr: false };
+      const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], templateOverlayDrafts: [], editingTemplateId: null, editingOverlayIndex: null, draggingOverlayIndex: null, qrOffsetX: 0, qrOffsetY: 0, draggingQr: false, templateBackgroundReset: false };
       const QR_SAFE_MARGIN = 12;
       let certificateNumberCheckTimer = null;
 
@@ -938,7 +947,11 @@
       const templateOverlayList = document.getElementById('templateOverlayList');
       const templateFormTitle = document.getElementById('templateFormTitle');
       const templateSubmitBtn = document.getElementById('templateSubmitBtn');
+      const templateSaveEditTopBtn = document.getElementById('templateSaveEditTopBtn');
       const templateCancelEditBtn = document.getElementById('templateCancelEditBtn');
+      const templateBackgroundImage = document.getElementById('templateBackgroundImage');
+      const templateBackgroundHelp = document.getElementById('templateBackgroundHelp');
+      const templateBackgroundResetBtn = document.getElementById('templateBackgroundResetBtn');
       const constructorPreview = document.getElementById('constructorPreview');
       const constructorOverlayLayer = document.getElementById('constructorOverlayLayer');
       const constructorStatus = document.getElementById('constructorStatus');
@@ -1593,6 +1606,7 @@
                     <button class="btn btn-sm btn-outline-primary constructor-preview-btn" data-id="${escapeHtml(template.id)}">Aperçu</button>
                     <button class="btn btn-sm btn-outline-success constructor-edit-btn" data-id="${escapeHtml(template.id)}">Modifier</button>
                     <button class="btn btn-sm btn-outline-secondary constructor-duplicate-btn" data-id="${escapeHtml(template.id)}">Dupliquer</button>
+                    <button class="btn btn-sm btn-outline-danger constructor-delete-btn" data-id="${escapeHtml(template.id)}" data-name="${escapeHtml(template.name)}">Supprimer</button>
                   </div>
                 </div>
               </div>
@@ -1614,15 +1628,20 @@
         templatesList.querySelectorAll('.constructor-duplicate-btn').forEach((button) => {
           button.addEventListener('click', () => duplicateConstructorTemplate(button.dataset.id));
         });
+        templatesList.querySelectorAll('.constructor-delete-btn').forEach((button) => {
+          button.addEventListener('click', () => deleteConstructorTemplate(button.dataset.id, button.dataset.name));
+        });
       }
 
       function resetTemplateForm() {
         state.editingTemplateId = null;
+        state.templateBackgroundReset = false;
         templateForm.reset();
         templateFormTitle.textContent = 'Nouveau modèle';
         templateSubmitBtn.textContent = 'Créer le modèle';
         templateSubmitBtn.classList.remove('btn-primary');
         templateSubmitBtn.classList.add('btn-success');
+        templateSaveEditTopBtn.classList.add('d-none');
         templateCancelEditBtn.classList.add('d-none');
         document.getElementById('templateQrPlacement').value = 'bottom-right';
         document.getElementById('templateQrSize').value = '0.22';
@@ -1637,6 +1656,9 @@
         document.getElementById('templateTextSize').value = '24';
         document.getElementById('templateTextColor').value = '#0f172a';
         document.getElementById('templatePositionPreset').value = 'custom';
+        templateBackgroundImage.value = '';
+        templateBackgroundHelp.textContent = 'Optionnel. Si aucun PNG n’est choisi, le fond standard MODE83 sera utilisé.';
+        templateBackgroundResetBtn.classList.add('d-none');
         state.templateOverlayDrafts = [];
         resetOverlayEditor();
         renderTemplateOverlayDrafts();
@@ -1650,10 +1672,12 @@
           return;
         }
         state.editingTemplateId = template.id;
+        state.templateBackgroundReset = false;
         templateFormTitle.textContent = `Modifier le modèle : ${template.name}`;
         templateSubmitBtn.textContent = 'Enregistrer les modifications';
         templateSubmitBtn.classList.remove('btn-success');
         templateSubmitBtn.classList.add('btn-primary');
+        templateSaveEditTopBtn.classList.remove('d-none');
         templateCancelEditBtn.classList.remove('d-none');
         document.getElementById('templateName').value = template.name || '';
         templateSchema.value = template.schema_id || '';
@@ -1664,6 +1688,11 @@
         state.templateOverlayDrafts = Array.isArray(template.text_overlays)
           ? template.text_overlays.map((overlay) => ({ ...overlay }))
           : [];
+        templateBackgroundImage.value = '';
+        templateBackgroundHelp.textContent = template.background_image
+          ? 'Un fond personnalisé est enregistré. Choisissez un nouveau PNG pour le remplacer, ou utilisez le fond standard.'
+          : 'Aucun fond personnalisé enregistré : le fond standard MODE83 est utilisé.';
+        templateBackgroundResetBtn.classList.toggle('d-none', !template.background_image);
         resetOverlayEditor();
         renderTemplateOverlayDrafts();
         showConstructorPreview(template.id);
@@ -1692,6 +1721,32 @@
         setSystemOutput(data);
         await loadConstructor();
         if (data.id) showConstructorPreview(data.id);
+      }
+
+      async function deleteConstructorTemplate(templateId, templateName = '') {
+        if (!templateId) return;
+        const label = templateName || templateId;
+        if (!window.confirm(`Supprimer le modèle « ${label} » ? Cette action le retirera de la liste des modèles disponibles.`)) {
+          return;
+        }
+        const response = await fetch(`/badge-constructor/templates/${encodeURIComponent(templateId)}`, { method: 'DELETE' });
+        const data = await response.json().catch(async () => ({ detail: await response.text() }));
+        if (!response.ok) {
+          constructorStatus.textContent = 'Erreur lors de la suppression du modèle.';
+          setSystemOutput(data);
+          return;
+        }
+        if (state.editingTemplateId === templateId) {
+          resetTemplateForm();
+        }
+        if (constructorPreview.getAttribute('src')?.includes(encodeURIComponent(templateId))) {
+          constructorPreview.removeAttribute('src');
+          constructorPreview.classList.add('d-none');
+          constructorOverlayLayer.innerHTML = '';
+        }
+        constructorStatus.textContent = data.message || 'Modèle supprimé.';
+        setSystemOutput(data);
+        await loadConstructor();
       }
 
       function buildCurrentOverlay() {
@@ -2023,10 +2078,38 @@
         }
       }
 
-      function buildTemplateDraftPayload() {
+      function readSelectedBackgroundImage() {
+        const file = templateBackgroundImage.files && templateBackgroundImage.files[0];
+        if (!file) return Promise.resolve(undefined);
+        const isPng = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png');
+        if (!isPng) {
+          return Promise.reject(new Error('Le fond du badge doit être un fichier PNG.'));
+        }
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => reject(new Error('Impossible de lire le PNG de fond.'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function resolveTemplateBackgroundImage({ includeExisting = false } = {}) {
+        const selected = await readSelectedBackgroundImage();
+        if (selected !== undefined) return selected;
+        if (state.templateBackgroundReset) return null;
+        if (includeExisting && state.editingTemplateId) {
+          const currentTemplate = state.constructorTemplates.find((item) => item.id === state.editingTemplateId);
+          return currentTemplate?.background_image || null;
+        }
+        return null;
+      }
+
+      async function buildTemplateDraftPayload() {
+        const backgroundImage = await resolveTemplateBackgroundImage({ includeExisting: true });
         return {
           name: document.getElementById('templateName').value || 'Brouillon',
           schema_id: templateSchema.value || null,
+          background_image: backgroundImage,
           text_overlays: collectTemplateOverlays(),
           qr_code_placement: document.getElementById('templateQrPlacement').value,
           qr_code_size: Number(document.getElementById('templateQrSize').value || 0.22),
@@ -2039,7 +2122,7 @@
         const response = await fetch('/badge-constructor/templates/preview-draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildTemplateDraftPayload()),
+          body: JSON.stringify(await buildTemplateDraftPayload()),
         });
         if (!response.ok) {
           const error = await response.text();
@@ -2206,6 +2289,13 @@
         event.preventDefault();
         const text_overlays = collectTemplateOverlays();
         const editingTemplateId = state.editingTemplateId;
+        let backgroundImage = null;
+        try {
+          backgroundImage = await resolveTemplateBackgroundImage({ includeExisting: Boolean(editingTemplateId) });
+        } catch (error) {
+          constructorStatus.textContent = String(error.message || error);
+          return;
+        }
         const response = await fetch(
           editingTemplateId ? `/badge-constructor/templates/${encodeURIComponent(editingTemplateId)}` : '/badge-constructor/templates',
           {
@@ -2215,6 +2305,7 @@
             id: editingTemplateId || undefined,
             name: document.getElementById('templateName').value,
             schema_id: templateSchema.value || null,
+            background_image: backgroundImage,
             text_overlays,
             qr_code_placement: document.getElementById('templateQrPlacement').value,
             qr_code_size: Number(document.getElementById('templateQrSize').value || 0.22),
@@ -2237,9 +2328,29 @@
       });
 
       constructorRefreshBtn.addEventListener('click', () => loadConstructor().catch((error) => setSystemOutput({ error: 'Erreur constructeur', details: String(error) })));
+      templateSaveEditTopBtn.addEventListener('click', () => {
+        if (typeof templateForm.requestSubmit === 'function') {
+          templateForm.requestSubmit();
+        } else {
+          templateSubmitBtn.click();
+        }
+      });
       templateCancelEditBtn.addEventListener('click', () => {
         resetTemplateForm();
         constructorStatus.textContent = 'Modification annulée. Vous pouvez créer un nouveau modèle.';
+      });
+      templateBackgroundImage.addEventListener('change', () => {
+        state.templateBackgroundReset = false;
+        const file = templateBackgroundImage.files && templateBackgroundImage.files[0];
+        templateBackgroundHelp.textContent = file
+          ? `Fond sélectionné : ${file.name}. Cliquez sur “Prévisualiser le brouillon” pour le voir.`
+          : 'Optionnel. Si aucun PNG n’est choisi, le fond standard MODE83 sera utilisé.';
+      });
+      templateBackgroundResetBtn.addEventListener('click', () => {
+        state.templateBackgroundReset = true;
+        templateBackgroundImage.value = '';
+        templateBackgroundHelp.textContent = 'Le fond personnalisé sera supprimé lors de l’enregistrement. Le fond standard MODE83 sera utilisé.';
+        constructorStatus.textContent = 'Fond standard sélectionné. Enregistrez le modèle pour conserver ce choix.';
       });
       templateCancelOverlayEditBtn.addEventListener('click', () => {
         resetOverlayEditor();

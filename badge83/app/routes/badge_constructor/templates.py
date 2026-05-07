@@ -67,13 +67,23 @@ def _load_template_background(template: dict) -> bytes:
     background_image = template.get("background_image")
     if isinstance(background_image, str) and background_image.startswith("data:") and ";base64," in background_image:
         _, encoded = background_image.split(";base64,", 1)
-        return base64.b64decode(encoded)
+        content = base64.b64decode(encoded)
+        _ensure_png_background(content)
+        return content
     if isinstance(background_image, str) and background_image.strip():
         try:
-            return BADGE_PNG.parent.joinpath(background_image).read_bytes()
+            content = BADGE_PNG.parent.joinpath(background_image).read_bytes()
+            _ensure_png_background(content)
+            return content
         except Exception:
             pass
     return BADGE_PNG.read_bytes()
+
+
+def _ensure_png_background(content: bytes) -> None:
+    """Vérifie que le fond fourni est bien un PNG."""
+    if not content or not content.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise HTTPException(status_code=400, detail="Le fond du badge doit être un fichier PNG valide")
 
 
 def _iter_template_certificate_numbers(template_id: str) -> list[str]:
@@ -377,6 +387,7 @@ async def upload_background_image(template_id: str, file: UploadFile = File(...)
         
         # Lit et encode l'image en base64
         content = await file.read()
+        _ensure_png_background(content)
         base64_image = base64.b64encode(content).decode('utf-8')
         
         template_data = _template_update_payload(
