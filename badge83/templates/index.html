@@ -857,8 +857,13 @@
               <div class="mb-3">
                 <label id="verifyPngFileLabel" class="form-label" for="verifyPngFile">Vérification PNG / analyse baked</label>
                 <input id="verifyPngFile" type="file" class="form-control" accept=".png" />
+                <div class="form-text">Choisissez un PNG baked. Le résultat lisible s’affichera ici ; les données brutes restent disponibles dans les détails techniques.</div>
               </div>
-              <pre id="verifyOutput" class="json-box mb-0">La vérification n’a pas encore été lancée.</pre>
+              <div id="verifyResultCard" class="alert border d-none mb-3"></div>
+              <details class="technical-details">
+                <summary>Afficher les détails techniques</summary>
+                <pre id="verifyOutput" class="json-box mt-2 mb-0">La vérification n’a pas encore été lancée.</pre>
+              </details>
             </div>
 
             <div id="systemView" class="view-pane">
@@ -917,6 +922,7 @@
       const verifyAssertionUrl = document.getElementById('verifyAssertionUrl');
       const verifyUrlBtn = document.getElementById('verifyUrlBtn');
       const verifyPngFile = document.getElementById('verifyPngFile');
+      const verifyResultCard = document.getElementById('verifyResultCard');
       const verifyOutput = document.getElementById('verifyOutput');
       const systemOutput = document.getElementById('systemOutput');
       const languageSelect = document.getElementById('languageSelect');
@@ -1206,6 +1212,111 @@
 
       function setVerifyOutput(data) {
         verifyOutput.textContent = JSON.stringify(data, null, 2);
+      }
+
+      function pickFirst(...values) {
+        return values.find((value) => value !== undefined && value !== null && String(value).trim() !== '') || null;
+      }
+
+      function assertionPublicId(value) {
+        if (!value) return null;
+        const text = String(value);
+        return text.includes('/') ? text.split('/').filter(Boolean).pop() : text;
+      }
+
+      function verificationSummary(data) {
+        const assertion = data?.assertion || {};
+        const summary = data?.summary || {};
+        const adminRecipient = assertion.admin_recipient || {};
+        const recipient = assertion.recipient || {};
+        const badgeRef = assertion.badge;
+        const issuerRef = assertion.issuer;
+        const badgeName = pickFirst(
+          summary.badge_name,
+          typeof badgeRef === 'object' ? badgeRef.name : null,
+          typeof badgeRef === 'string' ? badgeRef.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') : null,
+        );
+        const issuerName = pickFirst(
+          summary.issuer_name,
+          typeof issuerRef === 'object' ? issuerRef.name : null,
+          typeof issuerRef === 'string' ? issuerRef.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') : null,
+        );
+        return {
+          assertionId: assertionPublicId(pickFirst(summary.assertion_id, assertion.id, data?.assertion_id)),
+          name: pickFirst(summary.recipient_name, adminRecipient.name, recipient.name),
+          email: pickFirst(summary.recipient_email, adminRecipient.email, recipient.email, recipient.identity),
+          badgeName,
+          issuerName,
+          issuedOn: pickFirst(summary.issued_on, assertion.issuedOn),
+        };
+      }
+
+      function verificationMessage(data, sourceLabel) {
+        if (data?.valid) return 'Vérification réussie. Vous pouvez consulter la page publique ou scanner le QR si le badge possède un PNG.';
+        const error = String(data?.error || data?.detail || '').toLowerCase();
+        if (!data?.assertion && sourceLabel === 'ID') return 'Aucun badge correspondant n’a été trouvé dans le registre local. Vérifiez l’identifiant ou émettez/importez le badge.';
+        if (sourceLabel === 'PNG' && (error.includes('openbadges') || error.includes('chunk') || error.includes('png'))) return 'Ce fichier PNG ne contient pas d’assertion Open Badges lisible. Essayez avec un PNG baked Badge83 original.';
+        if (sourceLabel === 'URL') return 'La vérification de l’assertion hébergée n’a pas pu être terminée. Vérifiez l’URL et l’accessibilité du serveur.';
+        return 'La vérification n’a pas abouti. Consultez les détails techniques si nécessaire.';
+      }
+
+      function renderVerificationResult(data, sourceLabel) {
+        setVerifyOutput(data);
+        const valid = Boolean(data?.valid);
+        const summary = verificationSummary(data || {});
+        const toneClass = valid ? 'alert-success' : 'alert-warning';
+        const title = valid ? 'Badge valide' : 'Badge non validé';
+        const statusBadge = valid ? 'text-bg-success' : 'text-bg-warning';
+        const publicUrl = summary.assertionId ? `/verify/badge/${encodeURIComponent(summary.assertionId)}` : null;
+        const qrUrl = summary.assertionId ? `/verify/qr/${encodeURIComponent(summary.assertionId)}` : null;
+
+        verifyResultCard.className = `alert border ${toneClass} mb-3`;
+        verifyResultCard.classList.remove('d-none');
+        verifyResultCard.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div>
+              <div class="small text-uppercase text-muted">Résultat de vérification · ${escapeHtml(sourceLabel)}</div>
+              <div class="h5 mb-1">${title}</div>
+              <div>${escapeHtml(verificationMessage(data || {}, sourceLabel))}</div>
+            </div>
+            <span class="badge ${statusBadge}">${valid ? 'VALIDE' : 'À CONTRÔLER'}</span>
+          </div>
+          <div class="row g-2">
+            <div class="col-12 col-md-6">
+              <div class="small text-muted">Titulaire</div>
+              <div class="fw-semibold">${escapeHtml(summary.name || 'Non disponible')}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="small text-muted">Email / identité</div>
+              <div class="fw-semibold mono small">${escapeHtml(summary.email || 'Non disponible')}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="small text-muted">Badge</div>
+              <div class="fw-semibold">${escapeHtml(summary.badgeName || 'Non disponible')}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="small text-muted">Émetteur</div>
+              <div class="fw-semibold">${escapeHtml(summary.issuerName || 'Non disponible')}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="small text-muted">Date d’émission</div>
+              <div class="fw-semibold">${escapeHtml(summary.issuedOn || '—')}</div>
+            </div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap mt-3">
+            ${publicUrl ? `<a class="btn btn-sm btn-outline-primary" href="${publicUrl}" target="_blank">Page complète</a>` : ''}
+            ${qrUrl ? `<a class="btn btn-sm btn-outline-secondary" href="${qrUrl}" target="_blank">Page QR</a>` : ''}
+            <button id="verifyResetBtn" type="button" class="btn btn-sm btn-outline-dark">Vérifier un autre badge</button>
+          </div>
+        `;
+        document.getElementById('verifyResetBtn')?.addEventListener('click', () => {
+          verifyBadgeId.value = '';
+          verifyAssertionUrl.value = '';
+          verifyPngFile.value = '';
+          verifyResultCard.classList.add('d-none');
+          verifyOutput.textContent = t('verifyOutputIdle');
+          verifyBadgeId.focus();
+        });
       }
 
       function renderIssueResultCard({ name, email, mode, assertionId, filename, certificateNumber, templateName }) {
@@ -2254,21 +2365,29 @@
 
       verifyIdBtn.addEventListener('click', async () => {
         const badgeId = verifyBadgeId.value.trim();
-        if (!badgeId) return setVerifyOutput({ error: currentLang === 'fr' ? 'Entrez un badge ID' : currentLang === 'en' ? 'Enter a badge ID' : 'Введите badge ID' });
-        const response = await fetch(`/verify?badge_id=${encodeURIComponent(badgeId)}`);
-        const data = await response.json();
-        setVerifyOutput(data);
+        if (!badgeId) return renderVerificationResult({ valid: false, error: 'Saisissez un identifiant de badge avant de lancer la vérification.', assertion: null }, 'ID');
+        try {
+          const response = await fetch(`/verify?badge_id=${encodeURIComponent(badgeId)}`);
+          const data = await response.json();
+          renderVerificationResult(data, 'ID');
+        } catch (error) {
+          renderVerificationResult({ valid: false, error: String(error), assertion: null }, 'ID');
+        }
         switchView('verifyView');
       });
 
       verifyUrlBtn.addEventListener('click', async () => {
         const url = verifyAssertionUrl.value.trim();
-        if (!url) return setVerifyOutput({ error: currentLang === 'fr' ? 'Entrez une URL d’assertion' : currentLang === 'en' ? 'Enter an assertion URL' : 'Введите assertion URL' });
+        if (!url) return renderVerificationResult({ valid: false, error: 'Collez l’URL d’une assertion hébergée.', assertion: null }, 'URL');
         const formData = new FormData();
         formData.append('assertion_url', url);
-        const response = await fetch('/verify-online', { method: 'POST', body: formData });
-        const data = await response.json();
-        setVerifyOutput(data);
+        try {
+          const response = await fetch('/verify-online', { method: 'POST', body: formData });
+          const data = await response.json();
+          renderVerificationResult(data, 'URL');
+        } catch (error) {
+          renderVerificationResult({ valid: false, error: String(error), assertion: null }, 'URL');
+        }
         switchView('verifyView');
       });
 
@@ -2277,9 +2396,13 @@
         if (!file) return;
         const formData = new FormData();
         formData.append('badge', file);
-        const response = await fetch('/verify-baked', { method: 'POST', body: formData });
-        const data = await response.json();
-        setVerifyOutput(data);
+        try {
+          const response = await fetch('/verify-baked', { method: 'POST', body: formData });
+          const data = await response.json();
+          renderVerificationResult(data, 'PNG');
+        } catch (error) {
+          renderVerificationResult({ valid: false, error: String(error), assertion: null }, 'PNG');
+        }
         verifyPngFile.value = '';
         switchView('verifyView');
       });
