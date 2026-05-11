@@ -38,7 +38,11 @@ def init_database(db_path: str | Path | None = None) -> sqlite3.Connection:
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir)
 
-    conn = sqlite3.connect(str(resolved_path))
+    conn = sqlite3.connect(
+        str(resolved_path),
+        timeout=10,
+        check_same_thread=False,
+    )
     conn.row_factory = sqlite3.Row
     return conn
 

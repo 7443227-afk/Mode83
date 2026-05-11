@@ -30,10 +30,17 @@ DEFAULT_AUTH_PASSWORD="admin"
 DEFAULT_AUTH_SECRET="badge83-dev-auth-secret-change-me"
 
 if [ -f "$CONFIG_FILE" ]; then
+  declare -A SHELL_BADGE83_ENV=()
+  while IFS='=' read -r var_name _; do
+    SHELL_BADGE83_ENV["$var_name"]="${!var_name}"
+  done < <(env | awk -F= '/^BADGE83_/ { print $1 "=" }')
   # shellcheck disable=SC1090
   set -a
   source "$CONFIG_FILE"
   set +a
+  for var_name in "${!SHELL_BADGE83_ENV[@]}"; do
+    export "$var_name=${SHELL_BADGE83_ENV[$var_name]}"
+  done
 fi
 
 HOST="${BADGE83_HOST:-$DEFAULT_HOST}"
