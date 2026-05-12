@@ -43,10 +43,22 @@ def verify_badge(badge_id: str) -> dict:
             "assertion_id": badge_id,
             "badge_name": badge_name,
             "issuer_name": issuer_name,
-            "recipient_name": badge_data.get("recipient", {}).get("name", "unknown"),
+            "recipient_name": _recipient_display_name(badge_data),
             "issued_on": badge_data.get("issuedOn"),
         },
     }
+
+
+def _recipient_display_name(assertion: dict[str, Any]) -> str:
+    """Retourne le nom affichable sans dépendre du champ Open Badges `recipient`.
+
+    Dans Badge83, `recipient` est volontairement hashé pour ne pas exposer
+    l'identité en clair dans le champ Open Badges standard. Le nom opérateur
+    est donc stocké dans `admin_recipient`.
+    """
+    admin_recipient = assertion.get("admin_recipient") if isinstance(assertion.get("admin_recipient"), dict) else {}
+    recipient = assertion.get("recipient") if isinstance(assertion.get("recipient"), dict) else {}
+    return admin_recipient.get("name") or recipient.get("name") or "unknown"
 
 
 def verify_baked_badge(png_data: bytes) -> dict:
@@ -81,7 +93,7 @@ def verify_baked_badge(png_data: bytes) -> dict:
             "assertion_id": badge_id,
             "badge_name": badge_name,
             "issuer_name": issuer_name,
-            "recipient_name": assertion.get("recipient", {}).get("name", "unknown"),
+            "recipient_name": _recipient_display_name(assertion),
             "issued_on": assertion.get("issuedOn"),
         },
     }

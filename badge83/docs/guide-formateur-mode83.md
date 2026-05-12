@@ -1,0 +1,258 @@
+# Guide formateur — Badge83 MODE83
+
+Date : 12/05/2026  
+Projet : Badge83 — Open Badges MODE83  
+Public : formateur, opérateur de formation, secrétariat pédagogique
+
+## 1. À quoi sert Badge83
+
+Badge83 permet d'émettre des **Open Badges MODE83** pour attester qu'un apprenant a suivi ou validé un parcours de formation.
+
+Un badge émis par Badge83 produit principalement :
+
+- une **assertion JSON** : preuve structurée du badge ;
+- un **PNG baked** : image du badge contenant les métadonnées Open Badges ;
+- une **page publique de vérification** ;
+- une **page QR** adaptée à une vérification rapide sur mobile ;
+- une entrée dans le **registre local** de Badge83.
+
+Le formateur n'a pas besoin de modifier les fichiers techniques. L'usage normal se fait depuis l'interface web.
+
+## 2. Accéder à l'interface
+
+L'interface Badge83 est accessible depuis l'URL fournie par le référent technique MODE83.
+
+Selon la configuration, l'accès opérateur peut être protégé par une page de connexion.
+
+Étapes générales :
+
+1. ouvrir l'URL Badge83 dans un navigateur ;
+2. se connecter si une authentification est demandée ;
+3. vérifier que la console d'administration Badge83 s'affiche ;
+4. ne pas partager les identifiants opérateur avec les apprenants.
+
+## 3. Choisir ou créer un modèle de badge
+
+Badge83 peut émettre un badge avec l'image par défaut ou depuis un modèle visuel préparé dans le constructeur.
+
+Pour utiliser un modèle existant :
+
+1. ouvrir la partie constructeur ou modèles ;
+2. consulter la liste des modèles disponibles ;
+3. choisir le modèle correspondant à la formation ;
+4. vérifier la prévisualisation ;
+5. contrôler notamment :
+   - le titre du badge ;
+   - le placement des textes ;
+   - le placement du QR code ;
+   - la lisibilité générale du badge.
+
+Si aucun modèle ne correspond à la formation, demander validation au référent technique ou pédagogique avant d'en créer un nouveau.
+
+## 4. Émettre un badge individuel
+
+Pour émettre un badge à un apprenant :
+
+1. ouvrir le formulaire d'émission ;
+2. saisir le nom de l'apprenant ;
+3. saisir l'email de l'apprenant ;
+4. choisir le modèle si l'interface le propose ;
+5. compléter les champs demandés par le modèle, par exemple :
+   - nom de formation ;
+   - date d'émission ;
+   - numéro de certificat ;
+6. lancer l'émission du badge ;
+7. attendre la confirmation de création.
+
+Après émission, Badge83 doit produire un identifiant d'assertion et un PNG baked.
+
+## 5. Télécharger et remettre le PNG à l'apprenant
+
+Le fichier PNG baked est l'image officielle du badge.
+
+Bonnes pratiques :
+
+1. télécharger le PNG généré ;
+2. vérifier que le fichier s'ouvre correctement comme image ;
+3. transmettre le PNG à l'apprenant par le canal prévu : email, espace apprenant ou autre outil interne ;
+4. éviter de renommer le fichier de manière ambiguë ;
+5. ne pas modifier l'image après émission, car cela pourrait casser ou rendre confuse la vérification.
+
+Le PNG baked contient les métadonnées Open Badges nécessaires à la vérification.
+
+## 6. Vérifier un badge depuis la page publique
+
+Chaque badge émis possède une page de vérification.
+
+Utilisation :
+
+1. ouvrir le lien de vérification du badge ;
+2. vérifier que la page indique un badge valide ;
+3. contrôler les informations affichées :
+   - titulaire ;
+   - badge ou formation ;
+   - émetteur ;
+   - date d'émission si disponible ;
+4. en cas de badge introuvable ou incomplet, contacter le référent technique.
+
+La page publique sert à rassurer un tiers : employeur, jury, organisme partenaire ou apprenant.
+
+## 7. Vérifier un badge par QR code
+
+Les badges générés par Badge83 peuvent contenir un QR code ou donner accès à une page QR.
+
+Utilisation :
+
+1. ouvrir l'image du badge ;
+2. scanner le QR code avec un téléphone ;
+3. vérifier que le navigateur ouvre une page MODE83 ;
+4. contrôler le statut affiché : badge vérifié, valide ou introuvable ;
+5. comparer si nécessaire avec le nom du titulaire et la formation.
+
+Si le QR code n'est pas lisible :
+
+- vérifier que l'image n'a pas été trop compressée ;
+- utiliser le PNG original ;
+- ouvrir directement la page de vérification si le lien est disponible.
+
+## 8. Vérifier un PNG baked
+
+Un PNG baked peut être vérifié en l'important dans l'outil de vérification Badge83, si cette fonction est disponible dans l'interface.
+
+Étapes générales :
+
+1. ouvrir la page de vérification de PNG ;
+2. sélectionner le fichier PNG du badge ;
+3. lancer la vérification ;
+4. contrôler le résultat ;
+5. vérifier que les informations extraites correspondent au badge attendu.
+
+Résultat attendu :
+
+- le PNG est reconnu comme badge Open Badges ;
+- l'assertion est extraite ;
+- l'émetteur et le badge sont cohérents ;
+- le titulaire affiché correspond aux informations opérateur disponibles.
+
+## 9. Utiliser le registre local
+
+Le registre local permet de retrouver les badges émis.
+
+Il peut servir à :
+
+- consulter les derniers badges ;
+- retrouver un badge par nom ou email ;
+- vérifier la présence d'un JSON ;
+- vérifier la présence d'un PNG ;
+- rouvrir une page de vérification.
+
+Bonnes pratiques :
+
+1. rechercher d'abord par email si le nom peut avoir plusieurs variantes ;
+2. contrôler la date d'émission ;
+3. éviter les doublons non justifiés ;
+4. ne pas supprimer une entrée sans validation si le badge a déjà été remis à l'apprenant.
+
+## 10. Erreurs fréquentes et actions recommandées
+
+| Situation | Cause possible | Action recommandée |
+|---|---|---|
+| Le badge est introuvable | mauvais lien ou identifiant supprimé | vérifier l'identifiant, chercher dans le registre |
+| Le QR ne se scanne pas | image compressée ou QR trop petit | utiliser le PNG original, ouvrir le lien direct |
+| Le PNG ne se vérifie pas | fichier modifié ou mauvais fichier | reprendre le PNG généré par Badge83 |
+| Le nom affiché semble incorrect | mauvaise saisie initiale | vérifier le registre et réémettre si nécessaire |
+| Le modèle ne s'affiche pas bien | problème de placement texte/QR | corriger le modèle avec le référent |
+| Erreur serveur | incident technique | noter l'heure, l'action effectuée et prévenir le référent technique |
+
+## 11. Règles à ne pas modifier sans référent technique
+
+Pour préserver la validité des badges, ne pas modifier sans accord :
+
+- les fichiers JSON d'assertion ;
+- les fichiers PNG baked déjà remis ;
+- les URLs publiques d'issuer, badge class ou assertions ;
+- le format Open Badges ;
+- les paramètres de hash du recipient ;
+- les paramètres serveur, Nginx, firewall ou authentification ;
+- la base de registre si un badge a déjà été émis officiellement.
+
+## 12. Données personnelles et confidentialité
+
+Badge83 évite d'exposer directement l'email dans le champ Open Badges standard `recipient`.
+
+Le recipient est hashé :
+
+```text
+recipient.hashed = true
+recipient.identity = sha256$...
+```
+
+Les informations lisibles par l'opérateur, comme le nom et l'email, sont utilisées pour l'administration locale du badge.
+
+Règles pratiques :
+
+- ne pas publier de listes d'emails ;
+- ne pas transmettre les exports internes à des tiers non autorisés ;
+- remettre uniquement le badge ou le lien de vérification nécessaire ;
+- respecter les consignes RGPD de MODE83.
+
+## 13. Parcours recommandé pour une session de formation
+
+Avant la session :
+
+1. vérifier que le modèle de badge existe ;
+2. vérifier que le QR et les textes sont lisibles ;
+3. préparer la liste des apprenants validés.
+
+Pendant ou après la session :
+
+1. émettre les badges individuellement ;
+2. télécharger les PNG ;
+3. vérifier un ou deux badges en échantillon ;
+4. transmettre les badges aux apprenants.
+
+Après émission :
+
+1. contrôler le registre ;
+2. traiter les erreurs ou doublons ;
+3. archiver les preuves selon la procédure MODE83 ;
+4. remonter les anomalies au référent technique.
+
+## 14. Support et remontée d'anomalie
+
+En cas de problème, fournir au référent technique :
+
+- la date et l'heure ;
+- le nom ou l'email concerné ;
+- l'identifiant d'assertion si disponible ;
+- le modèle utilisé ;
+- une description simple de l'action réalisée ;
+- une capture d'écran si possible ;
+- le message d'erreur exact.
+
+Format conseillé :
+
+```text
+Problème :
+Date / heure :
+Apprenant concerné :
+Email :
+Assertion ID :
+Modèle :
+Action réalisée :
+Résultat attendu :
+Résultat obtenu :
+Capture : oui / non
+```
+
+## 15. Conclusion
+
+Badge83 permet aujourd'hui de réaliser le parcours principal attendu pour le Projet A :
+
+1. créer un badge ;
+2. générer un PNG baked ;
+3. fournir une preuve vérifiable ;
+4. permettre une vérification publique ou par QR ;
+5. retrouver les badges dans un registre local.
+
+Le rôle du formateur est de garantir la qualité des données saisies et de remettre à l'apprenant le bon badge. Les modifications techniques doivent rester sous contrôle du référent MODE83.

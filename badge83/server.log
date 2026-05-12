@@ -1,48 +1,52 @@
-INFO:     Started server process [1843745]
+INFO:     Started server process [1912363]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:51438 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51454 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51458 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51474 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51484 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51500 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51510 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51518 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51526 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51540 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51542 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51552 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51560 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51562 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51578 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51594 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51596 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51602 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51610 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51616 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51628 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51634 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51644 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51648 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51652 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51662 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51672 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51682 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51688 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51696 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51698 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51704 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51706 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51714 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51716 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51724 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51734 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51742 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51752 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51764 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49436 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49444 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49452 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43418 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43420 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37096 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37110 - "GET /api/badges/c7d55c93-ddbb-48d9-9aa4-461cfffb615f/json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37124 - "GET /api/badges/c7d55c93-ddbb-48d9-9aa4-461cfffb615f/png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37132 - "GET /verify/badge/c7d55c93-ddbb-48d9-9aa4-461cfffb615f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37134 - "GET /verify/qr/c7d55c93-ddbb-48d9-9aa4-461cfffb615f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37146 - "GET /api/badges/c7d55c93-ddbb-48d9-9aa4-461cfffb615f/inspect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37150 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37162 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37174 - "GET /badge-constructor/templates/4197ef6c-d34f-4aed-8623-100b17b244d7/preview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37184 - "POST /badge-constructor/templates/4197ef6c-d34f-4aed-8623-100b17b244d7/issue-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37192 - "GET /api/badges/a051e23e-c0f8-467d-a120-b9e412930d61/json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37202 - "GET /api/badges/a051e23e-c0f8-467d-a120-b9e412930d61/png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37208 - "GET /verify/badge/a051e23e-c0f8-467d-a120-b9e412930d61 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37222 - "GET /verify/qr/a051e23e-c0f8-467d-a120-b9e412930d61 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37232 - "GET /api/badges/a051e23e-c0f8-467d-a120-b9e412930d61/inspect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37242 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37256 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37260 - "GET /api/badges/b4fe995e-bdc5-4317-8f3c-627f9cfc0310/json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37274 - "GET /api/badges/b4fe995e-bdc5-4317-8f3c-627f9cfc0310/png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37280 - "GET /verify/badge/b4fe995e-bdc5-4317-8f3c-627f9cfc0310 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37284 - "GET /verify/qr/b4fe995e-bdc5-4317-8f3c-627f9cfc0310 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37296 - "GET /api/badges/b4fe995e-bdc5-4317-8f3c-627f9cfc0310/inspect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37300 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37304 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37314 - "GET /api/badges/41a9d0e6-952c-4542-a6bd-93ce8ff593ce/json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37328 - "GET /api/badges/41a9d0e6-952c-4542-a6bd-93ce8ff593ce/png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37334 - "GET /verify/badge/41a9d0e6-952c-4542-a6bd-93ce8ff593ce HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37346 - "GET /verify/qr/41a9d0e6-952c-4542-a6bd-93ce8ff593ce HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37356 - "GET /api/badges/41a9d0e6-952c-4542-a6bd-93ce8ff593ce/inspect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37366 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37374 - "POST /issue-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37376 - "GET /api/badges/523855ba-82c1-481a-bcb9-ba6d0b57d0ee/json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37384 - "GET /api/badges/523855ba-82c1-481a-bcb9-ba6d0b57d0ee/png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37392 - "GET /verify/badge/523855ba-82c1-481a-bcb9-ba6d0b57d0ee HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37396 - "GET /verify/qr/523855ba-82c1-481a-bcb9-ba6d0b57d0ee HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37400 - "GET /api/badges/523855ba-82c1-481a-bcb9-ba6d0b57d0ee/inspect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37402 - "POST /verify-baked HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37412 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37426 - "GET /api/badges/search?query=test.registre%40example.com HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [1843745]
+INFO:     Finished server process [1912363]

@@ -7,7 +7,7 @@ import zlib
 import pytest
 
 from app.baker import bake_badge_from_bytes, unbake_badge
-from app.verifier import deep_verify_baked_badge
+from app.verifier import deep_verify_baked_badge, verify_baked_badge
 
 
 def _count_openbadges_chunks(png_data: bytes) -> int:
@@ -128,3 +128,71 @@ def test_deep_verify_baked_badge_resolves_hosted_chain(sample_png_bytes):
     assert result["deep"]["comparison"]["matches"] is True
     assert result["deep"]["badgeclass"]["document"] == badgeclass
     assert result["deep"]["issuer"]["document"] == issuer
+
+
+def test_verify_baked_badge_summary_uses_admin_recipient_name(sample_png_bytes):
+    assertion = {
+        "id": "https://tests.mode83.local/assertions/admin-name",
+        "type": "Assertion",
+        "badge": "https://tests.mode83.local/badges/blockchain-foundations",
+        "issuer": "https://tests.mode83.local/issuers/main",
+        "issuedOn": "2026-05-12T09:00:00+00:00",
+        "recipient": {
+            "type": "email",
+            "hashed": True,
+            "salt": "abc",
+            "identity": "sha256$123",
+        },
+        "admin_recipient": {
+            "name": "Alice Example",
+            "email": "alice@example.com",
+        },
+    }
+
+    baked = bake_badge_from_bytes(sample_png_bytes, assertion)
+    result = verify_baked_badge(baked)
+
+    assert result["valid"] is True
+    assert result["summary"]["recipient_name"] == "Alice Example"
+
+
+def test_verify_baked_badge_summary_falls_back_to_recipient_name(sample_png_bytes):
+    assertion = {
+        "id": "https://tests.mode83.local/assertions/recipient-name",
+        "type": "Assertion",
+        "badge": "https://tests.mode83.local/badges/blockchain-foundations",
+        "issuer": "https://tests.mode83.local/issuers/main",
+        "issuedOn": "2026-05-12T09:00:00+00:00",
+        "recipient": {
+            "type": "email",
+            "name": "Fallback Recipient",
+        },
+    }
+
+    baked = bake_badge_from_bytes(sample_png_bytes, assertion)
+    result = verify_baked_badge(baked)
+
+    assert result["valid"] is True
+    assert result["summary"]["recipient_name"] == "Fallback Recipient"
+
+
+def test_verify_baked_badge_summary_keeps_unknown_without_display_name(sample_png_bytes):
+    assertion = {
+        "id": "https://tests.mode83.local/assertions/no-name",
+        "type": "Assertion",
+        "badge": "https://tests.mode83.local/badges/blockchain-foundations",
+        "issuer": "https://tests.mode83.local/issuers/main",
+        "issuedOn": "2026-05-12T09:00:00+00:00",
+        "recipient": {
+            "type": "email",
+            "hashed": True,
+            "salt": "abc",
+            "identity": "sha256$123",
+        },
+    }
+
+    baked = bake_badge_from_bytes(sample_png_bytes, assertion)
+    result = verify_baked_badge(baked)
+
+    assert result["valid"] is True
+    assert result["summary"]["recipient_name"] == "unknown"
