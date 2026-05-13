@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -265,3 +267,129 @@ def test_updated_badge_template_can_issue_baked_png(
     saved_png = isolated_issuer_env["baked_dir"] / f"{assertion_id}.png"
     assert saved_assertion.exists()
     assert saved_png.exists()
+
+
+def test_batch_issue_preview_csv_returns_summary(tmp_path, monkeypatch, isolated_issuer_env):
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    schema_response = client.post(
+        "/badge-constructor/schemas",
+        json={
+            "name": "Programme émission groupée",
+            "fields": [
+                {
+                    "id": "course_name",
+                    "label": "Nom du cours",
+                    "field_type": "text",
+                    "required": True,
+                    "position": 1,
+                }
+            ],
+        },
+    )
+    assert schema_response.status_code == 200
+    schema_id = schema_response.json()["id"]
+
+    create_response = client.post(
+        "/badge-constructor/templates",
+        json={
+            "name": "Modèle groupé",
+            "schema_id": schema_id,
+            "text_overlays": [],
+            "qr_code_placement": "bottom-right",
+            "qr_code_size": 0.22,
+        },
+    )
+    assert create_response.status_code == 200
+    template_id = create_response.json()["id"]
+
+    csv_content = (
+        "nom,email,programme,reussi\n"
+        "Alice Example,alice@example.org,Formation IA,oui\n"
+        "Bob Example,bob@example.org,Formation IA,non\n"
+        "Invalid Example,invalid,Formation IA,oui\n"
+    )
+    response = client.post(
+        f"/badge-constructor/templates/{template_id}/batch-issue/preview",
+        files={"file": ("participants.csv", csv_content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_rows"] == 3
+    assert payload["ready_rows"] == 1
+    assert payload["skipped_not_passed"] == 1
+    assert payload["errors"] == 1
+
+
+def test_batch_issue_commit_csv_creates_only_ready_badges(tmp_path, monkeypatch, isolated_issuer_env):
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    schema_response = client.post(
+        "/badge-constructor/schemas",
+        json={
+            "name": "Programme émission groupée commit",
+            "fields": [
+                {
+                    "id": "course_name",
+                    "label": "Nom du cours",
+                    "field_type": "text",
+                    "required": True,
+                    "position": 1,
+                }
+            ],
+        },
+    )
+    assert schema_response.status_code == 200
+    schema_id = schema_response.json()["id"]
+
+    create_response = client.post(
+        "/badge-constructor/templates",
+        json={
+            "name": "Modèle groupé commit",
+            "schema_id": schema_id,
+            "text_overlays": [
+                {
+                    "content_type": "field",
+                    "field_id": "course_name",
+                    "position_x": 24,
+                    "position_y": 64,
+                    "font_size": 20,
+                    "font_color": "#123456",
+                }
+            ],
+            "qr_code_placement": "bottom-right",
+            "qr_code_size": 0.22,
+        },
+    )
+    assert create_response.status_code == 200
+    template_id = create_response.json()["id"]
+
+    csv_content = (
+        "nom,email,programme,reussi\n"
+        "Alice Example,alice@example.org,Formation IA,oui\n"
+        "Bob Example,bob@example.org,Formation IA,non\n"
+        "Invalid Example,invalid,Formation IA,oui\n"
+    )
+    response = client.post(
+        f"/badge-constructor/templates/{template_id}/batch-issue",
+        files={"file": ("participants.csv", csv_content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["created"] == 1
+    assert payload["skipped_not_passed"] == 1
+    assert payload["errors"] == 1
+    assert len(payload["created_badges"]) == 1
+
+    created = payload["created_badges"][0]
+    assertion_id = created["assertion_id"]
+    saved_assertion = isolated_issuer_env["issued_dir"] / f"{assertion_id}.json"
+    saved_png = isolated_issuer_env["baked_dir"] / f"{assertion_id}.png"
+    assert saved_assertion.exists()
+    assert saved_png.exists()
+
+    assertion = json.loads(saved_assertion.read_text(encoding="utf-8"))
+    assert assertion["admin_recipient"]["email"] == "alice@example.org"
+    assert assertion["field_values"]["course_name"] == "Formation IA"

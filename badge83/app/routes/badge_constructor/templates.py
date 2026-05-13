@@ -15,6 +15,7 @@ from app.database import (
     add_badge_template, get_badge_template_by_id, get_all_badge_templates,
     update_badge_template, delete_badge_template, get_badge_schema_by_id
 )
+from app.batch_issuer import parse_batch_file, preview_batch_file, preview_batch_rows
 from app.issuer import issue_baked_badge_from_template
 from app.models import BadgeTemplate, TextOverlay
 from app.qr import overlay_qr_on_badge, overlay_text_on_badge
@@ -134,6 +135,20 @@ def _certificate_number_exists(template_id: str, certificate_number: str) -> boo
     if not normalized:
         return False
     return normalized in _iter_template_certificate_numbers(template_id)
+
+
+def _get_required_batch_field_ids(template: dict, db: sqlite3.Connection) -> list[str]:
+    """Retourne les champs requis du schéma utiles pour l'import groupé."""
+    schema_id = template.get("schema_id")
+    if not schema_id:
+        return []
+    schema = get_badge_schema_by_id(db, schema_id)
+    fields = (schema or {}).get("fields", [])
+    return [
+        field.get("id")
+        for field in fields
+        if field.get("required") and field.get("id") and field.get("id") != "certificate_number"
+    ]
 
 
 @router.post("/templates", response_model=dict)
@@ -297,6 +312,109 @@ def issue_badge_from_template(
         )
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/templates/{template_id}/batch-issue/preview", response_model=dict)
+async def preview_batch_issue_from_template(
+    template_id: str,
+    file: UploadFile = File(...),
+    db: sqlite3.Connection = Depends(get_db),
+):
+    """Analyse un fichier CSV d'émission groupée sans créer de badge."""
+    try:
+        template = get_badge_template_by_id(db, template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Modèle introuvable")
+        content = await file.read()
+        return preview_batch_file(
+            template_id=template_id,
+            file_bytes=content,
+            filename=file.filename or "batch.csv",
+            required_field_ids=_get_required_batch_field_ids(template, db),
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/templates/{template_id}/batch-issue", response_model=dict)
+async def commit_batch_issue_from_template(
+    template_id: str,
+    file: UploadFile = File(...),
+    db: sqlite3.Connection = Depends(get_db),
+):
+    """Émet des badges depuis un fichier CSV après validation des lignes."""
+    try:
+        template = get_badge_template_by_id(db, template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Modèle introuvable")
+
+        content = await file.read()
+        rows = parse_batch_file(content, file.filename or "batch.csv")
+        preview = preview_batch_rows(
+            template_id=template_id,
+            rows=rows,
+            required_field_ids=_get_required_batch_field_ids(template, db),
+        )
+        ready_rows = [row for row in preview["rows"] if row["status"] == "ready"]
+        existing_numbers = _iter_template_certificate_numbers(template_id)
+        created_badges = []
+        has_certificate_number_field = any(
+            overlay.get("field_id") == "certificate_number"
+            for overlay in template.get("text_overlays", [])
+            if isinstance(overlay, dict)
+        )
+
+        for row in ready_rows:
+            field_values = dict(row.get("field_values") or {})
+            certificate_number = str(field_values.get("certificate_number") or "").strip()
+            if has_certificate_number_field or certificate_number:
+                if not certificate_number:
+                    certificate_number = _next_certificate_number(existing_numbers)
+                    field_values["certificate_number"] = certificate_number
+                elif certificate_number in existing_numbers or _certificate_number_exists(template_id, certificate_number):
+                    continue
+                existing_numbers.append(certificate_number)
+
+            png_data = _load_template_background(template)
+            result = issue_baked_badge_from_template(
+                name=row["name"],
+                email=row["email"],
+                template=template,
+                field_values=field_values,
+                png_data=png_data,
+            )
+            created_badges.append(
+                {
+                    "row_number": row["row_number"],
+                    "name": row["name"],
+                    "email": row["email"],
+                    "assertion_id": result["assertion_id"],
+                    "certificate_number": certificate_number or None,
+                    "png_url": f"/api/badges/{result['assertion_id']}/png",
+                    "verification_url": f"/verify/badge/{result['assertion_id']}",
+                    "qr_url": f"/verify/qr/{result['assertion_id']}",
+                }
+            )
+
+        return {
+            "template_id": template_id,
+            "created": len(created_badges),
+            "skipped_not_passed": preview["skipped_not_passed"],
+            "skipped_duplicates": preview["skipped_duplicates"],
+            "errors": preview["errors"],
+            "created_badges": created_badges,
+            "preview": preview,
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
