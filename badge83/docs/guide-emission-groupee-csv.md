@@ -2,7 +2,7 @@
 
 Date : 13/05/2026  
 Projet : Badge83 — Open Badges MODE83  
-Objet : première version du flux d'émission groupée depuis un fichier CSV
+Objet : flux d'émission groupée depuis un fichier CSV, avec interface opérateur et archive ZIP
 
 ## 1. Objectif
 
@@ -17,17 +17,17 @@ Cette première version couvre :
 - l'import CSV ;
 - la normalisation des colonnes principales ;
 - la prévisualisation sans émission ;
-- l'émission après confirmation API ;
+- l'émission après confirmation depuis l'interface opérateur ;
 - l'exclusion des personnes non admises ;
 - la détection des lignes invalides ;
 - la détection des doublons par modèle et email ;
-- la génération des assertions JSON et PNG baked via le moteur existant.
+- la correspondance des colonnes lisibles avec les champs du schéma ;
+- la génération des assertions JSON et PNG baked via le moteur existant ;
+- le téléchargement d'une archive ZIP contenant les PNG générés, le CSV source et un rapport d'émission.
 
 Ne sont pas encore inclus :
 
 - import Excel `.xlsx` ;
-- interface opérateur complète ;
-- export ZIP des PNG ;
 - envoi automatique par email ;
 - création dynamique de BadgeClass par programme.
 
@@ -58,6 +58,47 @@ Exemples de colonnes utiles :
 ```text
 course_name, issue_date, certificate_number, organisation, session, formateur
 ```
+
+### 3.1 Colonnes liées aux champs du schéma
+
+Les modèles du constructeur peuvent être associés à un schéma contenant des champs dynamiques.
+
+Pour éviter de demander aux opérateurs de manipuler des identifiants techniques internes, l'import groupé accepte les colonnes CSV basées sur le libellé lisible du champ.
+
+Exemple : si le schéma contient un champ :
+
+```json
+{
+  "id": "29b19e6e-524e-4f79-9c1d-dec3aa775dbe",
+  "label": "Couriel",
+  "required": true
+}
+```
+
+Le CSV peut utiliser une colonne lisible :
+
+```csv
+nom,email,programme,reussi,couriel
+Alice Martin,alice@example.org,Formation IA,oui,alice@example.org
+```
+
+Badge83 mappe automatiquement `couriel` vers l'identifiant technique du champ au moment de créer l'assertion.
+
+Dans l'interface, après sélection du modèle, un bloc **Colonnes CSV attendues pour ce modèle** affiche les colonnes recommandées. Les colonnes techniques restent masquées dans une zone de détail et ne doivent pas être utilisées dans un fichier préparé manuellement.
+
+### 3.2 Fichier CSV de test
+
+Un fichier exemple est fourni :
+
+```text
+badge83/data/sample_batch_issue.csv
+```
+
+Il contient :
+
+- deux lignes valides ;
+- une ligne `non` pour tester l'exclusion pédagogique ;
+- une ligne sans email pour tester l'erreur `Email invalide`.
 
 ## 4. Valeurs de réussite reconnues
 
@@ -107,13 +148,13 @@ Réponse :
 }
 ```
 
-### 5.2 Émission réelle
+### 5.2 Émission réelle JSON
 
 ```text
 POST /badge-constructor/templates/{template_id}/batch-issue
 ```
 
-Effet : émet les badges pour les lignes classées `ready`.
+Effet : émet les badges pour les lignes classées `ready` et retourne un rapport JSON. Cet endpoint reste disponible pour intégration API.
 
 Exemple :
 
@@ -145,6 +186,63 @@ Réponse :
   ]
 }
 ```
+
+### 5.3 Émission avec archive ZIP
+
+```text
+POST /badge-constructor/templates/{template_id}/batch-issue/archive
+```
+
+Effet : émet les badges pour les lignes `ready` et retourne une archive ZIP.
+
+Exemple :
+
+```bash
+curl -X POST \
+  -F "file=@participants.csv" \
+  -o batch-issue.zip \
+  http://127.0.0.1:8000/badge-constructor/templates/<template_id>/batch-issue/archive
+```
+
+Contenu de l'archive :
+
+```text
+source.csv
+rapport_emission.csv
+manifest.json
+badges/*.png
+```
+
+Rôle des fichiers :
+
+| Fichier | Rôle |
+|---|---|
+| `source.csv` | copie du CSV importé |
+| `rapport_emission.csv` | rapport opérateur ligne par ligne |
+| `manifest.json` | rapport technique complet |
+| `badges/*.png` | PNG baked fraîchement générés |
+
+Le fichier `rapport_emission.csv` reprend les colonnes du CSV source et ajoute :
+
+```text
+badge83_status, badge83_reason, badge83_png_filename, badge83_assertion_id, badge83_verification_url, badge83_qr_url
+```
+
+Exemple de statuts :
+
+| `badge83_status` | Sens |
+|---|---|
+| `issued` | badge émis |
+| `not_issued` | badge non émis |
+
+Exemples de raisons courtes :
+
+```text
+Non admis, Duplicate, Email invalide, Erreur de validation
+```
+
+Dans l'interface opérateur, la génération groupée utilise ce flux ZIP : après confirmation, le navigateur télécharge automatiquement l'archive.
+
 
 ## 6. Règles de déduplication
 
@@ -186,8 +284,10 @@ Les tests couvrent :
 - valeurs de réussite ;
 - lignes prêtes, non admises, invalides et doublons ;
 - API preview ;
-- API commit ;
-- création des fichiers JSON et PNG.
+- API commit JSON ;
+- API archive ZIP ;
+- création des fichiers JSON et PNG ;
+- présence du rapport `rapport_emission.csv` dans l'archive.
 
 Commande :
 
@@ -199,7 +299,7 @@ cd /home/ubuntu/projects/Mode83/badge83
 Résultat validé le 13/05/2026 :
 
 ```text
-33 passed in 1.33s
+36 passed in 1.45s
 ```
 
 ## 9. Limites connues
@@ -208,12 +308,10 @@ Cette première version reste volontairement limitée.
 
 Points à traiter dans une phase suivante :
 
-1. ajouter l'interface opérateur dans la console web ;
-2. ajouter le support Excel `.xlsx` ;
-3. proposer un fichier CSV exemple téléchargeable ;
-4. permettre l'export CSV du rapport ;
-5. prévoir un export ZIP des PNG générés ;
-6. renforcer les limites d'upload avant exposition production.
+1. ajouter le support Excel `.xlsx` ;
+2. proposer le téléchargement automatique d'un modèle CSV depuis l'interface ;
+3. prévoir l'envoi automatique par email ;
+4. renforcer les limites d'upload avant exposition production.
 
 ## 10. Conclusion
 
@@ -222,7 +320,7 @@ Le flux d'émission groupée CSV constitue un premier lot fonctionnel pour trait
 La stratégie retenue est prudente :
 
 ```text
-prévisualiser → confirmer → émettre → rapporter
+prévisualiser → confirmer → émettre → télécharger l'archive ZIP → rapporter
 ```
 
 Elle permet d'ajouter une fonctionnalité utile sans modifier le format Open Badges ni dupliquer le moteur d'émission existant.

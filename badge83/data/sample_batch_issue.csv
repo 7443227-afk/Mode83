@@ -1,0 +1,5 @@
+nom,email,programme,reussi,course_name,issue_date,certificate_number,organisation,session,formateur,couriel
+Alice Archive Test,alice.archive.test@example.org,Formation IA,oui,Formation IA,2026-05-13,BATCH-ARCHIVE-401,MODE83,Session archive test,A. Formateur,alice.archive.test@example.org
+Karim Archive Test,karim.archive.test@example.org,Formation IA,oui,Formation IA,2026-05-13,BATCH-ARCHIVE-402,MODE83,Session archive test,A. Formateur,karim.archive.test@example.org
+Paul Non Admis,paul.nonadmis.test@example.org,Formation IA,non,Formation IA,2026-05-13,BATCH-ARCHIVE-403,MODE83,Session archive test,A. Formateur,paul.nonadmis.test@example.org
+Ligne Email Invalide,,Formation IA,oui,Formation IA,2026-05-13,BATCH-ARCHIVE-404,MODE83,Session archive test,A. Formateur,

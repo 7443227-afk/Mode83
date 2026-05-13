@@ -3,6 +3,10 @@ from __future__ import annotations
 import sqlite3
 import json
 import re
+import csv
+import io
+import zipfile
+from datetime import datetime, timezone
 from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Body
 from fastapi.responses import Response
@@ -149,6 +153,118 @@ def _get_required_batch_field_ids(template: dict, db: sqlite3.Connection) -> lis
         for field in fields
         if field.get("required") and field.get("id") and field.get("id") != "certificate_number"
     ]
+
+
+def _get_batch_schema_fields(template: dict, db: sqlite3.Connection) -> list[dict]:
+    """Retourne les champs du schéma pour l'import groupé avec labels et aliases."""
+    schema_id = template.get("schema_id")
+    if not schema_id:
+        return []
+    schema = get_badge_schema_by_id(db, schema_id)
+    fields = (schema or {}).get("fields", [])
+    return [
+        field
+        for field in fields
+        if field.get("id") and field.get("id") != "certificate_number"
+    ]
+
+
+def _batch_not_issued_reason(row: dict) -> str:
+    status = row.get("status")
+    errors = [str(error) for error in (row.get("errors") or []) if str(error).strip()]
+    if status == "not_passed":
+        return "Non admis"
+    if status == "duplicate":
+        return "Duplicate"
+    if any("Email invalide" in error for error in errors):
+        return "Email invalide"
+    if errors:
+        return "; ".join(errors)
+    return "Non émis"
+
+
+def _build_batch_report_csv(*, source_rows: list[dict[str, str]], preview_rows: list[dict], created_badges: list[dict]) -> str:
+    created_by_row = {badge.get("row_number"): badge for badge in created_badges}
+    source_headers: list[str] = []
+    for row in source_rows:
+        for key in row.keys():
+            if key not in source_headers:
+                source_headers.append(key)
+
+    fieldnames = [
+        *source_headers,
+        "badge83_status",
+        "badge83_reason",
+        "badge83_png_filename",
+        "badge83_assertion_id",
+        "badge83_verification_url",
+        "badge83_qr_url",
+    ]
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    for source_row, preview_row in zip(source_rows, preview_rows):
+        report_row = dict(source_row)
+        created = created_by_row.get(preview_row.get("row_number"))
+        if created:
+            report_row.update(
+                {
+                    "badge83_status": "issued",
+                    "badge83_reason": "",
+                    "badge83_png_filename": created.get("archive_png_filename") or "",
+                    "badge83_assertion_id": created.get("assertion_id") or "",
+                    "badge83_verification_url": created.get("verification_url") or "",
+                    "badge83_qr_url": created.get("qr_url") or "",
+                }
+            )
+        else:
+            report_row.update(
+                {
+                    "badge83_status": "not_issued",
+                    "badge83_reason": _batch_not_issued_reason(preview_row),
+                    "badge83_png_filename": "",
+                    "badge83_assertion_id": "",
+                    "badge83_verification_url": "",
+                    "badge83_qr_url": "",
+                }
+            )
+        writer.writerow(report_row)
+    return output.getvalue()
+
+
+def _build_batch_archive_response(*, template_id: str, source_filename: str, source_content: bytes, rows: list[dict[str, str]], preview: dict, created_badges: list[dict], png_entries: list[tuple[str, bytes]]) -> Response:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    archive_name = f"batch-issue-{timestamp}.zip"
+    manifest = {
+        "template_id": template_id,
+        "source_filename": source_filename,
+        "created": len(created_badges),
+        "skipped_not_passed": preview["skipped_not_passed"],
+        "skipped_duplicates": preview["skipped_duplicates"],
+        "errors": preview["errors"],
+        "created_badges": created_badges,
+        "preview": preview,
+    }
+    report_csv = _build_batch_report_csv(
+        source_rows=rows,
+        preview_rows=preview["rows"],
+        created_badges=created_badges,
+    )
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("source.csv", source_content)
+        archive.writestr("rapport_emission.csv", report_csv.encode("utf-8-sig"))
+        archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8"))
+        for filename, png_bytes in png_entries:
+            archive.writestr(filename, png_bytes)
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{archive_name}"',
+            "X-Badge83-Created": str(len(created_badges)),
+        },
+    )
 
 
 @router.post("/templates", response_model=dict)
@@ -332,7 +448,7 @@ async def preview_batch_issue_from_template(
             template_id=template_id,
             file_bytes=content,
             filename=file.filename or "batch.csv",
-            required_field_ids=_get_required_batch_field_ids(template, db),
+            schema_fields=_get_batch_schema_fields(template, db),
         )
     except HTTPException:
         raise
@@ -359,7 +475,7 @@ async def commit_batch_issue_from_template(
         preview = preview_batch_rows(
             template_id=template_id,
             rows=rows,
-            required_field_ids=_get_required_batch_field_ids(template, db),
+            schema_fields=_get_batch_schema_fields(template, db),
         )
         ready_rows = [row for row in preview["rows"] if row["status"] == "ready"]
         existing_numbers = _iter_template_certificate_numbers(template_id)
@@ -411,6 +527,88 @@ async def commit_batch_issue_from_template(
             "created_badges": created_badges,
             "preview": preview,
         }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/templates/{template_id}/batch-issue/archive", response_class=Response)
+async def archive_batch_issue_from_template(
+    template_id: str,
+    file: UploadFile = File(...),
+    db: sqlite3.Connection = Depends(get_db),
+):
+    """Émet des badges depuis un CSV et retourne une archive ZIP avec PNG et rapport."""
+    try:
+        template = get_badge_template_by_id(db, template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Modèle introuvable")
+
+        content = await file.read()
+        source_filename = file.filename or "batch.csv"
+        rows = parse_batch_file(content, source_filename)
+        preview = preview_batch_rows(
+            template_id=template_id,
+            rows=rows,
+            schema_fields=_get_batch_schema_fields(template, db),
+        )
+        ready_rows = [row for row in preview["rows"] if row["status"] == "ready"]
+        existing_numbers = _iter_template_certificate_numbers(template_id)
+        created_badges: list[dict] = []
+        png_entries: list[tuple[str, bytes]] = []
+        has_certificate_number_field = any(
+            overlay.get("field_id") == "certificate_number"
+            for overlay in template.get("text_overlays", [])
+            if isinstance(overlay, dict)
+        )
+
+        for index, row in enumerate(ready_rows, start=1):
+            field_values = dict(row.get("field_values") or {})
+            certificate_number = str(field_values.get("certificate_number") or "").strip()
+            if has_certificate_number_field or certificate_number:
+                if not certificate_number:
+                    certificate_number = _next_certificate_number(existing_numbers)
+                    field_values["certificate_number"] = certificate_number
+                elif certificate_number in existing_numbers or _certificate_number_exists(template_id, certificate_number):
+                    continue
+                existing_numbers.append(certificate_number)
+
+            png_data = _load_template_background(template)
+            result = issue_baked_badge_from_template(
+                name=row["name"],
+                email=row["email"],
+                template=template,
+                field_values=field_values,
+                png_data=png_data,
+            )
+            archive_png_filename = f"badges/{index}_{result.get('baked_download_filename', f'badge-{result["assertion_id"]}.png')}"
+            png_entries.append((archive_png_filename, result["baked_png_bytes"]))
+            created_badges.append(
+                {
+                    "row_number": row["row_number"],
+                    "name": row["name"],
+                    "email": row["email"],
+                    "assertion_id": result["assertion_id"],
+                    "certificate_number": certificate_number or None,
+                    "archive_png_filename": archive_png_filename,
+                    "png_url": f"/api/badges/{result['assertion_id']}/png",
+                    "verification_url": f"/verify/badge/{result['assertion_id']}",
+                    "qr_url": f"/verify/qr/{result['assertion_id']}",
+                }
+            )
+
+        return _build_batch_archive_response(
+            template_id=template_id,
+            source_filename=source_filename,
+            source_content=content,
+            rows=rows,
+            preview=preview,
+            created_badges=created_badges,
+            png_entries=png_entries,
+        )
     except HTTPException:
         raise
     except ValueError as e:

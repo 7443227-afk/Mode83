@@ -76,3 +76,60 @@ def test_preview_batch_rows_signale_un_champ_requis_manquant(tmp_path, monkeypat
     assert preview["errors"] == 1
     assert preview["rows"][0]["status"] == "error"
     assert "Champ obligatoire manquant : course_name" in preview["rows"][0]["errors"]
+
+
+def test_preview_batch_rows_accepte_un_champ_requis_uuid_normalise(tmp_path, monkeypatch):
+    issued_dir = tmp_path / "issued"
+    issued_dir.mkdir()
+    monkeypatch.setattr(batch_issuer.issuer, "DATA_DIR", issued_dir)
+
+    required_field_id = "29b19e6e-524e-4f79-9c1d-dec3aa775dbe"
+
+    preview = batch_issuer.preview_batch_rows(
+        template_id="template-1",
+        rows=[
+            {
+                "nom": "Alice",
+                "email": "alice@example.org",
+                "reussi": "oui",
+                "29b19e6e_524e_4f79_9c1d_dec3aa775dbe": "alice@example.org",
+            }
+        ],
+        required_field_ids=[required_field_id],
+    )
+
+    assert preview["errors"] == 0
+    assert preview["ready_rows"] == 1
+    assert preview["rows"][0]["status"] == "ready"
+
+
+def test_preview_batch_rows_accepte_le_label_lisible_du_champ_schema(tmp_path, monkeypatch):
+    issued_dir = tmp_path / "issued"
+    issued_dir.mkdir()
+    monkeypatch.setattr(batch_issuer.issuer, "DATA_DIR", issued_dir)
+
+    schema_fields = [
+        {
+            "id": "29b19e6e-524e-4f79-9c1d-dec3aa775dbe",
+            "label": "Couriel",
+            "required": True,
+        }
+    ]
+
+    preview = batch_issuer.preview_batch_rows(
+        template_id="template-1",
+        rows=[
+            {
+                "nom": "Alice",
+                "email": "alice@example.org",
+                "reussi": "oui",
+                "couriel": "alice@example.org",
+            }
+        ],
+        schema_fields=schema_fields,
+    )
+
+    assert preview["errors"] == 0
+    assert preview["ready_rows"] == 1
+    assert preview["rows"][0]["status"] == "ready"
+    assert preview["rows"][0]["field_values"]["29b19e6e-524e-4f79-9c1d-dec3aa775dbe"] == "alice@example.org"

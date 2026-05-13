@@ -23,6 +23,11 @@ RESERVED_COLUMNS = {
     "passed",
 }
 
+RESERVED_FIELD_VALUE_COLUMNS = RESERVED_COLUMNS | {
+    "recipient_name",
+    "recipient_email",
+}
+
 POSITIVE_VALUES = {"oui", "yes", "true", "1", "reussi", "réussi", "passed", "valide", "validé"}
 NEGATIVE_VALUES = {"non", "no", "false", "0", "echoue", "échoué", "failed", "absent"}
 
@@ -55,6 +60,32 @@ def normalize_column_name(value: str) -> str:
     normalized = normalized.replace(" ", "_").replace("-", "_")
     normalized = re.sub(r"_+", "_", normalized)
     return normalized
+
+
+def _field_aliases(field: dict[str, Any]) -> set[str]:
+    """Retourne les noms de colonnes CSV acceptés pour un champ de schéma.
+
+    Les champs créés historiquement peuvent avoir un UUID comme identifiant technique.
+    Pour éviter d'imposer ces UUID aux opérateurs, on accepte aussi le libellé lisible
+    du champ comme colonne CSV, après la même normalisation que les en-têtes importés.
+    """
+    aliases: set[str] = set()
+    for value in (field.get("id"), field.get("label"), *(field.get("aliases") or [])):
+        normalized = normalize_column_name(str(value or ""))
+        if normalized:
+            aliases.add(normalized)
+    return aliases
+
+
+def _build_schema_field_alias_map(schema_fields: list[dict[str, Any]] | None) -> dict[str, str]:
+    alias_map: dict[str, str] = {}
+    for field in schema_fields or []:
+        field_id = str(field.get("id") or "").strip()
+        if not field_id:
+            continue
+        for alias in _field_aliases(field):
+            alias_map[alias] = field_id
+    return alias_map
 
 
 def normalize_email_value(value: object) -> str:
@@ -112,17 +143,33 @@ def _get_first(row: dict[str, str], *keys: str) -> str:
     return ""
 
 
-def _build_field_values(row: dict[str, str]) -> dict[str, str]:
-    field_values = {
-        key: str(value).strip()
-        for key, value in row.items()
-        if key not in RESERVED_COLUMNS and str(value).strip()
-    }
+def _build_field_values(row: dict[str, str], schema_fields: list[dict[str, Any]] | None = None) -> dict[str, str]:
+    alias_map = _build_schema_field_alias_map(schema_fields)
+    field_values: dict[str, str] = {}
+    for key, value in row.items():
+        normalized_value = str(value).strip()
+        if key in RESERVED_FIELD_VALUE_COLUMNS or not normalized_value:
+            continue
+        target_key = alias_map.get(key, key)
+        field_values[target_key] = normalized_value
     programme = _get_first(row, "programme", "program")
     if programme:
         field_values.setdefault("programme", programme)
         field_values.setdefault("course_name", programme)
     return field_values
+
+
+def _required_schema_fields(
+    *,
+    required_field_ids: list[str] | None = None,
+    schema_fields: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    if schema_fields is not None:
+        return [field for field in schema_fields if field.get("required") and field.get("id")]
+    return [
+        {"id": field_id, "label": field_id, "required": True, "aliases": [normalize_column_name(field_id)]}
+        for field_id in (required_field_ids or [])
+    ]
 
 
 def _iter_existing_template_emails(template_id: str) -> set[str]:
@@ -151,9 +198,10 @@ def preview_batch_rows(
     template_id: str,
     rows: list[dict[str, str]],
     required_field_ids: list[str] | None = None,
+    schema_fields: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Classe les lignes CSV sans émettre de badge."""
-    required_field_ids = required_field_ids or []
+    required_fields = _required_schema_fields(required_field_ids=required_field_ids, schema_fields=schema_fields)
     existing_emails = _iter_existing_template_emails(template_id)
     seen_emails: set[str] = set()
     prepared_rows: list[BatchRow] = []
@@ -164,7 +212,7 @@ def preview_batch_rows(
         email = normalize_email_value(_get_first(row, "email"))
         passed_raw = _get_first(row, "reussi", "réussi", "passed")
         passed = is_passed(passed_raw)
-        field_values = _build_field_values(row)
+        field_values = _build_field_values(row, schema_fields=schema_fields)
 
         if not name:
             errors.append("Nom manquant")
@@ -173,11 +221,18 @@ def preview_batch_rows(
         if passed is None:
             errors.append("Statut de réussite ambigu ou manquant")
 
-        for field_id in required_field_ids:
+        fallback_alias_map = _build_schema_field_alias_map(required_fields)
+        for alias, field_id in fallback_alias_map.items():
+            if alias in field_values and field_id not in field_values:
+                field_values[field_id] = field_values[alias]
+
+        for field in required_fields:
+            field_id = str(field.get("id") or "").strip()
             if field_id in {"name", "nom", "email"}:
                 continue
             if not str(field_values.get(field_id, "")).strip():
-                errors.append(f"Champ obligatoire manquant : {field_id}")
+                label = str(field.get("label") or field_id).strip()
+                errors.append(f"Champ obligatoire manquant : {label}")
 
         if errors:
             status = "error"
@@ -211,9 +266,15 @@ def preview_batch_file(
     file_bytes: bytes,
     filename: str,
     required_field_ids: list[str] | None = None,
+    schema_fields: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     rows = parse_batch_file(file_bytes, filename)
-    return preview_batch_rows(template_id=template_id, rows=rows, required_field_ids=required_field_ids)
+    return preview_batch_rows(
+        template_id=template_id,
+        rows=rows,
+        required_field_ids=required_field_ids,
+        schema_fields=schema_fields,
+    )
 
 
 def build_batch_summary(*, template_id: str, rows: list[BatchRow]) -> dict[str, Any]:

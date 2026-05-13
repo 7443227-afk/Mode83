@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
+import zipfile
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -393,3 +396,84 @@ def test_batch_issue_commit_csv_creates_only_ready_badges(tmp_path, monkeypatch,
     assertion = json.loads(saved_assertion.read_text(encoding="utf-8"))
     assert assertion["admin_recipient"]["email"] == "alice@example.org"
     assert assertion["field_values"]["course_name"] == "Formation IA"
+
+
+
+def test_batch_issue_archive_returns_zip_with_png_and_report(tmp_path, monkeypatch, isolated_issuer_env):
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    schema_response = client.post(
+        "/badge-constructor/schemas",
+        json={
+            "name": "Programme archive groupée",
+            "fields": [
+                {
+                    "id": "course_name",
+                    "label": "Nom du cours",
+                    "field_type": "text",
+                    "required": True,
+                    "position": 1,
+                }
+            ],
+        },
+    )
+    assert schema_response.status_code == 200
+    schema_id = schema_response.json()["id"]
+
+    create_response = client.post(
+        "/badge-constructor/templates",
+        json={
+            "name": "Modèle archive groupée",
+            "schema_id": schema_id,
+            "text_overlays": [
+                {
+                    "content_type": "field",
+                    "field_id": "course_name",
+                    "position_x": 24,
+                    "position_y": 64,
+                    "font_size": 20,
+                    "font_color": "#123456",
+                }
+            ],
+            "qr_code_placement": "bottom-right",
+            "qr_code_size": 0.22,
+        },
+    )
+    assert create_response.status_code == 200
+    template_id = create_response.json()["id"]
+
+    csv_content = (
+        "nom,email,programme,reussi\n"
+        "Alice Archive,alice.archive@example.org,Formation IA,oui\n"
+        "Bob Archive,bob.archive@example.org,Formation IA,non\n"
+        "Invalid Archive,invalid,Formation IA,oui\n"
+    )
+    response = client.post(
+        f"/badge-constructor/templates/{template_id}/batch-issue/archive",
+        files={"file": ("participants.csv", csv_content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert response.headers["X-Badge83-Created"] == "1"
+
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    names = archive.namelist()
+    assert "source.csv" in names
+    assert "rapport_emission.csv" in names
+    assert "manifest.json" in names
+    png_names = [name for name in names if name.startswith("badges/") and name.endswith(".png")]
+    assert len(png_names) == 1
+    assert archive.read(png_names[0]).startswith(PNG_SIGNATURE)
+
+    manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+    assert manifest["created"] == 1
+    assert manifest["skipped_not_passed"] == 1
+    assert manifest["errors"] == 1
+
+    report_text = archive.read("rapport_emission.csv").decode("utf-8-sig")
+    report_rows = list(csv.DictReader(io.StringIO(report_text)))
+    assert [row["badge83_status"] for row in report_rows] == ["issued", "not_issued", "not_issued"]
+    assert report_rows[0]["badge83_png_filename"].startswith("badges/")
+    assert report_rows[1]["badge83_reason"] == "Non admis"
+    assert report_rows[2]["badge83_reason"] == "Email invalide"
