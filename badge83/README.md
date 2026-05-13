@@ -45,7 +45,7 @@ mode83/
     │   ├── technical-baking-verification.md
     │   └── plan-hosted-verification.md
     ├── requirements.txt
-    ├── .env.example
+    ├── badge83.env.exemple
     └── README.md
 ```
 
@@ -88,8 +88,8 @@ Les badges émis contiennent des URLs publiques pointant vers le serveur. Défin
 
 ```bash
 # Copier l'exemple et configurer l'URL du serveur
-cp .env.example .env
-# Éditer .env et mettre l'IP ou le domaine de votre serveur
+cp badge83.env.exemple badge83.env
+# Éditer badge83.env et mettre l'IP ou le domaine de votre serveur
 ```
 
 ### Démarrage du serveur
@@ -251,6 +251,14 @@ cd /home/ubuntu/projects/Mode83/badge83
 ```
 
 Documentation détaillée : [`docs/tests-constructeur-badge-040526.md`](docs/tests-constructeur-badge-040526.md).
+
+Documents de validation Projet A :
+
+- [`docs/rapport-travail-110526-stabilisation.md`](docs/rapport-travail-110526-stabilisation.md) — correction de l'erreur SQLite/threading ;
+- [`docs/test-report-projet-a-120526.md`](docs/test-report-projet-a-120526.md) — validation fonctionnelle de bout en bout ;
+- [`docs/guide-formateur-mode83.md`](docs/guide-formateur-mode83.md) — guide utilisateur pour formateur/opérateur ;
+- [`docs/rapport-validation-projet-a-150526.md`](docs/rapport-validation-projet-a-150526.md) — synthèse de validation Projet A ;
+- [`docs/audit-architecture-security-120526.md`](docs/audit-architecture-security-120526.md) — audit architecture, sécurité et exploitation.
 
 Test spécifique de la couche base de données :
 
@@ -438,12 +446,13 @@ Cette structure correspond au format effectivement produit par `app/issuer.py` e
 
 ## Remarques
 
-- Le projet fonctionne sans base de données : les badges sont stockés dans des fichiers JSON (`data/issued/`) et PNG baked (`data/baked/`).
+- Les assertions JSON stockées dans `data/issued/` restent la source canonique des badges. Le registre SQLite local sert d'index administratif pour la recherche, la consultation et la cohérence opérateur.
 - **Badge Baking** : l'assertion JSON est injectée dans le PNG via un chunk `tEXt` avec le mot-clé `openbadges`, conformément au standard Open Badges 2.0. Le PNG reste visuellement identique à l'original.
 - Le chunk `openbadges` est unique : re-baker le même PNG ne duplique pas les données.
 - La vérification d'un badge baked se fait en extrayant le chunk `openbadges` du PNG ; aucune connexion réseau n'est requise.
 - **HostedBadge** : les assertions contiennent des URLs HTTP publiques (au lieu d'objets imbriqués) permettant la validation externe par des tiers comme `validator.openbadges.org`.
 - Le fichier `app/models.py` contient encore des modèles historiques plus anciens ; la structure réellement émise en production est celle implémentée dans `app/issuer.py`.
+- Avant toute exposition production publique, appliquer les recommandations de sécurité documentées dans `docs/audit-architecture-security-120526.md`.
 
 ## Journal des modifications
 
@@ -461,6 +470,6 @@ Voir [`docs/CHANGELOG-130426.md`](docs/CHANGELOG-130426.md) pour les modificatio
 | Endpoints hébergés (HostedBadge) | Implémenté | URLs publiques pour Issuer, BadgeClass et Assertions |
 | Signature JWS (SignedBadge) | 🔲 Planifié | Chiffrer les assertions avec une clé privée, vérification par clé publique |
 | Ancrage blockchain | 🔲 Planifié | Enregistrer les empreintes d'assertions sur une blockchain pour preuve d'immutabilité |
-| Base de données locale | 🔲 À étudier | Évaluer l’usage d’une base légère (ex. SQLite) pour stocker le registre, les métadonnées admin et les index de recherche |
+| Base de données locale | Implémenté | Registre SQLite local pour index administratif, recherche et cohérence JSON/PNG |
 | Validation avec `openbadges-validator-core` | Validé | Test de conformité réussi sur un badge MODE83 hébergé |
 | Validation IMS officielle | 🔲 À poursuivre | Vérifications complémentaires sur l'infrastructure publique / HTTPS |

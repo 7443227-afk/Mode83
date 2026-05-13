@@ -218,7 +218,26 @@ Après émission :
 3. archiver les preuves selon la procédure MODE83 ;
 4. remonter les anomalies au référent technique.
 
-## 14. Support et remontée d'anomalie
+## 14. Avant une démonstration ou une remise officielle
+
+Avant de présenter Badge83 ou de remettre officiellement des badges à des apprenants, il est recommandé de réaliser un contrôle court.
+
+Checklist proposée :
+
+1. vérifier que le modèle de badge utilisé correspond bien à la formation ;
+2. vérifier que les textes, la date, le titre et le QR code sont lisibles ;
+3. émettre un badge de test avec des données fictives ;
+4. télécharger le PNG généré et l'ouvrir comme image ;
+5. ouvrir la page publique de vérification ;
+6. ouvrir ou scanner la page QR ;
+7. vérifier le PNG baked avec l'outil de vérification ;
+8. contrôler que le badge apparaît dans le registre local ;
+9. supprimer ou marquer clairement les badges de test selon la procédure interne ;
+10. ne pas modifier manuellement les fichiers JSON ou PNG après émission.
+
+Ce contrôle permet de détecter une erreur de modèle, de saisie ou de configuration avant la remise réelle aux apprenants.
+
+## 15. Support et remontée d'anomalie
 
 En cas de problème, fournir au référent technique :
 
@@ -245,7 +264,7 @@ Résultat obtenu :
 Capture : oui / non
 ```
 
-## 15. Conclusion
+## 16. Conclusion
 
 Badge83 permet aujourd'hui de réaliser le parcours principal attendu pour le Projet A :
 
