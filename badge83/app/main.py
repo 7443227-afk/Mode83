@@ -7,23 +7,37 @@ import hmac
 import json
 import secrets
 import time
+from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
 
-from fastapi import FastAPI, Form, Request, UploadFile, File, HTTPException, Body
+from fastapi import Depends, FastAPI, Form, Request, UploadFile, File, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_public_base_url
+from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
+from app.upload_limits import ensure_image_pixels_within_limit, read_upload_limited
 from app.verifier import deep_verify_baked_badge, verify_badge, verify_baked_badge
 from app.routes.badge_constructor import router as badge_constructor_router
 
-app = FastAPI(title="Badge 83")
-app.include_router(badge_constructor_router)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    validate_production_security_config()
+    ISSUED_DIR.mkdir(parents=True, exist_ok=True)
+    # Initialise le schéma de base de données du constructeur de badges
+    from app.database import init_db_schema
+
+    init_db_schema()
+    import_assertions_from_directory(ISSUED_DIR)
+    yield
+
+
+app = FastAPI(title="Badge 83", lifespan=lifespan)
 templates = Jinja2Templates(directory="templates")
 
 
@@ -73,6 +87,19 @@ def _is_auth_cookie_valid(request: Request) -> bool:
     return _decode_auth_cookie(request.cookies.get(AUTH_COOKIE_NAME)) == get_auth_username()
 
 
+def require_admin(request: Request) -> None:
+    """Protège les routes administrateur même sans reverse proxy Nginx.
+
+    Nginx `auth_request` reste utile comme première barrière, mais les endpoints
+    sensibles doivent aussi refuser directement les appels FastAPI non autorisés.
+    """
+    if not _is_auth_cookie_valid(request):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+
+app.include_router(badge_constructor_router, dependencies=[Depends(require_admin)])
+
+
 def _safe_next_url(next_url: str | None) -> str:
     if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
         return "/"
@@ -80,14 +107,6 @@ def _safe_next_url(next_url: str | None) -> str:
         return "/"
     return next_url
 
-
-@app.on_event("startup")
-async def startup_registry_sync():
-    ISSUED_DIR.mkdir(parents=True, exist_ok=True)
-    # Initialise le schéma de base de données du constructeur de badges
-    from app.database import init_db_schema
-    init_db_schema()
-    import_assertions_from_directory(ISSUED_DIR)
 
 # ---------------------------------------------------------------------------
 # CORS — autoriser les validateurs externes (ex. validator.openbadges.org) à récupérer les ressources
@@ -100,7 +119,7 @@ app.add_middleware(
 )
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
 async def index(request: Request):
     """Affiche la nouvelle console d'administration Badge83."""
     return templates.TemplateResponse("index.html", {"request": request})
@@ -267,13 +286,13 @@ async def verify_badge_qr_page(request: Request, assertion_id: str):
     return templates.TemplateResponse("verify_qr.html", context)
 
 
-@app.get("/verify-desk", response_class=HTMLResponse)
+@app.get("/verify-desk", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
 async def verify_desk_page(request: Request):
     """Affiche une page de vérification simplifiée pour un usage secrétariat."""
     return templates.TemplateResponse("verify_desk.html", {"request": request})
 
 
-@app.get("/legacy", response_class=HTMLResponse)
+@app.get("/legacy", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
 async def legacy_index(request: Request):
     """Affiche l'ancienne interface pour rollback rapide."""
     return templates.TemplateResponse("index_legacy.html", {"request": request})
@@ -285,21 +304,24 @@ async def get_badge_png():
     return FileResponse(DATA_BASE / "badge.png", media_type="image/png")
 
 
-@app.post("/issue")
+@app.post("/issue", dependencies=[Depends(require_admin)])
 async def issue(name: str = Form(...), email: str = Form(...)):
     """Reçoit les informations utilisateur et émet une Assertion Open Badges."""
     badge = issue_badge(name=name, email=email)
     return {"status": "issued", "badge": badge}
 
 
-@app.post("/issue-baked")
+@app.post("/issue-baked", dependencies=[Depends(require_admin)])
 async def issue_baked(name: str = Form(...), email: str = Form(...), badge_image: UploadFile | None = File(None)):
     """Émet un badge Open Badges baked dans un PNG.
 
     Si *badge_image* est fourni (upload), il est utilisé comme base.
     Sinon le PNG par défaut ``data/badge.png`` est utilisé.
     """
-    png_data = await badge_image.read() if badge_image else None
+    png_data = None
+    if badge_image:
+        png_data = await read_upload_limited(badge_image, get_max_png_upload_bytes(), label="PNG")
+        ensure_image_pixels_within_limit(png_data, label="PNG")
     result = issue_baked_badge(name=name, email=email, png_data=png_data)
     return Response(
         content=result["baked_png_bytes"],
@@ -328,7 +350,8 @@ async def verify_query(badge_id: str):
 @app.post("/verify-baked")
 async def verify_baked(badge: UploadFile = File(...), deep: bool = False):
     """Vérifie un badge Open Badges à partir d'un PNG baked uploadé."""
-    png_data = await badge.read()
+    png_data = await read_upload_limited(badge, get_max_png_upload_bytes(), label="PNG")
+    ensure_image_pixels_within_limit(png_data, label="PNG")
     result = deep_verify_baked_badge(png_data) if deep else verify_baked_badge(png_data)
     return result
 
@@ -551,19 +574,19 @@ def _dashboard_stats(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-@app.get("/api/dashboard/stats")
+@app.get("/api/dashboard/stats", dependencies=[Depends(require_admin)])
 async def api_dashboard_stats():
     records = _list_badge_records()
     return _dashboard_stats(records)
 
 
-@app.get("/api/badges")
+@app.get("/api/badges", dependencies=[Depends(require_admin)])
 async def api_list_badges():
     records = _list_badge_records()
     return {"items": records, "stats": _dashboard_stats(records)}
 
 
-@app.get("/api/badges/search")
+@app.get("/api/badges/search", dependencies=[Depends(require_admin)])
 async def api_search_badges(query: str):
     records = _list_badge_records()
     matched = [record for record in records if _matches_search_query(record, query)]
@@ -575,10 +598,11 @@ async def api_search_badges(query: str):
     }
 
 
-@app.post("/api/verify-desk/png")
+@app.post("/api/verify-desk/png", dependencies=[Depends(require_admin)])
 async def api_verify_desk_png(badge: UploadFile = File(...)):
     """Workflow simplifié : upload PNG, vérification et recherche de certificats liés."""
-    png_data = await badge.read()
+    png_data = await read_upload_limited(badge, get_max_png_upload_bytes(), label="PNG")
+    ensure_image_pixels_within_limit(png_data, label="PNG")
     result = verify_baked_badge(png_data)
 
     if not result.get("valid"):
@@ -616,7 +640,7 @@ async def api_verify_desk_png(badge: UploadFile = File(...)):
     }
 
 
-@app.get("/api/badges/{assertion_id}")
+@app.get("/api/badges/{assertion_id}", dependencies=[Depends(require_admin)])
 async def api_get_badge(assertion_id: str):
     record = _collect_badge_record(assertion_id)
     if not record:
@@ -634,7 +658,7 @@ async def api_get_badge(assertion_id: str):
     }
 
 
-@app.get("/api/badges/{assertion_id}/json")
+@app.get("/api/badges/{assertion_id}/json", dependencies=[Depends(require_admin)])
 async def api_download_badge_json(assertion_id: str):
     file_path = ISSUED_DIR / f"{assertion_id}.json"
     if not file_path.exists():
@@ -642,7 +666,7 @@ async def api_download_badge_json(assertion_id: str):
     return FileResponse(file_path, media_type="application/json", filename=f"{assertion_id}.json")
 
 
-@app.get("/api/badges/{assertion_id}/png")
+@app.get("/api/badges/{assertion_id}/png", dependencies=[Depends(require_admin)])
 async def api_download_badge_png(assertion_id: str):
     file_path = BAKED_DIR / f"{assertion_id}.png"
     if not file_path.exists():
@@ -650,7 +674,7 @@ async def api_download_badge_png(assertion_id: str):
     return FileResponse(file_path, media_type="image/png", filename=f"{assertion_id}.png")
 
 
-@app.get("/api/badges/{assertion_id}/inspect")
+@app.get("/api/badges/{assertion_id}/inspect", dependencies=[Depends(require_admin)])
 async def api_inspect_badge_png(assertion_id: str):
     file_path = BAKED_DIR / f"{assertion_id}.png"
     if not file_path.exists():
@@ -658,7 +682,7 @@ async def api_inspect_badge_png(assertion_id: str):
     return verify_baked_badge(file_path.read_bytes())
 
 
-@app.put("/api/badges/{assertion_id}")
+@app.put("/api/badges/{assertion_id}", dependencies=[Depends(require_admin)])
 async def api_update_badge(assertion_id: str, payload: dict[str, Any] = Body(...)):
     file_path = ISSUED_DIR / f"{assertion_id}.json"
     if not file_path.exists():
@@ -682,7 +706,7 @@ async def api_update_badge(assertion_id: str, payload: dict[str, Any] = Body(...
     return {"status": "updated", "item": record}
 
 
-@app.delete("/api/badges/{assertion_id}")
+@app.delete("/api/badges/{assertion_id}", dependencies=[Depends(require_admin)])
 async def api_delete_badge(assertion_id: str):
     json_path = ISSUED_DIR / f"{assertion_id}.json"
     png_path = BAKED_DIR / f"{assertion_id}.png"
@@ -791,7 +815,8 @@ async def verify_online(
 
     # Cas 1 : l'utilisateur a téléversé un PNG baked
     if badge_file:
-        png_data = await badge_file.read()
+        png_data = await read_upload_limited(badge_file, get_max_png_upload_bytes(), label="PNG")
+        ensure_image_pixels_within_limit(png_data, label="PNG")
         from app.verifier import verify_baked_badge
         result = verify_baked_badge(png_data)
         if not result["valid"]:

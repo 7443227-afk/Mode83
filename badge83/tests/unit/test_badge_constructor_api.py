@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import base64
 import io
 import json
 import zipfile
@@ -10,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.baker import unbake_badge
 from app.routes.badge_constructor import router as badge_constructor_router
+from app.routes.badge_constructor import templates as constructor_templates
 
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -148,6 +150,58 @@ def test_preview_draft_returns_png_for_static_and_dynamic_overlays(tmp_path, mon
             ],
             "qr_code_placement": "bottom-right",
             "qr_code_size": 0.22,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content.startswith(PNG_SIGNATURE)
+
+
+def test_preview_draft_rejects_background_path_traversal(tmp_path, monkeypatch, sample_png_bytes):
+    client = make_constructor_client(tmp_path, monkeypatch)
+    monkeypatch.setattr(constructor_templates, "BADGE_PNG", tmp_path / "badge.png")
+    constructor_templates.BADGE_PNG.write_bytes(sample_png_bytes)
+    backgrounds_dir = tmp_path / "backgrounds"
+    backgrounds_dir.mkdir()
+    monkeypatch.setattr(constructor_templates, "BACKGROUND_IMAGES_DIR", backgrounds_dir)
+
+    response = client.post(
+        "/badge-constructor/templates/preview-draft",
+        json={"name": "Traversal", "background_image": "../issuer_template.json", "text_overlays": []},
+    )
+
+    assert response.status_code == 400
+    assert "Chemin de fond invalide" in response.json()["detail"]
+
+
+def test_preview_draft_rejects_missing_named_background(tmp_path, monkeypatch, sample_png_bytes):
+    client = make_constructor_client(tmp_path, monkeypatch)
+    monkeypatch.setattr(constructor_templates, "BADGE_PNG", tmp_path / "badge.png")
+    constructor_templates.BADGE_PNG.write_bytes(sample_png_bytes)
+    backgrounds_dir = tmp_path / "backgrounds"
+    backgrounds_dir.mkdir()
+    monkeypatch.setattr(constructor_templates, "BACKGROUND_IMAGES_DIR", backgrounds_dir)
+
+    response = client.post(
+        "/badge-constructor/templates/preview-draft",
+        json={"name": "Missing", "background_image": "missing.png", "text_overlays": []},
+    )
+
+    assert response.status_code == 400
+    assert "Fond de badge introuvable" in response.json()["detail"]
+
+
+def test_preview_draft_accepts_data_url_background(tmp_path, monkeypatch, sample_png_bytes):
+    client = make_constructor_client(tmp_path, monkeypatch)
+    encoded_png = base64.b64encode(sample_png_bytes).decode("ascii")
+
+    response = client.post(
+        "/badge-constructor/templates/preview-draft",
+        json={
+            "name": "Data URL",
+            "background_image": f"data:image/png;base64,{encoded_png}",
+            "text_overlays": [],
         },
     )
 
@@ -325,6 +379,56 @@ def test_batch_issue_preview_csv_returns_summary(tmp_path, monkeypatch, isolated
     assert payload["errors"] == 1
 
 
+def test_batch_issue_preview_rejects_csv_over_configured_limit(tmp_path, monkeypatch, isolated_issuer_env):
+    monkeypatch.setenv("BADGE83_MAX_CSV_UPLOAD_BYTES", "10")
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    create_response = client.post(
+        "/badge-constructor/templates",
+        json={
+            "name": "Modèle limite CSV",
+            "text_overlays": [],
+            "qr_code_placement": "bottom-right",
+            "qr_code_size": 0.22,
+        },
+    )
+    assert create_response.status_code == 200
+    template_id = create_response.json()["id"]
+
+    response = client.post(
+        f"/badge-constructor/templates/{template_id}/batch-issue/preview",
+        files={"file": ("participants.csv", "nom,email,programme,reussi\nAlice,alice@example.org,Formation,oui\n", "text/csv")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "CSV trop volumineux"
+
+
+def test_background_upload_rejects_png_over_configured_limit(tmp_path, monkeypatch, isolated_issuer_env, sample_png_bytes):
+    monkeypatch.setenv("BADGE83_MAX_PNG_UPLOAD_BYTES", "10")
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    create_response = client.post(
+        "/badge-constructor/templates",
+        json={
+            "name": "Modèle limite PNG",
+            "text_overlays": [],
+            "qr_code_placement": "bottom-right",
+            "qr_code_size": 0.22,
+        },
+    )
+    assert create_response.status_code == 200
+    template_id = create_response.json()["id"]
+
+    response = client.post(
+        f"/badge-constructor/templates/{template_id}/background-image",
+        files={"file": ("background.png", sample_png_bytes, "image/png")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "PNG trop volumineux"
+
+
 def test_batch_issue_commit_csv_creates_only_ready_badges(tmp_path, monkeypatch, isolated_issuer_env):
     client = make_constructor_client(tmp_path, monkeypatch)
 
@@ -381,10 +485,16 @@ def test_batch_issue_commit_csv_creates_only_ready_badges(tmp_path, monkeypatch,
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["session_id"]
+    assert payload["issue_policy"] == "partial_valid_rows_only"
+    assert payload["can_commit"] is True
     assert payload["created"] == 1
     assert payload["skipped_not_passed"] == 1
     assert payload["errors"] == 1
     assert len(payload["created_badges"]) == 1
+    assert [row["status"] for row in payload["report_rows"]] == ["issued", "not_issued", "not_issued"]
+    assert payload["report_rows"][1]["reason"] == "Non admis"
+    assert payload["report_rows"][2]["reason"] == "Email invalide"
 
     created = payload["created_badges"][0]
     assertion_id = created["assertion_id"]
@@ -396,6 +506,63 @@ def test_batch_issue_commit_csv_creates_only_ready_badges(tmp_path, monkeypatch,
     assertion = json.loads(saved_assertion.read_text(encoding="utf-8"))
     assert assertion["admin_recipient"]["email"] == "alice@example.org"
     assert assertion["field_values"]["course_name"] == "Formation IA"
+
+    session_response = client.get(f"/badge-constructor/batch-sessions/{payload['session_id']}")
+    assert session_response.status_code == 200
+    session_payload = session_response.json()
+    assert session_payload["session"]["id"] == payload["session_id"]
+    assert session_payload["session"]["template_id"] == template_id
+    assert session_payload["session"]["issued_count"] == 1
+    assert session_payload["session"]["error_count"] == 1
+    assert [item["status"] for item in session_payload["items"]] == ["issued", "not_passed", "error"]
+    assert session_payload["items"][0]["badge_id"] == assertion_id
+
+    sessions_response = client.get("/badge-constructor/batch-sessions")
+    assert sessions_response.status_code == 200
+    assert sessions_response.json()[0]["id"] == payload["session_id"]
+
+
+def test_batch_issue_commit_without_ready_rows_returns_clear_message(tmp_path, monkeypatch, isolated_issuer_env):
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    create_response = client.post(
+        "/badge-constructor/templates",
+        json={
+            "name": "Modèle groupé sans lignes prêtes",
+            "text_overlays": [],
+            "qr_code_placement": "bottom-right",
+            "qr_code_size": 0.22,
+        },
+    )
+    assert create_response.status_code == 200
+    template_id = create_response.json()["id"]
+
+    csv_content = (
+        "nom,email,programme,reussi\n"
+        "Bob Example,bob@example.org,Formation IA,non\n"
+        "Invalid Example,invalid,Formation IA,oui\n"
+    )
+    response = client.post(
+        f"/badge-constructor/templates/{template_id}/batch-issue",
+        files={"file": ("participants.csv", csv_content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["session_id"]
+    assert payload["created"] == 0
+    assert payload["can_commit"] is False
+    assert payload["message"] == "Aucune ligne prête à émettre"
+    assert [row["status"] for row in payload["report_rows"]] == ["not_issued", "not_issued"]
+    assert payload["report_rows"][0]["reason"] == "Non admis"
+    assert payload["report_rows"][1]["reason"] == "Email invalide"
+
+    session_response = client.get(f"/badge-constructor/batch-sessions/{payload['session_id']}")
+    assert session_response.status_code == 200
+    session_payload = session_response.json()
+    assert session_payload["session"]["status"] == "empty"
+    assert session_payload["session"]["issued_count"] == 0
+    assert [item["status"] for item in session_payload["items"]] == ["not_passed", "error"]
 
 
 
@@ -456,6 +623,7 @@ def test_batch_issue_archive_returns_zip_with_png_and_report(tmp_path, monkeypat
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/zip"
     assert response.headers["X-Badge83-Created"] == "1"
+    assert response.headers["X-Badge83-Session-Id"]
 
     archive = zipfile.ZipFile(io.BytesIO(response.content))
     names = archive.namelist()
@@ -470,6 +638,7 @@ def test_batch_issue_archive_returns_zip_with_png_and_report(tmp_path, monkeypat
     assert manifest["created"] == 1
     assert manifest["skipped_not_passed"] == 1
     assert manifest["errors"] == 1
+    assert manifest["created_badges"][0]["session_id"] == response.headers["X-Badge83-Session-Id"]
 
     report_text = archive.read("rapport_emission.csv").decode("utf-8-sig")
     report_rows = list(csv.DictReader(io.StringIO(report_text)))

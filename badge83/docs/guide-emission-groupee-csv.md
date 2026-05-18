@@ -4,6 +4,8 @@ Date : 13/05/2026
 Projet : Badge83 — Open Badges MODE83  
 Objet : flux d'émission groupée depuis un fichier CSV, avec interface opérateur et archive ZIP
 
+Mise à jour du 18/05/2026 : clarification de la politique d'émission partielle contrôlée et du rapport JSON de commit.
+
 ## 1. Objectif
 
 Cette fonctionnalité permet d'émettre plusieurs badges à partir d'un fichier CSV contenant une liste de participants.
@@ -17,6 +19,7 @@ Cette première version couvre :
 - l'import CSV ;
 - la normalisation des colonnes principales ;
 - la prévisualisation sans émission ;
+- la politique d'émission partielle contrôlée ;
 - l'émission après confirmation depuis l'interface opérateur ;
 - l'exclusion des personnes non admises ;
 - la détection des lignes invalides ;
@@ -116,6 +119,41 @@ non, no, false, 0, echoue, échoué, failed, absent
 
 Une valeur absente ou ambiguë classe la ligne en erreur.
 
+## 4.1 Politique d'émission partielle contrôlée
+
+Badge83 ne bloque pas l'intégralité d'un import si certaines lignes sont invalides.
+
+La règle retenue est :
+
+```text
+prévisualiser toutes les lignes → classer les statuts → émettre uniquement les lignes prêtes → rapporter les autres lignes
+```
+
+Statuts internes :
+
+| Statut | Signification | Émis lors du commit |
+|---|---|---|
+| `ready` | ligne valide et éligible | oui |
+| `not_passed` | participant non admis | non |
+| `duplicate` | badge déjà émis pour ce modèle et cet email | non |
+| `error` | donnée manquante ou invalide | non |
+
+Le résumé de prévisualisation expose aussi :
+
+```json
+{
+  "issue_policy": "partial_valid_rows_only",
+  "can_commit": true,
+  "message": "L'émission peut être confirmée pour les lignes prêtes"
+}
+```
+
+Si aucune ligne n'est prête, `can_commit` vaut `false` et le message devient :
+
+```text
+Aucune ligne prête à émettre
+```
+
 ## 5. Endpoints API
 
 ### 5.1 Prévisualisation
@@ -139,11 +177,14 @@ Réponse :
 ```json
 {
   "template_id": "...",
+  "issue_policy": "partial_valid_rows_only",
   "total_rows": 3,
   "ready_rows": 2,
   "skipped_not_passed": 1,
   "skipped_duplicates": 0,
   "errors": 0,
+  "can_commit": true,
+  "message": "L'émission peut être confirmée pour les lignes prêtes",
   "rows": []
 }
 ```
@@ -169,6 +210,9 @@ Réponse :
 ```json
 {
   "template_id": "...",
+  "issue_policy": "partial_valid_rows_only",
+  "can_commit": true,
+  "message": "Émission groupée terminée",
   "created": 2,
   "skipped_not_passed": 1,
   "skipped_duplicates": 0,
@@ -183,7 +227,41 @@ Réponse :
       "verification_url": "/verify/badge/...",
       "qr_url": "/verify/qr/..."
     }
+  ],
+  "report_rows": [
+    {
+      "row_number": 2,
+      "name": "Alice Martin",
+      "email": "alice@example.org",
+      "status": "issued",
+      "reason": "",
+      "assertion_id": "...",
+      "verification_url": "/verify/badge/...",
+      "qr_url": "/verify/qr/..."
+    },
+    {
+      "row_number": 4,
+      "name": "Paul Test",
+      "email": "paul@example.org",
+      "status": "not_issued",
+      "source_status": "not_passed",
+      "reason": "Non admis",
+      "assertion_id": null,
+      "verification_url": null,
+      "qr_url": null
+    }
   ]
+}
+```
+
+Lorsque le fichier ne contient aucune ligne prête, l'endpoint répond toujours en succès technique mais sans émission :
+
+```json
+{
+  "created": 0,
+  "can_commit": false,
+  "message": "Aucune ligne prête à émettre",
+  "report_rows": []
 }
 ```
 
@@ -213,6 +291,8 @@ manifest.json
 badges/*.png
 ```
 
+Depuis le 18/05/2026, les PNG sont ajoutés au ZIP au fil de l'émission, sans conserver une liste intermédiaire de toutes les images générées. L'archive finale reste construite en mémoire avant envoi HTTP, mais la mémoire intermédiaire est réduite pour les imports de taille moyenne.
+
 Rôle des fichiers :
 
 | Fichier | Rôle |
@@ -221,6 +301,17 @@ Rôle des fichiers :
 | `rapport_emission.csv` | rapport opérateur ligne par ligne |
 | `manifest.json` | rapport technique complet |
 | `badges/*.png` | PNG baked fraîchement générés |
+
+Le manifeste contient aussi l'identifiant de session d'import :
+
+```json
+{
+  "session_id": "...",
+  "archive_generation": {
+    "mode": "streamed_png_entries"
+  }
+}
+```
 
 Le fichier `rapport_emission.csv` reprend les colonnes du CSV source et ajoute :
 
@@ -285,6 +376,8 @@ Les tests couvrent :
 - lignes prêtes, non admises, invalides et doublons ;
 - API preview ;
 - API commit JSON ;
+- rapport JSON ligne par ligne du commit ;
+- fichier sans aucune ligne prête ;
 - API archive ZIP ;
 - création des fichiers JSON et PNG ;
 - présence du rapport `rapport_emission.csv` dans l'archive.
@@ -296,10 +389,10 @@ cd /home/ubuntu/projects/Mode83/badge83
 /home/ubuntu/projects/Mode83/.venv/bin/python -m pytest tests -q
 ```
 
-Résultat validé le 13/05/2026 :
+Résultat validé le 18/05/2026 après clarification de la politique d'émission partielle :
 
 ```text
-36 passed in 1.45s
+55 passed in 1.87s
 ```
 
 ## 9. Limites connues
@@ -311,7 +404,27 @@ Points à traiter dans une phase suivante :
 1. ajouter le support Excel `.xlsx` ;
 2. proposer le téléchargement automatique d'un modèle CSV depuis l'interface ;
 3. prévoir l'envoi automatique par email ;
-4. renforcer les limites d'upload avant exposition production.
+4. mesurer les temps de traitement pour 50, 100 et 300 lignes ;
+5. envisager un mode asynchrone si les volumes réels le justifient.
+
+## 9.1 Mesure de volume
+
+Un test automatisé vérifie que la prévisualisation supporte un fichier synthétique de 300 lignes prêtes.
+
+Pour mesurer manuellement la génération ZIP sur plusieurs volumes, un script de benchmark local est disponible :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+/home/ubuntu/projects/Mode83/.venv/bin/python scripts/benchmark_batch_archive.py --rows 50 100 300
+```
+
+Le script affiche :
+
+```text
+rows,seconds,zip_bytes,png_count,session_id
+```
+
+Ce benchmark ne remplace pas les tests automatisés : il sert à documenter le comportement réel avant d'introduire, si nécessaire, une architecture asynchrone.
 
 ## 10. Conclusion
 

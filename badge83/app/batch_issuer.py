@@ -286,13 +286,21 @@ def build_batch_summary(*, template_id: str, rows: list[BatchRow]) -> dict[str, 
     }
     for row in rows:
         counters[row.status] = counters.get(row.status, 0) + 1
+    can_commit = counters["ready"] > 0
 
     return {
         "template_id": template_id,
+        "issue_policy": "partial_valid_rows_only",
         "total_rows": len(rows),
         "ready_rows": counters["ready"],
         "skipped_not_passed": counters["not_passed"],
         "skipped_duplicates": counters["duplicate"],
         "errors": counters["error"],
+        "can_commit": can_commit,
+        "message": (
+            "L'émission peut être confirmée pour les lignes prêtes"
+            if can_commit
+            else "Aucune ligne prête à émettre"
+        ),
         "rows": [row.to_dict() for row in rows],
     }

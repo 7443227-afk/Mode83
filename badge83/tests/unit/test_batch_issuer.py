@@ -49,6 +49,8 @@ def test_preview_batch_rows_classe_ready_not_passed_error_et_duplicate(tmp_path,
     preview = batch_issuer.preview_batch_rows(template_id="template-1", rows=rows)
 
     assert preview["total_rows"] == 5
+    assert preview["issue_policy"] == "partial_valid_rows_only"
+    assert preview["can_commit"] is True
     assert preview["ready_rows"] == 1
     assert preview["skipped_not_passed"] == 1
     assert preview["errors"] == 1
@@ -74,6 +76,8 @@ def test_preview_batch_rows_signale_un_champ_requis_manquant(tmp_path, monkeypat
     )
 
     assert preview["errors"] == 1
+    assert preview["can_commit"] is False
+    assert preview["message"] == "Aucune ligne prête à émettre"
     assert preview["rows"][0]["status"] == "error"
     assert "Champ obligatoire manquant : course_name" in preview["rows"][0]["errors"]
 
@@ -133,3 +137,30 @@ def test_preview_batch_rows_accepte_le_label_lisible_du_champ_schema(tmp_path, m
     assert preview["ready_rows"] == 1
     assert preview["rows"][0]["status"] == "ready"
     assert preview["rows"][0]["field_values"]["29b19e6e-524e-4f79-9c1d-dec3aa775dbe"] == "alice@example.org"
+
+
+def test_preview_batch_rows_supporte_un_volume_de_300_lignes(tmp_path, monkeypatch):
+    issued_dir = tmp_path / "issued"
+    issued_dir.mkdir()
+    monkeypatch.setattr(batch_issuer.issuer, "DATA_DIR", issued_dir)
+
+    rows = [
+        {
+            "nom": f"Participant {index}",
+            "email": f"participant{index}@example.org",
+            "programme": "Formation volume",
+            "reussi": "oui",
+        }
+        for index in range(1, 301)
+    ]
+
+    preview = batch_issuer.preview_batch_rows(template_id="template-volume", rows=rows)
+
+    assert preview["total_rows"] == 300
+    assert preview["ready_rows"] == 300
+    assert preview["can_commit"] is True
+    assert preview["errors"] == 0
+    assert preview["skipped_duplicates"] == 0
+    assert preview["skipped_not_passed"] == 0
+    assert preview["rows"][0]["row_number"] == 2
+    assert preview["rows"][-1]["row_number"] == 301

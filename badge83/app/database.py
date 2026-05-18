@@ -128,6 +128,57 @@ def create_tables(conn: sqlite3.Connection):
             CREATE INDEX IF NOT EXISTS idx_badge_templates_name
             ON badge_templates(name)
         ''')
+
+        # Tables d'historisation des émissions groupées CSV.
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS batch_sessions (
+                id TEXT PRIMARY KEY,
+                template_id TEXT NOT NULL,
+                session_label TEXT,
+                source_filename TEXT,
+                source_file_hash TEXT,
+                created_at TEXT NOT NULL,
+                status TEXT NOT NULL,
+                total_rows INTEGER NOT NULL DEFAULT 0,
+                ready_count INTEGER NOT NULL DEFAULT 0,
+                issued_count INTEGER NOT NULL DEFAULT 0,
+                error_count INTEGER NOT NULL DEFAULT 0,
+                duplicate_count INTEGER NOT NULL DEFAULT 0,
+                not_passed_count INTEGER NOT NULL DEFAULT 0
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS batch_session_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                badge_id TEXT,
+                row_number INTEGER NOT NULL,
+                recipient_name TEXT,
+                recipient_email TEXT,
+                recipient_email_hash TEXT,
+                status TEXT NOT NULL,
+                error_message TEXT,
+                verification_url TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES batch_sessions(id)
+            )
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_batch_sessions_template_id
+            ON batch_sessions(template_id)
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_batch_session_items_session_id
+            ON batch_session_items(session_id)
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_batch_session_items_badge_id
+            ON batch_session_items(badge_id)
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_batch_session_items_email_hash
+            ON batch_session_items(recipient_email_hash)
+        ''')
     
     conn.commit()
 
@@ -300,6 +351,86 @@ def delete_assertion_record(assertion_id: str, db_path: str | Path | None = None
         return delete_assertion(conn, assertion_id)
     finally:
         close_connection(conn)
+
+
+def create_batch_session(conn: sqlite3.Connection, session_data: Dict[str, Any]) -> str:
+    """Crée une session d'émission groupée dans le registre SQLite."""
+    now = datetime.now(timezone.utc).isoformat()
+    session_id = session_data.get("id")
+    with conn:
+        conn.execute('''
+            INSERT INTO batch_sessions (
+                id, template_id, session_label, source_filename, source_file_hash,
+                created_at, status, total_rows, ready_count, issued_count,
+                error_count, duplicate_count, not_passed_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            session_id,
+            session_data.get("template_id"),
+            session_data.get("session_label"),
+            session_data.get("source_filename"),
+            session_data.get("source_file_hash"),
+            session_data.get("created_at") or now,
+            session_data.get("status", "completed"),
+            session_data.get("total_rows", 0),
+            session_data.get("ready_count", 0),
+            session_data.get("issued_count", 0),
+            session_data.get("error_count", 0),
+            session_data.get("duplicate_count", 0),
+            session_data.get("not_passed_count", 0),
+        ))
+        conn.commit()
+        return session_id
+
+
+def add_batch_session_item(conn: sqlite3.Connection, item_data: Dict[str, Any]) -> int:
+    """Ajoute une ligne de rapport associée à une session d'émission groupée."""
+    now = datetime.now(timezone.utc).isoformat()
+    with conn:
+        cursor = conn.execute('''
+            INSERT INTO batch_session_items (
+                session_id, badge_id, row_number, recipient_name, recipient_email,
+                recipient_email_hash, status, error_message, verification_url, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            item_data.get("session_id"),
+            item_data.get("badge_id"),
+            item_data.get("row_number"),
+            item_data.get("recipient_name"),
+            item_data.get("recipient_email"),
+            item_data.get("recipient_email_hash"),
+            item_data.get("status"),
+            item_data.get("error_message"),
+            item_data.get("verification_url"),
+            item_data.get("created_at") or now,
+        ))
+        conn.commit()
+        return cursor.lastrowid
+
+
+def get_batch_session(conn: sqlite3.Connection, session_id: str) -> Optional[Dict[str, Any]]:
+    """Récupère les métadonnées d'une session d'émission groupée."""
+    cursor = conn.execute('SELECT * FROM batch_sessions WHERE id = ?', (session_id,))
+    row = cursor.fetchone()
+    return dict(row) if row else None
+
+
+def list_batch_sessions(conn: sqlite3.Connection, limit: int = 50) -> List[Dict[str, Any]]:
+    """Liste les dernières sessions d'émission groupée."""
+    cursor = conn.execute(
+        'SELECT * FROM batch_sessions ORDER BY created_at DESC LIMIT ?',
+        (limit,),
+    )
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def get_batch_session_items(conn: sqlite3.Connection, session_id: str) -> List[Dict[str, Any]]:
+    """Retourne les lignes associées à une session d'émission groupée."""
+    cursor = conn.execute(
+        'SELECT * FROM batch_session_items WHERE session_id = ? ORDER BY row_number ASC, id ASC',
+        (session_id,),
+    )
+    return [dict(row) for row in cursor.fetchall()]
 
 
 def import_assertions_from_directory(directory: str | Path, db_path: str | Path | None = None) -> dict[str, int]:
