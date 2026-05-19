@@ -6,4 +6,5 @@ python-multipart==0.0.20
 httpx==0.28.1
 qrcode==8.2
 Pillow==11.2.1
+openpyxl==3.1.5
 pytest==8.3.5

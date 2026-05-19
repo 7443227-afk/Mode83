@@ -1,91 +1,24 @@
-INFO:     Started server process [2031936]
+INFO:     Started server process [2195574]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "GET / HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "GET /api/badges/07623418-e343-4569-b773-e1faaa43aefc HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "GET /api/badges/07623418-e343-4569-b773-e1faaa43aefc/png HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "POST /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/batch-issue/preview HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "POST /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/batch-issue/archive HTTP/1.1" 200 OK
-INFO:     104.28.96.27:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.27:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET / HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET / HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET / HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /api/badges/db475484-02dd-4974-948e-5417413e3c17 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /api/badges/db475484-02dd-4974-948e-5417413e3c17/png HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778676417785 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778676454646 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778676457633 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "PUT /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778676488562 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778676488564 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "POST /badge-constructor/templates/preview-draft HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778676554350 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/1888877d-563d-4b08-bc5c-d7eecf5c4b6a/preview?ts=1778676570202 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/preview?ts=1778676572858 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "POST /badge-constructor/templates/preview-draft HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number?value=02-04 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/certificate-number?value=02-05 HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "POST /badge-constructor/templates/052b74bd-e0ad-4f8b-a399-38cfee9a1f6a/issue-baked HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /api/badges HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /verify/qr/80fef3a1-0181-4070-adfb-cda2600812f3 HTTP/1.1" 200 OK
-INFO:     45.148.10.67:0 - "GET /auth/check HTTP/1.0" 401 Unauthorized
-INFO:     45.148.10.67:0 - "GET /auth/login?next=/ HTTP/1.1" 200 OK
-INFO:     104.28.96.26:0 - "GET /auth/check HTTP/1.0" 204 No Content
-INFO:     104.28.96.26:0 - "GET /verify/badge/80fef3a1-0181-4070-adfb-cda2600812f3 HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "GET / HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "GET /api/badges HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "GET /badge-constructor/templates HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "GET /badge-constructor/schemas HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "GET /api/badges/0eb82f92-216c-4260-af92-f5a8453330ca HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "GET /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/batch-issue/template.xlsx HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "POST /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/batch-issue/preview HTTP/1.1" 200 OK
+INFO:     109.210.123.37:0 - "GET /auth/check HTTP/1.0" 204 No Content
+INFO:     109.210.123.37:0 - "POST /badge-constructor/templates/e20f763d-1e98-4e63-a34f-573724cec669/batch-issue/archive HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [2031936]
+INFO:     Finished server process [2195574]

@@ -705,7 +705,7 @@
               <div class="section-title">
                 <div>
                   <h2 id="batchIssueTitle" class="h5 mb-1">Émission groupée de badges</h2>
-                  <p id="batchIssueDesc" class="text-muted mb-0">Choisissez un modèle, importez un CSV, vérifiez les lignes puis lancez la génération des PNG baked.</p>
+                  <p id="batchIssueDesc" class="text-muted mb-0">Choisissez un modèle, importez un CSV ou Excel (.xlsx), vérifiez les lignes puis lancez la génération des PNG baked.</p>
                 </div>
               </div>
 
@@ -713,7 +713,7 @@
                 <div class="col-12 col-lg-5">
                   <div class="border rounded-4 p-3 bg-light">
                     <h3 class="h6">Paramètres d’émission</h3>
-                    <p class="small text-muted mb-3">Le CSV doit contenir au minimum les colonnes nom/name, email et reussi/réussi/passed.</p>
+                    <p class="small text-muted mb-3">Le fichier CSV ou Excel (.xlsx) doit contenir au minimum les colonnes nom/name, email et reussi/réussi/passed.</p>
                     <form id="batchIssueForm">
                       <div class="mb-3">
                         <label class="form-label" for="batchTemplate">Modèle de badge</label>
@@ -724,13 +724,14 @@
                         <div id="batchTemplateRequirements" class="alert alert-info small mt-2 mb-0">Choisissez un modèle pour afficher les colonnes CSV attendues.</div>
                       </div>
                       <div class="mb-3">
-                        <label class="form-label" for="batchCsvFile">Fichier CSV des participants</label>
-                        <input id="batchCsvFile" class="form-control" type="file" accept=".csv,text/csv" required />
-                        <div class="form-text">Les séparateurs virgule, point-virgule et tabulation sont supportés.</div>
+                        <label class="form-label" for="batchCsvFile">Fichier CSV ou Excel (.xlsx) des participants</label>
+                        <input id="batchCsvFile" class="form-control" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+                        <div class="form-text">CSV : séparateurs virgule, point-virgule et tabulation. Excel : format .xlsx.</div>
                       </div>
                       <div class="d-flex gap-2 flex-wrap">
-                        <button id="batchPreviewBtn" class="btn btn-outline-primary" type="button">Prévisualiser le CSV</button>
+                        <button id="batchPreviewBtn" class="btn btn-outline-primary" type="button">Prévisualiser le fichier</button>
                         <button id="batchGenerateBtn" class="btn btn-success" type="submit" disabled>Générer les badges</button>
+                        <a id="batchTemplateDownloadLink" class="btn btn-outline-secondary" href="/badge-constructor/batch-issue/template.xlsx">Télécharger le modèle Excel</a>
                       </div>
                     </form>
                     <div id="batchIssueStatus" class="small text-muted mt-3">Choisissez un modèle et un CSV, puis lancez la prévisualisation.</div>
@@ -1069,6 +1070,7 @@
       const batchRowsCount = document.getElementById('batchRowsCount');
       const batchRowsTbody = document.getElementById('batchRowsTbody');
       const batchResultCard = document.getElementById('batchResultCard');
+      const batchTemplateDownloadLink = document.getElementById('batchTemplateDownloadLink');
       const verifyBadgeId = document.getElementById('verifyBadgeId');
       const verifyIdBtn = document.getElementById('verifyIdBtn');
       const verifyAssertionUrl = document.getElementById('verifyAssertionUrl');
@@ -1153,7 +1155,7 @@
           issueSubmitBtn: 'Émettre le badge',
           issueStatusIdle: 'Remplissez les champs et choisissez le mode d’émission.',
           batchIssueTitle: 'Émission groupée de badges',
-          batchIssueDesc: 'Choisissez un modèle, importez un CSV, contrôlez les lignes puis lancez la génération des PNG baked.',
+          batchIssueDesc: 'Choisissez un modèle, importez un CSV ou Excel (.xlsx), contrôlez les lignes puis lancez la génération des PNG baked.',
           verifyTitle: 'Centre de vérification',
           verifyDesc: 'Vérification par ID, URL et PNG dans une seule zone de travail.',
           verifyBadgeIdLabel: 'Vérification par badge ID',
@@ -1225,7 +1227,7 @@
           issueSubmitBtn: 'Issue badge',
           issueStatusIdle: 'Fill in the fields and choose the issue mode.',
           batchIssueTitle: 'Batch badge issuing',
-          batchIssueDesc: 'Choose a template, import a CSV, review the rows, then generate the baked PNG badges.',
+          batchIssueDesc: 'Choose a template, import a CSV or Excel (.xlsx), review the rows, then generate the baked PNG badges.',
           verifyTitle: 'Verification center',
           verifyDesc: 'Verify by ID, URL and PNG in one workspace.',
           verifyBadgeIdLabel: 'Verify by badge ID',
@@ -1297,7 +1299,7 @@
           issueSubmitBtn: 'Выпустить badge',
           issueStatusIdle: 'Заполните поля и выберите режим выпуска.',
           batchIssueTitle: 'Пакетная выдача badge’ей',
-          batchIssueDesc: 'Выберите шаблон, импортируйте CSV, проверьте строки и запустите генерацию PNG baked.',
+          batchIssueDesc: 'Выберите шаблон, импортируйте CSV или Excel (.xlsx), проверьте строки и запустите генерацию PNG baked.',
           verifyTitle: 'Центр проверки',
           verifyDesc: 'Проверка по ID, URL и PNG в одном рабочем окне.',
           verifyBadgeIdLabel: 'Проверка по badge ID',
@@ -2404,7 +2406,7 @@
         batchSummaryCard.innerHTML = `
           <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-2">
             <div>
-              <div class="small text-uppercase text-muted">Prévisualiser le CSV</div>
+              <div class="small text-uppercase text-muted">Prévisualiser le fichier</div>
               <div class="h5 mb-0">${Number(preview.ready_rows || 0)} prêt(s) à émettre</div>
             </div>
             <span class="badge text-bg-primary">${Number(preview.total_rows || 0)} ligne(s)</span>
@@ -2453,6 +2455,14 @@
       function renderBatchTemplateRequirements() {
         const box = document.getElementById('batchTemplateRequirements');
         if (!box) return;
+        if (batchTemplateDownloadLink) {
+          batchTemplateDownloadLink.href = batchTemplate.value
+            ? `/badge-constructor/templates/${encodeURIComponent(batchTemplate.value)}/batch-issue/template.xlsx`
+            : '/badge-constructor/batch-issue/template.xlsx';
+          batchTemplateDownloadLink.textContent = batchTemplate.value
+            ? 'Télécharger le modèle Excel de ce schéma'
+            : 'Télécharger le modèle Excel';
+        }
         const schema = selectedBatchSchema();
         if (!batchTemplate.value) {
           box.className = 'alert alert-info small mt-2 mb-0';
@@ -2489,10 +2499,10 @@
           return;
         }
         if (!file) {
-          batchIssueStatus.textContent = 'Choisissez un fichier CSV avant la prévisualisation.';
+          batchIssueStatus.textContent = 'Choisissez un fichier CSV ou Excel (.xlsx) avant la prévisualisation.';
           return;
         }
-        batchIssueStatus.textContent = 'Analyse du CSV…';
+        batchIssueStatus.textContent = 'Analyse du fichier…';
         batchPreviewBtn.disabled = true;
         batchGenerateBtn.disabled = true;
         batchResultCard.classList.add('d-none');
@@ -2575,7 +2585,7 @@
           batchIssueStatus.textContent = 'Lancez d’abord la prévisualisation et vérifiez qu’il existe des lignes ready.';
           return;
         }
-        if (!window.confirm(`Générer ${state.batchPreview.ready_rows} badge(s) depuis le CSV ?`)) return;
+        if (!window.confirm(`Générer ${state.batchPreview.ready_rows} badge(s) depuis ce fichier ?`)) return;
         batchIssueStatus.textContent = 'Génération des badges…';
         batchPreviewBtn.disabled = true;
         batchGenerateBtn.disabled = true;
@@ -2897,7 +2907,7 @@
         batchSummaryCard.classList.add('d-none');
         batchRowsCount.textContent = 'Aucune prévisualisation';
         batchRowsTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Lancez la prévisualisation pour analyser le CSV sélectionné.</td></tr>';
-        batchIssueStatus.textContent = batchCsvFile.files?.[0] ? `Fichier sélectionné : ${batchCsvFile.files[0].name}. Lancez la prévisualisation.` : 'Choisissez un fichier CSV.';
+        batchIssueStatus.textContent = batchCsvFile.files?.[0] ? `Fichier sélectionné : ${batchCsvFile.files[0].name}. Lancez la prévisualisation.` : 'Choisissez un fichier CSV ou Excel (.xlsx).';
       });
 
       issuePanelForm.addEventListener('submit', async (event) => {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from io import BytesIO
 
 from app import batch_issuer
 
@@ -18,6 +19,42 @@ def test_parse_batch_file_normalise_les_colonnes_csv():
             "réussi": "oui",
         }
     ]
+
+
+def test_parse_batch_file_normalise_les_colonnes_xlsx():
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.append(["Nom", "Email", "Programme", "Réussi", "Score", "Issue Date"])
+    worksheet.append(["Alice Example", "ALICE@EXAMPLE.ORG", "Formation IA", "oui", 12, "2026-05-19"])
+    worksheet.append([None, None, None, None, None, None])
+    buffer = BytesIO()
+    workbook.save(buffer)
+    workbook.close()
+
+    rows = batch_issuer.parse_batch_file(buffer.getvalue(), "participants.xlsx")
+
+    assert rows == [
+        {
+            "nom": "Alice Example",
+            "email": "ALICE@EXAMPLE.ORG",
+            "programme": "Formation IA",
+            "réussi": "oui",
+            "score": "12",
+            "issue_date": "2026-05-19",
+        }
+    ]
+
+
+def test_parse_batch_file_refuse_les_formats_non_supportes():
+    try:
+        batch_issuer.parse_batch_file(b"dummy", "participants.xls")
+    except ValueError as exc:
+        assert ".xls" in str(exc)
+        assert ".xlsx" in str(exc)
+    else:
+        raise AssertionError("Le format .xls devrait être refusé")
 
 
 def test_is_passed_reconnait_les_valeurs_attendues():
@@ -128,6 +165,37 @@ def test_preview_batch_rows_accepte_le_label_lisible_du_champ_schema(tmp_path, m
                 "email": "alice@example.org",
                 "reussi": "oui",
                 "couriel": "alice@example.org",
+            }
+        ],
+        schema_fields=schema_fields,
+    )
+
+    assert preview["errors"] == 0
+    assert preview["ready_rows"] == 1
+    assert preview["rows"][0]["status"] == "ready"
+    assert preview["rows"][0]["field_values"]["29b19e6e-524e-4f79-9c1d-dec3aa775dbe"] == "alice@example.org"
+
+
+def test_preview_batch_rows_reutilise_email_pour_champ_schema_couriel_requis(tmp_path, monkeypatch):
+    issued_dir = tmp_path / "issued"
+    issued_dir.mkdir()
+    monkeypatch.setattr(batch_issuer.issuer, "DATA_DIR", issued_dir)
+
+    schema_fields = [
+        {
+            "id": "29b19e6e-524e-4f79-9c1d-dec3aa775dbe",
+            "label": "Couriel",
+            "required": True,
+        }
+    ]
+
+    preview = batch_issuer.preview_batch_rows(
+        template_id="template-1",
+        rows=[
+            {
+                "nom": "Alice",
+                "email": "alice@example.org",
+                "reussi": "oui",
             }
         ],
         schema_fields=schema_fields,

@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import zipfile
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -15,6 +16,7 @@ from app.routes.badge_constructor import templates as constructor_templates
 
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+XLSX_SIGNATURE = b"PK\x03\x04"
 
 
 def make_constructor_client(tmp_path, monkeypatch) -> TestClient:
@@ -156,6 +158,78 @@ def test_preview_draft_returns_png_for_static_and_dynamic_overlays(tmp_path, mon
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/png"
     assert response.content.startswith(PNG_SIGNATURE)
+
+
+def test_download_batch_issue_excel_template_returns_xlsx(tmp_path, monkeypatch):
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    response = client.get("/badge-constructor/batch-issue/template.xlsx")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert "badge83-modele-emission-groupee.xlsx" in response.headers["content-disposition"]
+    assert response.content.startswith(XLSX_SIGNATURE)
+
+
+def test_download_batch_issue_excel_template_for_selected_schema_contains_schema_fields(tmp_path, monkeypatch):
+    from openpyxl import load_workbook
+
+    client = make_constructor_client(tmp_path, monkeypatch)
+
+    schema_response = client.post(
+        "/badge-constructor/schemas",
+        json={
+            "name": "Programme avec couriel",
+            "fields": [
+                {
+                    "id": "29b19e6e-524e-4f79-9c1d-dec3aa775dbe",
+                    "label": "Couriel",
+                    "field_type": "email",
+                    "required": True,
+                    "position": 1,
+                },
+                {
+                    "id": "course_name",
+                    "label": "Nom du cours",
+                    "field_type": "text",
+                    "required": True,
+                    "position": 2,
+                },
+            ],
+        },
+    )
+    assert schema_response.status_code == 200
+    schema_id = schema_response.json()["id"]
+
+    template_response = client.post(
+        "/badge-constructor/templates",
+        json={
+            "name": "Modèle Couriel",
+            "schema_id": schema_id,
+            "text_overlays": [],
+            "qr_code_placement": "bottom-right",
+            "qr_code_size": 0.22,
+        },
+    )
+    assert template_response.status_code == 200
+    template_id = template_response.json()["id"]
+
+    response = client.get(f"/badge-constructor/templates/{template_id}/batch-issue/template.xlsx")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert response.content.startswith(XLSX_SIGNATURE)
+
+    workbook = load_workbook(io.BytesIO(response.content), read_only=True)
+    try:
+        worksheet = workbook["Emission groupee"]
+        headers = [cell.value for cell in next(worksheet.iter_rows(min_row=1, max_row=1))]
+        sample_values = [cell.value for cell in next(worksheet.iter_rows(min_row=2, max_row=2))]
+    finally:
+        workbook.close()
+
+    assert headers == ["nom", "email", "reussi", "Couriel", "Nom du cours"]
+    assert sample_values[3] == "alice@example.org"
 
 
 def test_preview_draft_rejects_background_path_traversal(tmp_path, monkeypatch, sample_png_bytes):
@@ -401,7 +475,7 @@ def test_batch_issue_preview_rejects_csv_over_configured_limit(tmp_path, monkeyp
     )
 
     assert response.status_code == 413
-    assert response.json()["detail"] == "CSV trop volumineux"
+    assert response.json()["detail"] == "CSV/XLSX trop volumineux"
 
 
 def test_background_upload_rejects_png_over_configured_limit(tmp_path, monkeypatch, isolated_issuer_env, sample_png_bytes):

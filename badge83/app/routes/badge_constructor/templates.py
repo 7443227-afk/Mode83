@@ -8,13 +8,14 @@ import csv
 import io
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Body
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from typing import List
 import base64
 
-from app.config import BACKGROUND_IMAGES_DIR, BADGE_PNG, ISSUED_DIR, get_max_csv_upload_bytes, get_max_png_upload_bytes
+from app.config import BACKGROUND_IMAGES_DIR, BADGE_PNG, DATA_BASE, ISSUED_DIR, get_max_csv_upload_bytes, get_max_png_upload_bytes
 from app.database import init_db_schema, close_connection
 from app.database import (
     add_badge_template, get_badge_template_by_id, get_all_badge_templates,
@@ -192,6 +193,92 @@ def _get_batch_schema_fields(template: dict, db: sqlite3.Connection) -> list[dic
         for field in fields
         if field.get("id") and field.get("id") != "certificate_number"
     ]
+
+
+def _batch_template_column_for_field(field: dict) -> str:
+    """Retourne l'en-tête Excel opérateur à utiliser pour un champ de schéma."""
+    return str(field.get("label") or field.get("id") or "").strip()
+
+
+def _build_batch_issue_template_xlsx(*, template: dict, schema_fields: list[dict]) -> bytes:
+    """Génère un modèle Excel adapté au schéma du modèle de badge sélectionné."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill
+        from openpyxl.comments import Comment
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail="Le support Excel nécessite la dépendance openpyxl") from exc
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Emission groupee"
+
+    base_headers = ["nom", "email", "reussi"]
+    field_headers: list[str] = []
+    field_by_header: dict[str, dict] = {}
+    for field in schema_fields:
+        header = _batch_template_column_for_field(field)
+        if not header:
+            continue
+        normalized = header.strip().lower()
+        if normalized in {"nom", "name", "email", "reussi", "réussi", "passed"}:
+            continue
+        if header not in field_by_header:
+            field_headers.append(header)
+            field_by_header[header] = field
+
+    headers = [*base_headers, *field_headers]
+    worksheet.append(headers)
+
+    sample_row = ["Alice Example", "alice@example.org", "oui"]
+    for header in field_headers:
+        field = field_by_header[header]
+        field_type = str(field.get("field_type") or "text")
+        label = str(field.get("label") or header).lower()
+        if field_type == "email" or "couriel" in label or "courriel" in label or "email" in label:
+            sample_row.append("alice@example.org")
+        elif field_type == "date" or "date" in label:
+            sample_row.append("2026-05-19")
+        elif field_type == "number":
+            sample_row.append("1")
+        elif "cours" in label or "course" in label or "programme" in label:
+            sample_row.append("Formation MODE83")
+        else:
+            sample_row.append("Exemple")
+    worksheet.append(sample_row)
+
+    header_fill = PatternFill("solid", fgColor="E8F1FF")
+    required_fill = PatternFill("solid", fgColor="FFE4E6")
+    for column_index, header in enumerate(headers, start=1):
+        cell = worksheet.cell(row=1, column=column_index)
+        field = field_by_header.get(header)
+        is_required = header in base_headers or bool(field and field.get("required"))
+        cell.font = Font(bold=True)
+        cell.fill = required_fill if is_required else header_fill
+        if field:
+            required_text = "obligatoire" if field.get("required") else "optionnel"
+            cell.comment = Comment(
+                f"Champ du schéma : {field.get('label') or field.get('id')} ({required_text}). "
+                "Conservez cet en-tête ou utilisez l'identifiant technique du champ.",
+                "Badge83",
+            )
+        elif header == "reussi":
+            cell.comment = Comment("Valeurs acceptées : oui/non, yes/no, true/false, 1/0.", "Badge83")
+
+        worksheet.column_dimensions[cell.column_letter].width = max(14, min(36, len(str(header)) + 6))
+
+    info = workbook.create_sheet("Instructions")
+    info.append(["Modèle Badge83", template.get("name") or template.get("id") or "Modèle sélectionné"])
+    info.append(["Colonnes minimales", "nom, email, reussi"])
+    info.append(["Colonnes du schéma", ", ".join(field_headers) if field_headers else "Aucune"])
+    info.append(["Note", "Les colonnes en rouge sont obligatoires. Supprimez la ligne d'exemple avant l'import réel si nécessaire."])
+    info.column_dimensions["A"].width = 24
+    info.column_dimensions["B"].width = 96
+
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    workbook.close()
+    return buffer.getvalue()
 
 
 def _batch_not_issued_reason(row: dict) -> str:
@@ -403,6 +490,38 @@ def create_badge_template(template: BadgeTemplate, db: sqlite3.Connection = Depe
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/batch-issue/template.xlsx", response_class=FileResponse)
+def download_batch_issue_excel_template():
+    """Télécharge un modèle Excel prêt à remplir pour l'émission groupée."""
+    template_path = DATA_BASE / "sample_batch_issue.xlsx"
+    if not template_path.exists():
+        raise HTTPException(status_code=404, detail="Modèle Excel d'émission groupée introuvable")
+    return FileResponse(
+        template_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename="badge83-modele-emission-groupee.xlsx",
+    )
+
+
+@router.get("/templates/{template_id}/batch-issue/template.xlsx", response_class=Response)
+def download_batch_issue_excel_template_for_template(template_id: str, db: sqlite3.Connection = Depends(get_db)):
+    """Télécharge un modèle Excel généré selon le schéma du modèle sélectionné."""
+    template = get_badge_template_by_id(db, template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Modèle introuvable")
+
+    content = _build_batch_issue_template_xlsx(
+        template=template,
+        schema_fields=_get_batch_schema_fields(template, db),
+    )
+    safe_template_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", str(template.get("name") or template_id)).strip("-") or template_id
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="badge83-modele-emission-groupee-{safe_template_name}.xlsx"'},
+    )
+
+
 @router.get("/templates", response_model=List[dict])
 def list_badge_templates(db: sqlite3.Connection = Depends(get_db)):
     """Liste tous les modèles de badge actifs."""
@@ -568,7 +687,7 @@ async def preview_batch_issue_from_template(
         template = get_badge_template_by_id(db, template_id)
         if not template:
             raise HTTPException(status_code=404, detail="Modèle introuvable")
-        content = await read_upload_limited(file, get_max_csv_upload_bytes(), label="CSV")
+        content = await read_upload_limited(file, get_max_csv_upload_bytes(), label="CSV/XLSX")
         return preview_batch_file(
             template_id=template_id,
             file_bytes=content,
@@ -589,13 +708,13 @@ async def commit_batch_issue_from_template(
     file: UploadFile = File(...),
     db: sqlite3.Connection = Depends(get_db),
 ):
-    """Émet des badges depuis un fichier CSV après validation des lignes."""
+    """Émet des badges depuis un fichier CSV/XLSX après validation des lignes."""
     try:
         template = get_badge_template_by_id(db, template_id)
         if not template:
             raise HTTPException(status_code=404, detail="Modèle introuvable")
 
-        content = await read_upload_limited(file, get_max_csv_upload_bytes(), label="CSV")
+        content = await read_upload_limited(file, get_max_csv_upload_bytes(), label="CSV/XLSX")
         source_filename = file.filename or "batch.csv"
         rows = parse_batch_file(content, source_filename)
         preview = preview_batch_rows(
@@ -684,13 +803,13 @@ async def archive_batch_issue_from_template(
     file: UploadFile = File(...),
     db: sqlite3.Connection = Depends(get_db),
 ):
-    """Émet des badges depuis un CSV et retourne une archive ZIP avec PNG et rapport."""
+    """Émet des badges depuis un CSV/XLSX et retourne une archive ZIP avec PNG et rapport."""
     try:
         template = get_badge_template_by_id(db, template_id)
         if not template:
             raise HTTPException(status_code=404, detail="Modèle introuvable")
 
-        content = await read_upload_limited(file, get_max_csv_upload_bytes(), label="CSV")
+        content = await read_upload_limited(file, get_max_csv_upload_bytes(), label="CSV/XLSX")
         source_filename = file.filename or "batch.csv"
         rows = parse_batch_file(content, source_filename)
         preview = preview_batch_rows(
@@ -711,7 +830,7 @@ async def archive_batch_issue_from_template(
         archive_name = f"batch-issue-{timestamp}.zip"
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.writestr("source.csv", content)
+            archive.writestr(f"source{Path(source_filename).suffix.lower() or '.csv'}", content)
             for index, row in enumerate(ready_rows, start=1):
                 field_values = dict(row.get("field_values") or {})
                 certificate_number = str(field_values.get("certificate_number") or "").strip()

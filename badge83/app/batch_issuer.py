@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from datetime import date, datetime
 import io
 import json
 import re
@@ -32,6 +33,7 @@ POSITIVE_VALUES = {"oui", "yes", "true", "1", "reussi", "réussi", "passed", "va
 NEGATIVE_VALUES = {"non", "no", "false", "0", "echoue", "échoué", "failed", "absent"}
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+EMAIL_FIELD_ALIASES = {"email", "e_mail", "mail", "couriel", "courriel", "adresse_email", "adresse_mail"}
 
 
 @dataclass(frozen=True)
@@ -88,6 +90,11 @@ def _build_schema_field_alias_map(schema_fields: list[dict[str, Any]] | None) ->
     return alias_map
 
 
+def _is_email_like_schema_field(field: dict[str, Any]) -> bool:
+    """Détecte les champs de schéma qui représentent l'email du bénéficiaire."""
+    return bool(_field_aliases(field) & EMAIL_FIELD_ALIASES)
+
+
 def normalize_email_value(value: object) -> str:
     return str(value or "").strip().lower()
 
@@ -103,15 +110,20 @@ def is_passed(value: object) -> bool | None:
     return None
 
 
-def parse_batch_file(file_bytes: bytes, filename: str) -> list[dict[str, str]]:
-    """Parse un fichier CSV d'émission groupée.
+def _cell_value_to_text(value: object) -> str:
+    """Convertit une valeur Excel/CSV en texte stable pour le flux d'import."""
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.date().isoformat() if value.time().isoformat() == "00:00:00" else value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
 
-    Le MVP supporte uniquement CSV. Le support XLSX est prévu dans une phase suivante.
-    """
-    suffix = Path(filename or "").suffix.lower()
-    if suffix != ".csv":
-        raise ValueError("Seuls les fichiers CSV sont supportés dans cette première version")
 
+def _parse_csv_batch_file(file_bytes: bytes) -> list[dict[str, str]]:
     text = file_bytes.decode("utf-8-sig")
     sample = text[:2048]
     try:
@@ -129,10 +141,65 @@ def parse_batch_file(file_bytes: bytes, filename: str) -> list[dict[str, str]]:
         for key, value in raw_row.items():
             normalized_key = normalize_column_name(key or "")
             if normalized_key:
-                normalized_row[normalized_key] = str(value or "").strip()
+                normalized_row[normalized_key] = _cell_value_to_text(value)
         if any(value for value in normalized_row.values()):
             rows.append(normalized_row)
     return rows
+
+
+def _parse_xlsx_batch_file(file_bytes: bytes) -> list[dict[str, str]]:
+    try:
+        from openpyxl import load_workbook
+    except ImportError as exc:
+        raise ValueError("Le support Excel nécessite la dépendance openpyxl") from exc
+
+    try:
+        workbook = load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
+    except Exception as exc:
+        raise ValueError("Le fichier XLSX est invalide ou illisible") from exc
+
+    try:
+        worksheet = workbook.active
+        header: list[str] | None = None
+        rows: list[dict[str, str]] = []
+
+        for excel_row in worksheet.iter_rows(values_only=True):
+            values = [_cell_value_to_text(value) for value in excel_row]
+            if not any(values):
+                continue
+
+            if header is None:
+                header = [normalize_column_name(value) for value in values]
+                if not any(header):
+                    raise ValueError("Le fichier XLSX doit contenir une ligne d'en-tête")
+                continue
+
+            normalized_row: dict[str, str] = {}
+            for index, key in enumerate(header):
+                if not key:
+                    continue
+                value = values[index] if index < len(values) else ""
+                normalized_row[key] = value
+            if any(value for value in normalized_row.values()):
+                rows.append(normalized_row)
+
+        if header is None:
+            raise ValueError("Le fichier XLSX doit contenir une ligne d'en-tête")
+        return rows
+    finally:
+        workbook.close()
+
+
+def parse_batch_file(file_bytes: bytes, filename: str) -> list[dict[str, str]]:
+    """Parse un fichier CSV ou XLSX d'émission groupée."""
+    suffix = Path(filename or "").suffix.lower()
+    if suffix == ".csv":
+        return _parse_csv_batch_file(file_bytes)
+    if suffix == ".xlsx":
+        return _parse_xlsx_batch_file(file_bytes)
+    if suffix == ".xls":
+        raise ValueError("Le format .xls n'est pas supporté : utilisez un fichier .xlsx ou .csv")
+    raise ValueError("Format de fichier non supporté : utilisez un fichier .csv ou .xlsx")
 
 
 def _get_first(row: dict[str, str], *keys: str) -> str:
@@ -230,6 +297,8 @@ def preview_batch_rows(
             field_id = str(field.get("id") or "").strip()
             if field_id in {"name", "nom", "email"}:
                 continue
+            if not str(field_values.get(field_id, "")).strip() and _is_email_like_schema_field(field) and email:
+                field_values[field_id] = email
             if not str(field_values.get(field_id, "")).strip():
                 label = str(field.get("label") or field_id).strip()
                 errors.append(f"Champ obligatoire manquant : {label}")
