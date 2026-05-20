@@ -5,3 +5,4 @@ badge83/data/registry.db
 badge83/badge83/
 badge83/server.log
 badge83/data/registry.db
+.temp/
