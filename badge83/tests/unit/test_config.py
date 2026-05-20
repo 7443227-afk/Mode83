@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app import config
+import pytest
 
 
 def test_explicit_base_url_wins_over_internal_port(monkeypatch):
@@ -37,3 +38,71 @@ def test_non_standard_public_port_is_preserved(monkeypatch):
     monkeypatch.setenv("BADGE83_PUBLIC_PORT", "8443")
 
     assert config.get_public_base_url() == "https://mode83.ddns.net:8443"
+
+
+def test_development_env_allows_default_security_values(monkeypatch):
+    monkeypatch.delenv("BADGE83_ENV", raising=False)
+    monkeypatch.delenv("BADGE83_AUTH_PASSWORD", raising=False)
+    monkeypatch.delenv("BADGE83_AUTH_SECRET", raising=False)
+    monkeypatch.delenv("BADGE83_SEARCH_PEPPER", raising=False)
+
+    config.validate_production_security_config()
+
+
+def test_production_env_rejects_default_auth_password(monkeypatch):
+    monkeypatch.setenv("BADGE83_ENV", "production")
+    monkeypatch.setenv("BADGE83_AUTH_PASSWORD", config.DEFAULT_AUTH_PASSWORD)
+    monkeypatch.setenv("BADGE83_AUTH_SECRET", "strong-test-secret")
+    monkeypatch.setenv("BADGE83_SEARCH_PEPPER", "strong-test-pepper")
+
+    with pytest.raises(RuntimeError, match="BADGE83_AUTH_PASSWORD"):
+        config.validate_production_security_config()
+
+
+def test_production_env_rejects_default_auth_secret(monkeypatch):
+    monkeypatch.setenv("BADGE83_ENV", "production")
+    monkeypatch.setenv("BADGE83_AUTH_PASSWORD", "strong-test-password")
+    monkeypatch.setenv("BADGE83_AUTH_SECRET", config.DEFAULT_AUTH_SECRET)
+    monkeypatch.setenv("BADGE83_SEARCH_PEPPER", "strong-test-pepper")
+
+    with pytest.raises(RuntimeError, match="BADGE83_AUTH_SECRET"):
+        config.validate_production_security_config()
+
+
+def test_production_env_rejects_default_search_pepper(monkeypatch):
+    monkeypatch.setenv("BADGE83_ENV", "production")
+    monkeypatch.setenv("BADGE83_AUTH_PASSWORD", "strong-test-password")
+    monkeypatch.setenv("BADGE83_AUTH_SECRET", "strong-test-secret")
+    monkeypatch.setenv("BADGE83_SEARCH_PEPPER", config.DEFAULT_SEARCH_PEPPER)
+
+    with pytest.raises(RuntimeError, match="BADGE83_SEARCH_PEPPER"):
+        config.validate_production_security_config()
+
+
+def test_production_env_accepts_non_default_security_values(monkeypatch):
+    monkeypatch.setenv("BADGE83_ENV", "production")
+    monkeypatch.setenv("BADGE83_AUTH_PASSWORD", "strong-test-password")
+    monkeypatch.setenv("BADGE83_AUTH_SECRET", "strong-test-secret")
+    monkeypatch.setenv("BADGE83_SEARCH_PEPPER", "strong-test-pepper")
+
+    config.validate_production_security_config()
+
+
+def test_upload_limits_can_be_overridden(monkeypatch):
+    monkeypatch.setenv("BADGE83_MAX_PNG_UPLOAD_BYTES", "104857600")
+    monkeypatch.setenv("BADGE83_MAX_CSV_UPLOAD_BYTES", "20971520")
+    monkeypatch.setenv("BADGE83_MAX_IMAGE_PIXELS", "100000000")
+
+    assert config.get_max_png_upload_bytes() == 104857600
+    assert config.get_max_csv_upload_bytes() == 20971520
+    assert config.get_max_image_pixels() == 100000000
+
+
+def test_upload_limits_fallback_to_large_defaults(monkeypatch):
+    monkeypatch.delenv("BADGE83_MAX_PNG_UPLOAD_BYTES", raising=False)
+    monkeypatch.delenv("BADGE83_MAX_CSV_UPLOAD_BYTES", raising=False)
+    monkeypatch.delenv("BADGE83_MAX_IMAGE_PIXELS", raising=False)
+
+    assert config.get_max_png_upload_bytes() == config.DEFAULT_MAX_PNG_UPLOAD_BYTES
+    assert config.get_max_csv_upload_bytes() == config.DEFAULT_MAX_CSV_UPLOAD_BYTES
+    assert config.get_max_image_pixels() == config.DEFAULT_MAX_IMAGE_PIXELS

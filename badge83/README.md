@@ -11,6 +11,7 @@ Il permet d'émettre et de vérifier des assertions conformes au modèle Open Ba
 - Émettre un badge **baked** dans un PNG (`POST /issue-baked`) — l'assertion JSON est injectée dans l'image via un chunk `tEXt` conforme au standard Open Badges.
 - Créer des modèles de badges via un **constructeur opérateur** : schémas de champs, textes dynamiques, QR configurable, preview de brouillon et duplication de modèles.
 - Émettre un PNG baked depuis un modèle préparé (`POST /badge-constructor/templates/{template_id}/issue-baked`) avec valeurs dynamiques conservées dans l'assertion.
+- Émettre des badges en groupe depuis un fichier CSV ou Excel `.xlsx` : preview obligatoire, émission partielle contrôlée, archive ZIP, rapport CSV et historisation SQLite des sessions.
 - Ajouter automatiquement un **QR code visible** sur les badges PNG baked, pointant vers la page publique de vérification humaine.
 - Enrichir les assertions avec des métadonnées minimales de conformité : `@language`, `expires` et `evidence`.
 - Exposer un profil `Issuer` enrichi avec un bloc `verification` (`allowedOrigins`, `startsWith`).
@@ -146,6 +147,36 @@ export BADGE83_SEARCH_PEPPER="change-me-in-production"
 ```
 
 Ce pepper est utilisé pour calculer des hash de recherche stables côté serveur, sans exposer les valeurs en clair dans l’interface admin.
+
+### Sécurité et configuration production
+
+Badge83 distingue l'environnement de développement et l'environnement production via :
+
+```bash
+export BADGE83_ENV=production
+```
+
+ou :
+
+```bash
+export BADGE83_ENV=prod
+```
+
+En mode production, l'application refuse de démarrer avec les valeurs faibles de développement pour :
+
+- `BADGE83_AUTH_PASSWORD` ;
+- `BADGE83_AUTH_SECRET` ;
+- `BADGE83_SEARCH_PEPPER`.
+
+Les uploads opérateur sont également bornés par des variables configurables :
+
+```bash
+export BADGE83_MAX_PNG_UPLOAD_BYTES=52428800
+export BADGE83_MAX_CSV_UPLOAD_BYTES=10485760
+export BADGE83_MAX_IMAGE_PIXELS=50000000
+```
+
+Valeurs par défaut : PNG 50 MB, CSV/XLSX 10 MB et images 50 mégapixels.
 
 ### Registre SQLite local
 
@@ -345,6 +376,60 @@ Le constructeur permet aussi de modifier un modèle existant depuis l'interface 
 
 Guide utilisateur détaillé : [`docs/guide-edition-modele-constructeur.md`](docs/guide-edition-modele-constructeur.md).
 
+### Émission groupée CSV/XLSX
+
+L'écran d'émission groupée permet à un opérateur d'émettre plusieurs badges depuis un fichier CSV ou Excel `.xlsx`, en réutilisant les modèles du constructeur.
+
+Parcours recommandé :
+
+1. sélectionner un modèle de badge existant ;
+2. télécharger le modèle Excel adapté au schéma sélectionné ;
+3. compléter les colonnes opérateur (`nom`, `email`, `reussi` et champs du schéma) ;
+4. charger le fichier dans Badge83 ;
+5. vérifier la prévisualisation ;
+6. confirmer l'émission ;
+7. télécharger l'archive ZIP contenant les PNG baked et le rapport d'émission.
+
+La politique retenue est une **émission partielle contrôlée** : Badge83 analyse toutes les lignes, mais n'émet que les lignes prêtes. Les lignes non admises, en doublon ou en erreur sont conservées dans le rapport.
+
+Statuts utilisés :
+
+| Statut | Signification |
+|--------|---------------|
+| `ready` | ligne valide, émissible |
+| `not_passed` | participant non admis |
+| `duplicate` | badge déjà émis pour ce modèle et cet email |
+| `error` | donnée manquante ou invalide |
+
+Formats acceptés :
+
+- `.csv` avec détection automatique des séparateurs courants ;
+- `.xlsx` via `openpyxl` ;
+- `.xls` n'est pas supporté.
+
+Endpoints principaux :
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /badge-constructor/batch-issue/template.xlsx` | Modèle Excel générique |
+| `GET /badge-constructor/templates/{id}/batch-issue/template.xlsx` | Modèle Excel adapté au schéma sélectionné |
+| `POST /badge-constructor/templates/{id}/batch-issue/preview` | Prévisualisation sans émission |
+| `POST /badge-constructor/templates/{id}/batch-issue` | Émission groupée avec rapport JSON |
+| `POST /badge-constructor/templates/{id}/batch-issue/archive` | Émission groupée avec archive ZIP |
+| `GET /badge-constructor/batch-sessions` | Liste des sessions d'import |
+| `GET /badge-constructor/batch-sessions/{session_id}` | Détail d'une session d'import |
+
+L'archive ZIP contient notamment :
+
+```text
+source.csv ou source.xlsx
+rapport_emission.csv
+manifest.json
+badges/*.png
+```
+
+Guide détaillé : [`docs/guide-emission-groupee-csv.md`](docs/guide-emission-groupee-csv.md).
+
 ### Bureau de vérification
 
 Une page simplifiée dédiée à un usage administratif est disponible ici :
@@ -453,6 +538,7 @@ Cette structure correspond au format effectivement produit par `app/issuer.py` e
 - **HostedBadge** : les assertions contiennent des URLs HTTP publiques (au lieu d'objets imbriqués) permettant la validation externe par des tiers comme `validator.openbadges.org`.
 - Le fichier `app/models.py` contient encore des modèles historiques plus anciens ; la structure réellement émise en production est celle implémentée dans `app/issuer.py`.
 - Avant toute exposition production publique, appliquer les recommandations de sécurité documentées dans `docs/audit-architecture-security-120526.md`.
+- Les routes administrateur sont protégées côté FastAPI ; les routes publiques de vérification et HostedBadge restent accessibles sans authentification.
 
 ## Journal des modifications
 
@@ -473,3 +559,4 @@ Voir [`docs/CHANGELOG-130426.md`](docs/CHANGELOG-130426.md) pour les modificatio
 | Base de données locale | Implémenté | Registre SQLite local pour index administratif, recherche et cohérence JSON/PNG |
 | Validation avec `openbadges-validator-core` | Validé | Test de conformité réussi sur un badge MODE83 hébergé |
 | Validation IMS officielle | 🔲 À poursuivre | Vérifications complémentaires sur l'infrastructure publique / HTTPS |
+| Émission groupée CSV/XLSX | Implémenté | Preview, commit, archive ZIP, rapport et historisation SQLite |

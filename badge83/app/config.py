@@ -11,6 +11,7 @@ WORKSPACE_DIR = PROJECT_DIR.parent
 DATA_BASE = PROJECT_DIR / "data"
 ISSUED_DIR = DATA_BASE / "issued"
 BAKED_DIR = DATA_BASE / "baked"
+BACKGROUND_IMAGES_DIR = DATA_BASE / "backgrounds"
 REGISTRY_DB = DATA_BASE / "registry.db"
 
 ISSUER_TEMPLATE = DATA_BASE / "issuer_template.json"
@@ -27,6 +28,10 @@ DEFAULT_SEARCH_PEPPER = "badge83-dev-search-pepper"
 DEFAULT_AUTH_USERNAME = "admin"
 DEFAULT_AUTH_PASSWORD = "admin"
 DEFAULT_AUTH_SECRET = "badge83-dev-auth-secret-change-me"
+DEFAULT_MAX_PNG_UPLOAD_BYTES = 50 * 1024 * 1024
+DEFAULT_MAX_CSV_UPLOAD_BYTES = 10 * 1024 * 1024
+DEFAULT_MAX_IMAGE_PIXELS = 50_000_000
+PRODUCTION_ENV_VALUES = {"prod", "production"}
 
 ROOT_VENV_DIR = WORKSPACE_DIR / ".venv"
 PROJECT_VENV_DIR = PROJECT_DIR / ".venv"
@@ -67,7 +72,15 @@ def get_public_base_url() -> str:
 
 
 def get_search_pepper() -> str:
-    return os.environ.get("BADGE83_SEARCH_PEPPER", DEFAULT_SEARCH_PEPPER)
+    return os.environ.get("BADGE83_SEARCH_PEPPER", DEFAULT_SEARCH_PEPPER).strip() or DEFAULT_SEARCH_PEPPER
+
+
+def get_badge83_env() -> str:
+    return os.environ.get("BADGE83_ENV", "development").strip().lower() or "development"
+
+
+def is_production_env() -> bool:
+    return get_badge83_env() in PRODUCTION_ENV_VALUES
 
 
 def get_auth_username() -> str:
@@ -80,6 +93,54 @@ def get_auth_password() -> str:
 
 def get_auth_secret() -> str:
     return os.environ.get("BADGE83_AUTH_SECRET", DEFAULT_AUTH_SECRET).strip() or DEFAULT_AUTH_SECRET
+
+
+def _get_int_env(name: str, default: int) -> int:
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    try:
+        return int(str(raw_value).strip())
+    except Exception:
+        return default
+
+
+def get_max_png_upload_bytes() -> int:
+    """Taille maximale configurable pour les uploads PNG.
+
+    La valeur par défaut reste volontairement large afin de ne pas bloquer les
+    grands PNG métier, comme les attestations ou feuilles de présence hebdomadaires.
+    Une valeur <= 0 désactive la limite côté application.
+    """
+    return _get_int_env("BADGE83_MAX_PNG_UPLOAD_BYTES", DEFAULT_MAX_PNG_UPLOAD_BYTES)
+
+
+def get_max_csv_upload_bytes() -> int:
+    """Taille maximale configurable pour les imports CSV groupés."""
+    return _get_int_env("BADGE83_MAX_CSV_UPLOAD_BYTES", DEFAULT_MAX_CSV_UPLOAD_BYTES)
+
+
+def get_max_image_pixels() -> int:
+    """Nombre maximal configurable de pixels pour éviter les decompression bombs."""
+    return _get_int_env("BADGE83_MAX_IMAGE_PIXELS", DEFAULT_MAX_IMAGE_PIXELS)
+
+
+def validate_production_security_config() -> None:
+    """Refuse les secrets de développement en mode production.
+
+    Le projet peut fonctionner avec des valeurs par défaut en développement local,
+    mais une exposition production avec `admin/admin`, un secret de cookie connu ou
+    un pepper de recherche par défaut serait dangereuse.
+    """
+    if not is_production_env():
+        return
+
+    if get_auth_password() == DEFAULT_AUTH_PASSWORD:
+        raise RuntimeError("BADGE83_AUTH_PASSWORD must be changed in production")
+    if get_auth_secret() == DEFAULT_AUTH_SECRET:
+        raise RuntimeError("BADGE83_AUTH_SECRET must be changed in production")
+    if get_search_pepper() == DEFAULT_SEARCH_PEPPER:
+        raise RuntimeError("BADGE83_SEARCH_PEPPER must be changed in production")
 
 
 def get_registry_db_path() -> Path:
