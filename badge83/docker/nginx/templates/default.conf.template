@@ -1,0 +1,74 @@
+server {
+    listen 80;
+    server_name ${BADGE83_DOMAIN};
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${BADGE83_DOMAIN};
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    client_max_body_size 60m;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    # Internal auth endpoint used by auth_request for protected operator routes.
+    location = /auth/check {
+        internal;
+        proxy_pass http://badge83:8000/auth/check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+    }
+
+    # Login/logout must stay reachable to establish or clear the admin cookie.
+    location = /auth/login {
+        proxy_pass http://badge83:8000;
+    }
+
+    location = /auth/logout {
+        proxy_pass http://badge83:8000;
+    }
+
+    # Public Open Badges / verification endpoints. External validators and QR
+    # scans must be able to resolve these URLs without authentication.
+    location ^~ /verify/qr/ {
+        proxy_pass http://badge83:8000;
+    }
+
+    location ^~ /assertions/ {
+        proxy_pass http://badge83:8000;
+    }
+
+    location ^~ /issuers/ {
+        proxy_pass http://badge83:8000;
+    }
+
+    location ^~ /badges/ {
+        proxy_pass http://badge83:8000;
+    }
+
+    location ^~ /assets/ {
+        proxy_pass http://badge83:8000;
+    }
+
+    # Everything else is considered operator/admin surface and receives the
+    # same cookie check as the FastAPI app. FastAPI also keeps its own checks.
+    location / {
+        auth_request /auth/check;
+        error_page 401 =302 /auth/login?next=$request_uri;
+        proxy_pass http://badge83:8000;
+    }
+}

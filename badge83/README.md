@@ -83,6 +83,86 @@ pip install -r /home/ubuntu/projects/Mode83/badge83/requirements.txt
 
 Toutes les commandes ci-dessous peuvent alors être lancées soit avec l'environnement activé, soit en appelant explicitement `.venv/bin/python`.
 
+### Lancement avec Docker
+
+Le lancement historique par virtualenv et `badge83.sh` reste supporté. Docker est une couche d'exploitation optionnelle pour faciliter les tests, démonstrations et déploiements.
+
+Depuis `/home/ubuntu/projects/Mode83/badge83` :
+
+```bash
+cp .env.docker.example .env
+docker compose up -d --build
+```
+
+Si la machine dispose de l'ancien binaire Compose v1 au lieu du plugin Compose v2, utilisez la forme équivalente :
+
+```bash
+docker-compose up -d --build
+```
+
+L'application est ensuite disponible sur :
+
+```text
+http://localhost:8000
+```
+
+Les données générées par le conteneur sont conservées dans :
+
+```text
+badge83/runtime-data/
+```
+
+Ce dossier est monté dans le conteneur en `/app/data` et contient notamment les assertions JSON, les PNG baked et `registry.db`.
+
+Commandes utiles :
+
+```bash
+docker compose ps
+docker compose logs -f badge83
+docker compose down
+```
+
+Avec Compose v1 :
+
+```bash
+docker-compose ps
+docker-compose logs -f badge83
+docker-compose down
+```
+
+Vérifications rapides :
+
+```bash
+curl http://localhost:8000/issuers/main
+curl http://localhost:8000/badges/blockchain-foundations
+```
+
+Pour une installation production sur une autre machine, le modèle recommandé est :
+
+```text
+Internet -> Nginx HTTPS -> Badge83 FastAPI -> runtime-data
+```
+
+Un assistant interactif permet de générer le fichier `.env`, les secrets et de préparer le certificat :
+
+```bash
+./docker/setup.sh
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+Le reverse proxy Nginx applique `auth_request` sur les routes opérateur et laisse publics les endpoints nécessaires à la vérification Open Badges.
+
+Installation manuelle équivalente :
+
+```bash
+cp .env.production.example .env
+# éditer .env : domaine, BADGE83_BASE_URL et secrets forts
+# placer les certificats dans docker/nginx/certs/fullchain.pem et privkey.pem
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+Plan détaillé et rollback : [`docs/docker-implementation-and-rollback-210526.md`](docs/docker-implementation-and-rollback-210526.md).
+
 ### Configuration de l'URL publique
 
 Les badges émis contiennent des URLs publiques pointant vers le serveur. Définissez la variable d'environnement `BADGE83_BASE_URL` :

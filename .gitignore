@@ -6,3 +6,10 @@ badge83/badge83/
 badge83/server.log
 badge83/data/registry.db
 .temp/
+badge83/.env
+badge83/.env.*
+!badge83/.env.docker.example
+!badge83/.env.production.example
+badge83/runtime-data/
+badge83/docker/nginx/certs/*
+!badge83/docker/nginx/certs/.gitkeep
