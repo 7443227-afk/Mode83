@@ -1,0 +1,20 @@
+services:
+  badge83:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: badge83:local
+    container_name: badge83
+    restart: unless-stopped
+    ports:
+      - "${BADGE83_BIND_PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./runtime-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/issuers/main"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
