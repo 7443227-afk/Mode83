@@ -124,11 +124,14 @@ git clone https://github.com/7443227-afk/Mode83.git
 cd Mode83
 ```
 
-Si les fichiers Docker sont sur une branche dédiée :
+Depuis le 22/05/2026, les fichiers Docker validés sont intégrés dans `main`.
+Pour une installation sur une nouvelle machine, le déploiement doit donc se
+faire depuis `main` :
 
 ```bash
 git fetch --all
-git switch feature/docker-badge83
+git switch main
+git pull
 ```
 
 Vérifier la présence des fichiers :
@@ -414,8 +417,8 @@ Résultats observés :
 
 - installation Docker réussie ;
 - récupération du projet depuis Git réussie ;
-- nécessité de basculer sur la branche Docker lorsque `main` ne contenait pas
-  encore les fichiers Docker ;
+- validation initiale réalisée sur la branche Docker, puis intégration des
+  fichiers Docker dans `main` pour simplifier les installations suivantes ;
 - démarrage initial bloqué par des secrets production trop courts ;
 - correction de `.env` avec des secrets aléatoires de 64 caractères ;
 - démarrage de la stack production réussi ;
