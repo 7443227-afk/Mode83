@@ -551,7 +551,7 @@
             <button class="menu-btn" data-view="inspectorView" data-i18n="menuInspector">Inspection et édition</button>
             <button class="menu-btn" data-view="issueView" data-i18n="menuIssue">Émission de badge</button>
             <button class="menu-btn" data-view="batchIssueView" data-i18n="menuBatchIssue">Émission groupée</button>
-            <button class="menu-btn" data-view="constructorView">Constructeur de badge</button>
+            <button class="menu-btn" data-view="constructorView" data-i18n="menuConstructor">Constructeur de badge</button>
             <button class="menu-btn" data-view="verifyView" data-i18n="menuVerify">Vérification et HostedBadge</button>
             <a href="/verify-desk" class="menu-btn text-decoration-none d-block">Bureau de vérification</a>
             <button class="menu-btn" data-view="systemView" data-i18n="menuSystem">Sortie système</button>
@@ -775,6 +775,15 @@
                 </div>
                 <button id="constructorRefreshBtn" class="btn btn-outline-primary btn-sm">Actualiser</button>
               </div>
+              <div class="alert alert-primary border-0 small mb-3">
+                <div class="fw-semibold mb-1">Flux conseillé pour créer un modèle fiable</div>
+                <ol class="mb-0 ps-3">
+                  <li>Créer ou vérifier le schéma métier avec les champs nécessaires.</li>
+                  <li>Choisir un fond PNG, puis placer le QR code et les textes.</li>
+                  <li>Utiliser l’aperçu, le glisser-déposer et le déplacement fin avant d’enregistrer.</li>
+                  <li>Tester le modèle en émission individuelle, puis en émission groupée.</li>
+                </ol>
+              </div>
 
               <div class="row g-4">
                 <div class="col-12 col-lg-5">
@@ -855,6 +864,7 @@
                             <option value="center">Centre</option>
                             <option value="custom">Personnalisé</option>
                           </select>
+                          <div class="form-text">Le QR peut aussi être déplacé directement dans l’aperçu.</div>
                         </div>
                         <div class="col-6">
                           <label class="form-label" for="templateQrSize">Taille QR</label>
@@ -895,11 +905,11 @@
                       </div>
                       <div class="row g-2 mb-2">
                         <div class="col-3">
-                          <label class="form-label" for="templateTextX">X</label>
+                          <label class="form-label" for="templateTextX">X gauche</label>
                           <input id="templateTextX" class="form-control" type="number" value="24" />
                         </div>
                         <div class="col-3">
-                          <label class="form-label" for="templateTextY">Y</label>
+                          <label class="form-label" for="templateTextY">Y haut</label>
                           <input id="templateTextY" class="form-control" type="number" value="24" />
                         </div>
                         <div class="col-3">
@@ -916,7 +926,7 @@
                         <button id="templateCancelOverlayEditBtn" class="btn btn-outline-secondary d-none" type="button">Annuler</button>
                       </div>
                       <button id="templateDraftPreviewBtn" class="btn btn-outline-secondary w-100 mb-2" type="button">Prévisualiser le brouillon</button>
-                      <div id="templateOverlayList" class="small text-muted mb-2">Aucun texte ajouté. Le texte courant sera utilisé si vous créez directement le modèle.</div>
+                      <div id="templateOverlayList" class="small text-muted mb-2">Aucun texte ajouté. Ajoutez au moins un texte pour visualiser précisément le rendu du modèle.</div>
                       <button id="templateSubmitBtn" class="btn btn-success w-100" type="submit">Créer le modèle</button>
                     </form>
                   </div>
@@ -957,7 +967,7 @@
                       </div>
                     </div>
                     <div class="d-flex justify-content-between gap-3 flex-wrap align-items-center mb-2">
-                      <div class="small text-muted">Déplacement fin : 1px par clic, 10px avec Shift.</div>
+                      <div class="small text-muted">Astuce : déplacez le QR ou un texte à la souris. Déplacement fin : 1px par clic, 10px avec Shift.</div>
                       <div class="constructor-nudge-grid" aria-label="Déplacement fin du texte sélectionné">
                         <span class="nudge-spacer"></span>
                         <button class="btn btn-sm btn-outline-primary constructor-nudge-btn" type="button" data-dx="0" data-dy="-1">↑</button>
@@ -2607,6 +2617,7 @@
           const disposition = response.headers.get('Content-Disposition') || 'attachment; filename="batch-issue.zip"';
           const match = disposition.match(/filename="([^"]+)"/);
           const filename = match ? match[1] : 'batch-issue.zip';
+          const sessionId = response.headers.get('X-Badge83-Session-Id') || '';
           const a = document.createElement('a');
           a.href = url;
           a.download = filename;
@@ -2615,11 +2626,18 @@
           a.remove();
           URL.revokeObjectURL(url);
           const createdCount = Number(response.headers.get('X-Badge83-Created') || 0);
-          setSystemOutput({ status: 'batch_archive_downloaded', filename, created: createdCount });
+          setSystemOutput({ status: 'batch_archive_downloaded', filename, created: createdCount, session_id: sessionId || null });
           await loadDashboard(null);
-          batchIssueStatus.textContent = `Archive ZIP générée et téléchargée : ${filename}. Badges créés : ${createdCount}.`;
+          batchIssueStatus.textContent = sessionId
+            ? `Archive ZIP générée et téléchargée : ${filename}. Badges créés : ${createdCount}. Session : ${sessionId}.`
+            : `Archive ZIP générée et téléchargée : ${filename}. Badges créés : ${createdCount}.`;
           batchResultCard.classList.remove('d-none');
-          batchResultCard.innerHTML = `<div class="h5 mb-1">Archive ZIP téléchargée</div><div class="text-muted">${escapeHtml(filename)} · ${createdCount} badge(s) créé(s). Le rapport CSV et les PNG baked sont inclus dans l’archive.</div>`;
+          batchResultCard.innerHTML = `
+            <div class="h5 mb-1">Archive ZIP téléchargée</div>
+            <div class="text-muted">${escapeHtml(filename)} · ${createdCount} badge(s) créé(s). Le rapport CSV et les PNG baked sont inclus dans l’archive.</div>
+            ${sessionId ? `<div class="small mt-2"><span class="text-muted">Session d’émission :</span> <code>${escapeHtml(sessionId)}</code></div>` : ''}
+            ${sessionId ? `<div class="small text-muted">Contrôle technique : <code>GET /badge-constructor/batch-sessions/${escapeHtml(sessionId)}</code></div>` : ''}
+          `;
         } catch (error) {
           batchIssueStatus.textContent = `Erreur de génération : ${String(error)}`;
           setSystemOutput({ error: String(error) });

@@ -188,6 +188,9 @@
           <div class="fact">
             <div class="label">Email du titulaire</div>
             <div class="value mono">{{ badge.recipient_email }}</div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              Affichage limité : l’adresse complète n’est pas exposée sur la page publique.
+            </div>
           </div>
 
           <div class="fact">
@@ -212,13 +215,28 @@
             <div class="chip {{ 'ok' if badge.is_mode83 else 'warn' }}">
               {{ 'Émis par MODE83' if badge.is_mode83 else 'Émetteur externe' }}
             </div>
+            <div class="chip {{ 'ok' if badge.recipient.hashed else 'warn' }}">
+              {{ 'Identité protégée' if badge.recipient.hashed else 'Identité à contrôler' }}
+            </div>
           </div>
 
           <details class="technical-details">
             <summary>Informations techniques</summary>
             <div class="fact">
+              <div class="label">Modèle de confiance</div>
+              <div class="value">Vérification publique HostedBadge via l’instance Badge83. L’assertion et les endpoints publics confirment l’existence du badge sans publier l’email en clair.</div>
+            </div>
+            <div class="fact">
               <div class="label">Identifiant public de vérification</div>
               <div class="value mono">{{ assertion_id }}</div>
+            </div>
+            <div class="fact">
+              <div class="label">Empreinte Open Badges du titulaire</div>
+              <div class="value mono">{{ badge.recipient.identity or 'Non disponible' }}</div>
+            </div>
+            <div class="fact">
+              <div class="label">Type de vérification</div>
+              <div class="value mono">{{ badge.verification.type or 'HostedBadge attendu' }}</div>
             </div>
           </details>
           {% endif %}

@@ -486,6 +486,155 @@ badge83/docker/nginx/certs/
 Le dossier `runtime-data/` est prioritaire car il contient les badges émis et le
 registre SQLite.
 
+Exemple de sauvegarde horodatée depuis le dossier `badge83/` :
+
+```bash
+mkdir -p backups
+BACKUP_DATE=$(date +%Y%m%d-%H%M%S)
+tar -czf "backups/badge83-runtime-${BACKUP_DATE}.tar.gz" runtime-data
+cp .env "backups/badge83-env-${BACKUP_DATE}.env"
+tar -czf "backups/badge83-certs-${BACKUP_DATE}.tar.gz" docker/nginx/certs
+```
+
+Recommandations :
+
+- conserver au moins une copie hors de la machine de production ;
+- protéger les archives contenant `.env` ou `privkey.pem` ;
+- tester périodiquement la restauration sur une machine séparée ;
+- effectuer une sauvegarde avant toute mise à jour importante.
+
+## Procédure de restauration
+
+Cette procédure décrit une restauration simple sur une nouvelle machine ou après
+réinstallation du serveur.
+
+1. Réinstaller les prérequis système et Docker.
+
+2. Récupérer le dépôt :
+
+```bash
+mkdir -p ~/projects
+cd ~/projects
+git clone https://github.com/7443227-afk/Mode83.git
+cd Mode83
+git switch main
+cd badge83
+```
+
+3. Restaurer les fichiers sauvegardés :
+
+```bash
+tar -xzf /chemin/vers/badge83-runtime-YYYYMMDD-HHMMSS.tar.gz
+cp /chemin/vers/badge83-env-YYYYMMDD-HHMMSS.env .env
+tar -xzf /chemin/vers/badge83-certs-YYYYMMDD-HHMMSS.tar.gz
+```
+
+4. Vérifier les permissions sensibles :
+
+```bash
+chmod 600 .env
+chmod 600 docker/nginx/certs/privkey.pem
+chmod 644 docker/nginx/certs/fullchain.pem
+```
+
+5. Relancer la stack :
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml ps
+```
+
+6. Rejouer les tests de validation :
+
+```bash
+DOMAIN=badge83.example.com
+curl -ksS -o /tmp/badge83_restore_issuer -w "%{http_code}\n" \
+  "https://${DOMAIN}/issuers/main"
+curl -ksS -o /tmp/badge83_restore_badge -w "%{http_code}\n" \
+  "https://${DOMAIN}/badges/blockchain-foundations"
+ls -lh runtime-data/registry.db
+ls -la runtime-data/issued | tail
+ls -la runtime-data/baked | tail
+```
+
+La restauration est considérée comme valide si :
+
+- le conteneur `badge83` revient en état `healthy` ;
+- Nginx expose toujours `80` et `443` ;
+- les endpoints publics répondent en `HTTP 200` ;
+- les badges et assertions précédemment émis sont présents ;
+- l'interface opérateur reste accessible avec les identifiants restaurés.
+
+## Supervision légère
+
+Pour une exploitation simple, sans outil de monitoring dédié, les contrôles
+suivants peuvent être exécutés régulièrement.
+
+État des conteneurs :
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+Logs récents :
+
+```bash
+docker compose -f docker-compose.prod.yml logs --tail=80 badge83
+docker compose -f docker-compose.prod.yml logs --tail=80 nginx
+```
+
+Smoke test HTTP :
+
+```bash
+DOMAIN=badge83.example.com
+for url in \
+  "https://${DOMAIN}/issuers/main" \
+  "https://${DOMAIN}/badges/blockchain-foundations" \
+  "https://${DOMAIN}/assets/mode83-badge.png" \
+  "https://${DOMAIN}/verify/qr/"
+do
+  code=$(curl -ksS -o /tmp/badge83_monitor_body -w "%{http_code}" "$url")
+  printf "%s -> HTTP %s\n" "$url" "$code"
+done
+```
+
+Vérification de l'espace disque :
+
+```bash
+df -h .
+du -sh runtime-data
+```
+
+Vérification de l'expiration du certificat :
+
+```bash
+openssl x509 -in docker/nginx/certs/fullchain.pem -noout -subject -issuer -dates
+```
+
+## Renouvellement des certificats TLS
+
+Si les certificats proviennent de Let's Encrypt sur l'hôte, le renouvellement se
+fait généralement hors des conteneurs, puis les nouveaux fichiers doivent être
+recopiés dans `docker/nginx/certs/`.
+
+Exemple après renouvellement côté hôte :
+
+```bash
+cd ~/projects/Mode83/badge83
+sudo cp -L /etc/letsencrypt/live/badge83.example.com/fullchain.pem docker/nginx/certs/fullchain.pem
+sudo cp -L /etc/letsencrypt/live/badge83.example.com/privkey.pem docker/nginx/certs/privkey.pem
+sudo chown "$USER:$USER" docker/nginx/certs/fullchain.pem docker/nginx/certs/privkey.pem
+chmod 644 docker/nginx/certs/fullchain.pem
+chmod 600 docker/nginx/certs/privkey.pem
+docker compose -f docker-compose.prod.yml restart nginx
+```
+
+Après redémarrage de Nginx, vérifier :
+
+```bash
+curl -sS -D - -o /dev/null "https://badge83.example.com/issuers/main" | sed -n '1,12p'
+```
+
 ## Points de vigilance
 
 - Ne jamais commiter `.env` ni les certificats privés.

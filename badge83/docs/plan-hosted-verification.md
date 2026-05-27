@@ -168,6 +168,32 @@ Badge PNG (baked)
 
 ---
 
+## Modèle de confiance public retenu
+
+Mise à jour du 27/05/2026 : les pages publiques de vérification ont été clarifiées
+pour distinguer la preuve technique Open Badges des données d'administration.
+
+Le modèle actuel repose sur les principes suivants :
+
+- l'instance Badge83 héberge les assertions, le profil émetteur, les classes de
+  badges et les assets nécessaires à une vérification `HostedBadge` ;
+- un tiers peut scanner un QR code et consulter une page lisible indiquant si le
+  badge est présent dans le registre local, si l'émetteur est MODE83 et si le PNG
+  baked est disponible ;
+- l'identité Open Badges du titulaire utilise une empreinte hashée ;
+- l'email complet n'est pas publié sur les pages publiques de vérification et
+  reste réservé aux interfaces opérateur protégées ;
+- la conservation de `runtime-data/issued/`, `runtime-data/baked/` et
+  `runtime-data/registry.db` est indispensable pour maintenir la preuve après
+  migration ou restauration Docker.
+
+Cette approche ne remplace pas une signature cryptographique complète, mais elle
+rend explicite le niveau de confiance actuel : la preuve dépend de l'instance
+Badge83 qui héberge les ressources publiques et de la sauvegarde durable de ses
+données applicatives.
+
+---
+
 ## Tests recommandés
 
 1. **Émettre un badge** : `POST /issue-baked` avec `name` + `email`

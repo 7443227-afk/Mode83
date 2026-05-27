@@ -103,7 +103,8 @@
           <div class="col-12 col-md-6 col-xl-3">
             <div class="info-card p-3 h-100">
               <div class="label mb-1">Email</div>
-              <div class="fw-semibold mono small">{{ badge.email or 'Non disponible' }}</div>
+              <div class="fw-semibold mono small">Non publié en clair</div>
+              <div class="small text-muted mt-1">L’identité Open Badges repose sur une empreinte hashée.</div>
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
@@ -128,6 +129,9 @@
                 <li>Émetteur : <strong>{{ badge.issuer_name }}</strong></li>
                 <li>Assertion enregistrée dans le registre local : <strong>{{ 'oui' if badge.has_json else 'non' }}</strong></li>
                 <li>PNG baked disponible : <strong>{{ 'oui' if badge.has_png else 'non' }}</strong></li>
+                <li>Vérification publique HostedBadge : <strong>{{ 'oui' if badge.raw_assertion_url else 'non' }}</strong></li>
+                <li>Identité du titulaire protégée par hash : <strong>{{ 'oui' if badge.recipient.hashed else 'non' }}</strong></li>
+                <li>Données personnelles limitées sur la page publique : <strong>oui</strong></li>
               </ul>
             </div>
           </div>
@@ -147,6 +151,11 @@
         <details class="technical-details info-card p-3 mt-3">
           <summary>Afficher les détails techniques</summary>
           <div class="row g-3">
+            <div class="col-12">
+              <div class="alert alert-info mb-0">
+                Cette page vérifie la présence locale de l’assertion Badge83 et expose les URLs publiques nécessaires à une vérification HostedBadge. Les données personnelles du titulaire ne sont pas publiées en clair dans l’identité Open Badges : l’assertion utilise une empreinte hashée. L’email complet reste réservé aux interfaces opérateur protégées.
+              </div>
+            </div>
             <div class="col-12 col-lg-6">
               <div class="label mb-1">Identifiant de l’assertion</div>
               <div class="mono small">{{ assertion_id }}</div>
@@ -166,6 +175,14 @@
               {% else %}
               <div class="mono small">non disponible</div>
               {% endif %}
+            </div>
+            <div class="col-12 col-lg-6">
+              <div class="label mb-1">Type de vérification Open Badges</div>
+              <div class="mono small">{{ badge.verification.type or 'HostedBadge attendu' }}</div>
+            </div>
+            <div class="col-12 col-lg-6">
+              <div class="label mb-1">Identité hashée</div>
+              <div class="mono small">{{ 'oui' if badge.recipient.hashed else 'non' }}</div>
             </div>
             <div class="col-12 d-flex gap-2 flex-wrap">
               <a href="{{ badge.json_url }}" class="btn btn-outline-primary btn-sm" target="_blank">Télécharger le JSON</a>

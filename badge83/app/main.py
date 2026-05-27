@@ -279,7 +279,7 @@ async def verify_badge_qr_page(request: Request, assertion_id: str):
             "issuer_label": issuer_check.get("label") or record.get("issuer_name"),
             "issued_on_display": _format_display_date(record.get("issued_on")),
             "recipient_name": admin_recipient.get("name") or "Non disponible",
-            "recipient_email": admin_recipient.get("email") or "Non disponible",
+            "recipient_email": _mask_email(admin_recipient.get("email")),
             "full_verification_url": f"/verify/badge/{assertion_id}" if is_valid and is_mode83 else None,
         },
     }
@@ -471,6 +471,19 @@ def _format_display_date(value: Any) -> str:
         return parsed.strftime("%d/%m/%Y")
     except Exception:
         return str(value)
+
+
+def _mask_email(value: Any) -> str:
+    """Retourne une version non sensible d'une adresse email pour les pages publiques."""
+    if not value or "@" not in str(value):
+        return "Non disponible"
+
+    local_part, domain = str(value).split("@", 1)
+    if not local_part or not domain:
+        return "Non disponible"
+
+    visible_local = local_part[:2] if len(local_part) > 2 else local_part[:1]
+    return f"{visible_local}…@{domain}"
 
 
 def _build_issuer_check(assertion: dict[str, Any]) -> dict[str, Any]:

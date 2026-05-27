@@ -10,6 +10,8 @@ Mise à jour du 19/05/2026 : ajout du support Excel `.xlsx`, conservation du sup
 
 Mise à jour complémentaire du 19/05/2026 : génération d'un modèle Excel téléchargeable spécifique au modèle de badge sélectionné, afin d'aligner les colonnes du fichier sur les champs obligatoires du schéma associé.
 
+Mise à jour du 27/05/2026 : l'interface opérateur affiche désormais l'identifiant de session d'émission groupée après la génération de l'archive ZIP, afin de faciliter le contrôle technique et la traçabilité.
+
 ## 1. Objectif
 
 Cette fonctionnalité permet d'émettre plusieurs badges à partir d'un fichier CSV ou Excel `.xlsx` contenant une liste de participants.
@@ -32,7 +34,8 @@ Cette première version couvre :
 - la correspondance des colonnes lisibles avec les champs du schéma ;
 - la génération d'un modèle Excel `.xlsx` adapté au schéma du modèle sélectionné ;
 - la génération des assertions JSON et PNG baked via le moteur existant ;
-- le téléchargement d'une archive ZIP contenant les PNG générés, le fichier source et un rapport d'émission.
+- le téléchargement d'une archive ZIP contenant les PNG générés, le fichier source et un rapport d'émission ;
+- l'affichage de l'identifiant de session d'émission groupée après génération de l'archive ZIP.
 
 Ne sont pas encore inclus :
 
