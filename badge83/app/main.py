@@ -8,6 +8,7 @@ import json
 import secrets
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -20,6 +21,8 @@ from fastapi.templating import Jinja2Templates
 from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
+from app.openbadges_checks import check_assertion
+from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
 from app.upload_limits import ensure_image_pixels_within_limit, read_upload_limited
 from app.verifier import deep_verify_baked_badge, verify_badge, verify_baked_badge
 from app.routes.badge_constructor import router as badge_constructor_router
@@ -524,6 +527,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     recipient = assertion.get("recipient", {}) if isinstance(assertion.get("recipient"), dict) else {}
     verification = assertion.get("verification", {}) if isinstance(assertion.get("verification"), dict) else {}
     admin_recipient = assertion.get("admin_recipient", {}) if isinstance(assertion.get("admin_recipient"), dict) else {}
+    compliance = check_assertion(assertion)
 
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
@@ -550,6 +554,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
             "salt": recipient.get("salt"),
         },
         "verification": verification,
+        "compliance": compliance,
         "search": {
             "has_name_hash": bool(assertion.get("search", {}).get("name_hash")) if isinstance(assertion.get("search"), dict) else False,
             "has_email_hash": bool(assertion.get("search", {}).get("email_hash")) if isinstance(assertion.get("search"), dict) else False,
@@ -792,8 +797,14 @@ async def get_assertion(assertion_id: str):
 @app.get("/assets/{asset_name}")
 async def get_asset(asset_name: str):
     """Sert les assets statiques (images de badge, logo émetteur, etc.)."""
-    asset_path = DATA_BASE / asset_name
-    if not asset_path.exists():
+    if "/" in asset_name or "\\" in asset_name or asset_name in {".", ".."}:
+        return JSONResponse(status_code=400, content={"error": "Nom d'asset invalide"})
+
+    base_dir = DATA_BASE.resolve()
+    asset_path = (base_dir / asset_name).resolve()
+    if not asset_path.is_relative_to(base_dir):
+        return JSONResponse(status_code=400, content={"error": "Nom d'asset invalide"})
+    if not asset_path.exists() or not asset_path.is_file():
         return JSONResponse(status_code=404, content={"error": "Asset introuvable"})
     return FileResponse(asset_path, media_type="image/png")
 
@@ -803,15 +814,30 @@ async def get_asset(asset_name: str):
 # ---------------------------------------------------------------------------
 
 async def _fetch_url(url: str) -> dict | None:
-    """Récupère une URL et retourne le JSON parsé, ou None en cas d'échec."""
+    """Récupère une URL publique et retourne le JSON parsé, ou None en cas d'échec."""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, follow_redirects=True)
-            if resp.status_code != 200:
-                return None
-            return resp.json()
-    except Exception:
+        current_url = validate_public_http_url(url)
+        headers = {"Accept": "application/ld+json, application/json;q=0.9, */*;q=0.1"}
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+            for _ in range(MAX_REMOTE_REDIRECTS + 1):
+                async with client.stream("GET", current_url, headers=headers) as resp:
+                    if resp.is_redirect:
+                        location = resp.headers.get("location")
+                        if not location:
+                            return None
+                        current_url = validate_public_http_url(str(resp.url.join(location)))
+                        continue
+                    if resp.status_code != 200:
+                        return None
+                    content = b""
+                    async for chunk in resp.aiter_bytes():
+                        content += chunk
+                        if len(content) > MAX_REMOTE_JSON_BYTES:
+                            return None
+                    return json.loads(content.decode(resp.encoding or "utf-8"))
+    except (SSRFProtectionError, Exception):
         return None
+    return None
 
 
 @app.post("/verify-online")

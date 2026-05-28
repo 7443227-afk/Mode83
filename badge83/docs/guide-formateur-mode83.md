@@ -176,7 +176,7 @@ Pour préserver la validité des badges, ne pas modifier sans accord :
 - les paramètres serveur, Nginx, firewall ou authentification ;
 - la base de registre si un badge a déjà été émis officiellement.
 
-## 12. Données personnelles et confidentialité
+## 12. Données personnelles, confidentialité et RGPD
 
 Badge83 évite d'exposer directement l'email dans le champ Open Badges standard `recipient`.
 
@@ -187,7 +187,16 @@ recipient.hashed = true
 recipient.identity = sha256$...
 ```
 
-Les informations lisibles par l'opérateur, comme le nom et l'email, sont utilisées pour l'administration locale du badge.
+Depuis la politique de minimisation RGPD, l'email complet n'est pas intégré par défaut dans l'assertion JSON publique ni dans le PNG baked. Il reste réservé aux usages administratifs locaux.
+
+Répartition des données :
+
+- données publiques : statut du badge, émetteur, formation, date, nom du titulaire si nécessaire à la vérification humaine, identité Open Badges hashée ;
+- données dans le PNG baked : métadonnées Open Badges de vérification, QR code, textes visibles du modèle ; par défaut pas d'email complet dans les métadonnées ;
+- données réservées à l'administration : email complet, recherche par nom/email, historique d'émission ;
+- données uniquement en SQLite/runtime : index local, email complet opérateur, historique de sessions groupées.
+
+Une option technique `BADGE83_EMBED_ADMIN_RECIPIENT=true` existe pour intégrer explicitement l'email complet dans l'assertion et donc dans le PNG baked. Elle doit rester désactivée sauf décision validée par MODE83.
 
 Règles pratiques :
 

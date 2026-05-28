@@ -19,6 +19,26 @@ La modification d'un modèle permet de corriger ou d'adapter :
 2. Dans le menu de gauche, cliquer sur **Constructeur de badge**.
 3. Vérifier que les blocs **Schémas disponibles** et **Modèles disponibles** sont chargés.
 
+## Scénario complet recommandé
+
+Pour valider qu'un modèle est utilisable par un opérateur non technique, suivre le flux complet ci-dessous :
+
+1. créer ou vérifier un **schéma** avec les champs nécessaires à l'émission ;
+2. créer un **modèle** associé à ce schéma ;
+3. choisir le fond PNG du badge ou conserver le fond standard MODE83 ;
+4. placer le QR code avec une marge suffisante pour le scan mobile ;
+5. ajouter au moins un texte fixe ou dynamique ;
+6. utiliser **Voir l'aperçu avant enregistrement** ;
+7. ajuster les textes ou le QR code par glisser-déposer si nécessaire ;
+8. relancer l'aperçu après chaque modification visuelle ;
+9. enregistrer le modèle ;
+10. utiliser le bloc **Modèle prêt à tester** pour émettre un badge individuel ;
+11. vérifier le PNG baked obtenu ;
+12. revenir au modèle si le rendu final doit être corrigé ;
+13. tester ensuite l'émission groupée avec le modèle validé.
+
+L'interface affiche un encadré **Conseil opérateur** rappelant que l'enregistrement est bloqué lorsque le dernier aperçu ne correspond plus aux réglages affichés. Ce comportement évite d'enregistrer un modèle dont le rendu final n'a pas été contrôlé.
+
 ## Modifier un modèle existant
 
 Dans le bloc **Modèles disponibles** :
@@ -28,13 +48,15 @@ Dans le bloc **Modèles disponibles** :
 3. la zone de formulaire passe de **Nouveau modèle** à **Modifier le modèle** ;
 4. le nom, le schéma, les paramètres QR et les textes du modèle sont chargés dans le formulaire ;
 5. modifier les valeurs souhaitées ;
-6. cliquer sur **Enregistrer** en haut du formulaire ou sur **Enregistrer les modifications** en bas du formulaire.
+6. cliquer sur **Voir l'aperçu avant enregistrement** après les dernières modifications ;
+7. cliquer sur **Enregistrer** en haut du formulaire ou sur **Enregistrer les modifications** en bas du formulaire.
 
 Après l'enregistrement :
 
 - le modèle est mis à jour en base ;
 - la liste des modèles est rechargée ;
 - l'aperçu du modèle modifié est affiché.
+- un bloc **Modèle prêt à tester** propose de basculer directement vers l'émission individuelle ou l'émission groupée avec ce modèle déjà sélectionné.
 
 Pour sortir du mode modification sans enregistrer, cliquer sur **Annuler** en haut du formulaire du modèle.
 
@@ -45,7 +67,7 @@ Le constructeur permet d'associer un fond PNG à chaque modèle de badge.
 Pour utiliser un fond personnalisé :
 
 1. dans le formulaire du modèle, choisir un fichier dans **Fond PNG du badge** ;
-2. vérifier le rendu avec **Prévisualiser le brouillon** ;
+2. vérifier le rendu avec **Voir l'aperçu avant enregistrement** ;
 3. enregistrer le modèle.
 
 Si aucun fichier n'est choisi, Badge83 utilise automatiquement le fond standard défini par le projet.
@@ -60,7 +82,7 @@ Le fichier fourni doit être un PNG valide. Une vérification est effectuée cô
 
 ## Modifier un texte superposé
 
-Lorsqu'un modèle est en cours de création ou de modification, les textes déjà ajoutés apparaissent dans la liste sous le bouton **Prévisualiser le brouillon**.
+Lorsqu'un modèle est en cours de création ou de modification, les textes déjà ajoutés apparaissent dans la liste sous le bouton **Voir l'aperçu avant enregistrement**.
 
 Pour modifier un texte :
 
@@ -111,11 +133,13 @@ Sous la prévisualisation, les boutons directionnels **↑ ↓ ← →** permett
 
 Cette fonction est recommandée pour finaliser l'alignement après un premier placement à la souris.
 
+Le bouton central **Texte** recharge le texte actif dans le formulaire. Il sert de repère opérateur lorsque plusieurs textes sont présents sur le même badge.
+
 ## Ajouter un nouveau texte
 
 Si aucun texte n'est en cours de modification :
 
-1. choisir une source dans **Source du texte** ;
+1. choisir une source dans **Que doit afficher ce texte ?** ;
 2. saisir le texte fixe si la source est **Texte fixe** ;
 3. définir la position, la taille et la couleur ;
 4. cliquer sur **Ajouter ce texte au modèle**.
@@ -124,14 +148,20 @@ Le texte est ajouté à la liste des textes du modèle en préparation.
 
 ## Prévisualiser avant sauvegarde
 
-Avant d'enregistrer un modèle ou une modification :
-
-1. cliquer sur **Prévisualiser le brouillon** ;
-2. vérifier le rendu PNG ;
-3. ajuster les textes ou le QR code si nécessaire ;
-4. enregistrer le modèle uniquement lorsque le rendu est correct.
+1. vérifier que le modèle possède un nom, un schéma et au moins un texte ;
+2. cliquer sur **Voir l'aperçu avant enregistrement** ;
+3. vérifier le rendu PNG ;
+4. ajuster les textes ou le QR code si nécessaire ;
+5. relancer l'aperçu si une valeur a été modifiée ;
+6. enregistrer le modèle uniquement lorsque le rendu est correct.
 
 La prévisualisation utilise des valeurs d'exemple pour les textes dynamiques, par exemple un nom, un email, un cours, un numéro de certificat et une date.
+
+Depuis la dernière amélioration du constructeur, l'interface bloque l'enregistrement si le brouillon n'a pas été prévisualisé après les dernières modifications. Les changements suivants invalident l'aperçu et demandent une nouvelle prévisualisation : nom du modèle, schéma, fond PNG, source ou contenu d'un texte, position, taille, couleur, position du QR ou taille du QR.
+
+Si une configuration est incomplète, le constructeur affiche un message lisible dans la zone de statut, par exemple : modèle sans schéma, aucun texte ajouté, texte fixe vide ou taille de QR hors limites.
+
+Les libellés de positionnement utilisent volontairement un vocabulaire opérateur : **En bas à droite**, **En haut à gauche**, **En bas, centré**, etc. Les coordonnées X/Y restent disponibles dans le bloc de réglage précis pour les ajustements fins, mais elles ne sont pas nécessaires pour le flux standard.
 
 ## Dupliquer ou supprimer un modèle
 
@@ -153,7 +183,7 @@ Règles opérateur recommandées :
 1. garder une marge visuelle autour du QR code ;
 2. éviter les zones contenant du texte important : nom, email, intitulé du badge, date ou numéro de certificat ;
 3. ne pas placer le QR code trop près des bords du badge ;
-4. vérifier systématiquement le rendu dans **Prévisualiser le brouillon** ;
+4. vérifier systématiquement le rendu dans **Voir l'aperçu avant enregistrement** ;
 5. émettre un badge de test après une modification importante du placement.
 
 Règles techniques à conserver dans l'outil :

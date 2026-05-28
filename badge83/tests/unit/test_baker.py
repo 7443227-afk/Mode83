@@ -92,6 +92,7 @@ def test_unbake_rejects_non_png_bytes():
 
 def test_deep_verify_baked_badge_resolves_hosted_chain(sample_png_bytes):
     assertion = {
+        "@context": "https://w3id.org/openbadges/v2",
         "id": "https://tests.mode83.local/assertions/123",
         "type": "Assertion",
         "badge": "https://tests.mode83.local/badges/blockchain-foundations",
@@ -101,7 +102,7 @@ def test_deep_verify_baked_badge_resolves_hosted_chain(sample_png_bytes):
             "type": "email",
             "hashed": True,
             "salt": "abc",
-            "identity": "sha256$123",
+            "identity": "sha256$" + "a" * 64,
         },
         "verification": {
             "type": "HostedBadge",
@@ -109,11 +110,27 @@ def test_deep_verify_baked_badge_resolves_hosted_chain(sample_png_bytes):
         },
     }
     badgeclass = {
+        "@context": "https://w3id.org/openbadges/v2",
         "id": "https://tests.mode83.local/badges/blockchain-foundations",
         "type": "BadgeClass",
+        "name": "MODE83 Fondamentaux Blockchain",
+        "description": "Badge de validation.",
+        "image": "https://tests.mode83.local/assets/mode83-badge.png",
+        "criteria": {"narrative": "Validation du parcours."},
         "issuer": "https://tests.mode83.local/issuers/main",
     }
-    issuer = {"id": "https://tests.mode83.local/issuers/main", "type": "Issuer", "name": "Mode83"}
+    issuer = {
+        "@context": "https://w3id.org/openbadges/v2",
+        "id": "https://tests.mode83.local/issuers/main",
+        "type": "Issuer",
+        "name": "Mode83",
+        "url": "https://tests.mode83.local",
+        "verification": {
+            "type": "VerificationObject",
+            "allowedOrigins": ["tests.mode83.local"],
+            "startsWith": ["https://tests.mode83.local/assertions/"],
+        },
+    }
     documents = {
         assertion["id"]: assertion,
         assertion["badge"]: badgeclass,
@@ -128,6 +145,7 @@ def test_deep_verify_baked_badge_resolves_hosted_chain(sample_png_bytes):
     assert result["deep"]["comparison"]["matches"] is True
     assert result["deep"]["badgeclass"]["document"] == badgeclass
     assert result["deep"]["issuer"]["document"] == issuer
+    assert result["compliance"]["valid"] is True
 
 
 def test_verify_baked_badge_summary_uses_admin_recipient_name(sample_png_bytes):

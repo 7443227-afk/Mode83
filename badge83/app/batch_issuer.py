@@ -239,7 +239,7 @@ def _required_schema_fields(
     ]
 
 
-def _iter_existing_template_emails(template_id: str) -> set[str]:
+def _iter_existing_template_email_hashes(template_id: str) -> set[str]:
     existing: set[str] = set()
     issued_dir = issuer.DATA_DIR
     if not issued_dir.exists():
@@ -253,10 +253,10 @@ def _iter_existing_template_emails(template_id: str) -> set[str]:
         template_meta = assertion.get("badge83_template") if isinstance(assertion.get("badge83_template"), dict) else {}
         if template_meta.get("id") != template_id:
             continue
-        admin_recipient = assertion.get("admin_recipient") if isinstance(assertion.get("admin_recipient"), dict) else {}
-        email = normalize_email_value(admin_recipient.get("email"))
-        if email:
-            existing.add(email)
+        search = assertion.get("search") if isinstance(assertion.get("search"), dict) else {}
+        email_hash = search.get("email_hash")
+        if isinstance(email_hash, str) and email_hash:
+            existing.add(email_hash)
     return existing
 
 
@@ -269,8 +269,8 @@ def preview_batch_rows(
 ) -> dict[str, Any]:
     """Classe les lignes CSV sans émettre de badge."""
     required_fields = _required_schema_fields(required_field_ids=required_field_ids, schema_fields=schema_fields)
-    existing_emails = _iter_existing_template_emails(template_id)
-    seen_emails: set[str] = set()
+    existing_email_hashes = _iter_existing_template_email_hashes(template_id)
+    seen_email_hashes: set[str] = set()
     prepared_rows: list[BatchRow] = []
 
     for index, row in enumerate(rows, start=2):
@@ -303,17 +303,19 @@ def preview_batch_rows(
                 label = str(field.get("label") or field_id).strip()
                 errors.append(f"Champ obligatoire manquant : {label}")
 
+        email_hash = issuer.make_search_hash(email) if email else None
+
         if errors:
             status = "error"
         elif passed is False:
             status = "not_passed"
-        elif email in existing_emails or email in seen_emails:
+        elif email_hash and (email_hash in existing_email_hashes or email_hash in seen_email_hashes):
             status = "duplicate"
         else:
             status = "ready"
 
-        if email:
-            seen_emails.add(email)
+        if email_hash:
+            seen_email_hashes.add(email_hash)
 
         prepared_rows.append(
             BatchRow(
@@ -361,6 +363,10 @@ def build_batch_summary(*, template_id: str, rows: list[BatchRow]) -> dict[str, 
         "template_id": template_id,
         "issue_policy": "partial_valid_rows_only",
         "total_rows": len(rows),
+        "ready_count": counters["ready"],
+        "not_passed_count": counters["not_passed"],
+        "duplicate_count": counters["duplicate"],
+        "error_count": counters["error"],
         "ready_rows": counters["ready"],
         "skipped_not_passed": counters["not_passed"],
         "skipped_duplicates": counters["duplicate"],

@@ -87,6 +87,24 @@ Toutes les commandes ci-dessous peuvent alors être lancées soit avec l'environ
 
 Le lancement historique par virtualenv et `badge83.sh` reste supporté. Docker est une couche d'exploitation optionnelle pour faciliter les tests, démonstrations et déploiements.
 
+#### Checklist avant déploiement Docker
+
+Avant de lancer Badge83 avec Docker, vérifier les points suivants :
+
+- choisir le mode cible :
+  - développement local avec `.venv` et `badge83.sh` ;
+  - Docker local de démonstration avec `docker-compose.yml` ;
+  - Docker production HTTPS avec `docker-compose.prod.yml` et Nginx ;
+- définir l'URL publique canonique `BADGE83_BASE_URL` avant toute émission réelle, car elle est inscrite dans les assertions et les QR codes ;
+- générer des valeurs fortes pour `BADGE83_AUTH_PASSWORD`, `BADGE83_AUTH_SECRET` et `BADGE83_SEARCH_PEPPER` ;
+- ne jamais commiter `.env`, `badge83.env`, `runtime-data/`, les certificats TLS ni les sauvegardes ;
+- préparer la persistance des données dans `runtime-data/` pour Docker ;
+- préparer une sauvegarde hors Git de `.env`, `runtime-data/` et `docker/nginx/certs/` ;
+- vérifier que les routes publiques Open Badges restent accessibles sans authentification : `/issuers/`, `/badges/`, `/assertions/`, `/assets/` et `/verify/qr/` ;
+- vérifier que les routes opérateur restent protégées par la cookie applicative et, en production, par Nginx `auth_request`.
+
+#### Docker local de démonstration
+
 Depuis `/home/ubuntu/projects/Mode83/badge83` :
 
 ```bash
@@ -151,6 +169,8 @@ docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 Le reverse proxy Nginx applique `auth_request` sur les routes opérateur et laisse publics les endpoints nécessaires à la vérification Open Badges.
+
+#### Docker production HTTPS avec Nginx
 
 Installation manuelle équivalente :
 
@@ -258,6 +278,32 @@ export BADGE83_MAX_IMAGE_PIXELS=50000000
 
 Valeurs par défaut : PNG 50 MB, CSV/XLSX 10 MB et images 50 mégapixels.
 
+### Confidentialité, RGPD et données personnelles
+
+Badge83 applique par défaut une logique de minimisation des données personnelles dans les éléments publics ou remis au titulaire.
+
+Politique appliquée :
+
+- **Assertion JSON publique / HostedBadge** : contient l'identité Open Badges standard sous forme hashée (`recipient.hashed=true`, `recipient.identity=sha256$...`) et le nom administratif dans `admin_recipient.name` ; l'email complet n'est pas intégré par défaut.
+- **PNG baked** : contient la même assertion que le JSON public ; par défaut, il ne contient donc pas l'email complet du titulaire dans les métadonnées Open Badges.
+- **Registre SQLite local** : peut conserver le nom et l'email complet pour l'administration, la recherche locale et la traçabilité opérateur. Ce fichier est une donnée runtime à protéger et sauvegarder hors Git.
+- **Pages publiques de vérification** : n'affichent pas l'email complet ; la page QR affiche au maximum une version masquée si l'ancienne assertion contient encore cette donnée.
+- **Hash de recherche** : `search.email_hash` et `search.name_hash` permettent les rapprochements internes sans exposer directement les valeurs dans l'assertion.
+
+La variable suivante permet de revenir explicitement à l'ancien comportement si MODE83 décide d'assumer l'exposition de l'email dans le JSON public et dans le PNG baked :
+
+```bash
+export BADGE83_EMBED_ADMIN_RECIPIENT=true
+```
+
+Valeur recommandée en production :
+
+```bash
+BADGE83_EMBED_ADMIN_RECIPIENT=false
+```
+
+Attention : changer cette variable n'altère pas les badges déjà émis. Un PNG baked déjà remis garde les métadonnées présentes au moment de son émission.
+
 ### Registre SQLite local
 
 Le projet maintient désormais un registre SQLite local des assertions dans :
@@ -267,6 +313,14 @@ badge83/data/registry.db
 ```
 
 Ce registre est utilisé comme **index local** pour l’administration et la recherche, tandis que les fichiers JSON dans `badge83/data/issued/` restent la source canonique des assertions Open Badges.
+
+En Docker, ce registre doit se trouver dans le volume persistant :
+
+```text
+badge83/runtime-data/registry.db
+```
+
+`runtime-data/` représente l'état opérationnel de l'instance et doit être sauvegardé, mais pas versionné.
 
 Le comportement actuel est le suivant :
 
@@ -581,6 +635,7 @@ Ces endpoints sont utilisés par les validateurs externes pour résoudre les URL
 | `GET /badges/blockchain-foundations` | Définition du badge (BadgeClass) |
 | `GET /assertions/{uuid}` | Assertion individuelle |
 | `GET /assets/{fichier}` | Assets statiques (images de badge, logo) |
+| `GET /verify/qr/{uuid}` | Page mobile publique de vérification par QR |
 
 ```bash
 # Exemple : récupérer le profil de l'émetteur
@@ -588,6 +643,9 @@ curl http://127.0.0.1:8000/issuers/main
 
 # Exemple : récupérer une assertion par son ID
 curl http://127.0.0.1:8000/assertions/<uuid>
+
+# Exemple : ouvrir la page mobile de vérification QR
+curl http://127.0.0.1:8000/verify/qr/<uuid>
 ```
 
 ## Structure Open Badges implémentée

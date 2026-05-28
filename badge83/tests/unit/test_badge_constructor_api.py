@@ -448,6 +448,10 @@ def test_batch_issue_preview_csv_returns_summary(tmp_path, monkeypatch, isolated
     assert response.status_code == 200
     payload = response.json()
     assert payload["total_rows"] == 3
+    assert payload["ready_count"] == 1
+    assert payload["not_passed_count"] == 1
+    assert payload["error_count"] == 1
+    assert payload["duplicate_count"] == 0
     assert payload["ready_rows"] == 1
     assert payload["skipped_not_passed"] == 1
     assert payload["errors"] == 1
@@ -565,6 +569,10 @@ def test_batch_issue_commit_csv_creates_only_ready_badges(tmp_path, monkeypatch,
     assert payload["created"] == 1
     assert payload["skipped_not_passed"] == 1
     assert payload["errors"] == 1
+    assert payload["preview"]["ready_count"] == 1
+    assert payload["preview"]["not_passed_count"] == 1
+    assert payload["preview"]["error_count"] == 1
+    assert payload["preview"]["duplicate_count"] == 0
     assert len(payload["created_badges"]) == 1
     assert [row["status"] for row in payload["report_rows"]] == ["issued", "not_issued", "not_issued"]
     assert payload["report_rows"][1]["reason"] == "Non admis"
@@ -578,7 +586,8 @@ def test_batch_issue_commit_csv_creates_only_ready_badges(tmp_path, monkeypatch,
     assert saved_png.exists()
 
     assertion = json.loads(saved_assertion.read_text(encoding="utf-8"))
-    assert assertion["admin_recipient"]["email"] == "alice@example.org"
+    assert assertion["admin_recipient"] == {"name": "Alice Example"}
+    assert "alice@example.org" not in json.dumps(assertion, ensure_ascii=False)
     assert assertion["field_values"]["course_name"] == "Formation IA"
 
     session_response = client.get(f"/badge-constructor/batch-sessions/{payload['session_id']}")
@@ -712,6 +721,10 @@ def test_batch_issue_archive_returns_zip_with_png_and_report(tmp_path, monkeypat
     assert manifest["created"] == 1
     assert manifest["skipped_not_passed"] == 1
     assert manifest["errors"] == 1
+    assert manifest["preview"]["ready_count"] == 1
+    assert manifest["preview"]["not_passed_count"] == 1
+    assert manifest["preview"]["error_count"] == 1
+    assert manifest["preview"]["duplicate_count"] == 0
     assert manifest["created_badges"][0]["session_id"] == response.headers["X-Badge83-Session-Id"]
 
     report_text = archive.read("rapport_emission.csv").decode("utf-8-sig")

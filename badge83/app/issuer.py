@@ -16,6 +16,7 @@ from app.config import (
     DEFAULT_BASE_URL,
     ISSUED_DIR as DATA_DIR,
     ISSUER_TEMPLATE,
+    get_embed_admin_recipient,
     get_public_base_url,
     get_search_pepper,
 )
@@ -82,10 +83,15 @@ def make_search_metadata(name: str, email: str) -> dict:
 
 
 def make_admin_recipient_metadata(name: str, email: str) -> dict:
-    return {
-        "name": name.strip(),
-        "email": normalize_email(email),
-    }
+    metadata = {"name": name.strip()}
+    if get_embed_admin_recipient():
+        metadata["email"] = normalize_email(email)
+    return metadata
+
+
+def make_private_recipient_metadata(name: str, email: str) -> dict:
+    """Construit les données opérateur réservées au registre local SQLite."""
+    return {"name": name.strip(), "email": normalize_email(email)}
 
 
 def _build_default_evidence(base_url: str, assertion_id: str, name: str) -> list[dict]:
@@ -176,7 +182,7 @@ def issue_badge(name: str, email: str) -> dict:
     with badge_path.open("w", encoding="utf-8") as file:
         json.dump(badge_data, file, ensure_ascii=False, indent=2)
 
-    sync_assertion_record(assertion_id, badge_data)
+    sync_assertion_record(assertion_id, badge_data, private_recipient=make_private_recipient_metadata(name, email))
 
     return {
         "assertion_id": assertion_id,
@@ -228,7 +234,7 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
     with badge_path.open("w", encoding="utf-8") as file:
         json.dump(assertion, file, ensure_ascii=False, indent=2)
 
-    sync_assertion_record(assertion_id, assertion)
+    sync_assertion_record(assertion_id, assertion, private_recipient=make_private_recipient_metadata(name, email))
 
     # Composition visuelle du badge avec QR avant baking Open Badges.
     if png_data:
@@ -301,7 +307,7 @@ def issue_baked_badge_from_template(
     with badge_path.open("w", encoding="utf-8") as file:
         json.dump(assertion, file, ensure_ascii=False, indent=2)
 
-    sync_assertion_record(assertion_id, assertion)
+    sync_assertion_record(assertion_id, assertion, private_recipient=make_private_recipient_metadata(name, email))
 
     source_png = png_data or BADGE_PNG.read_bytes()
     render_values = {

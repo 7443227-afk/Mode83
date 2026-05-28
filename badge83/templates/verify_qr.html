@@ -218,7 +218,19 @@
             <div class="chip {{ 'ok' if badge.recipient.hashed else 'warn' }}">
               {{ 'Identité protégée' if badge.recipient.hashed else 'Identité à contrôler' }}
             </div>
+            <div class="chip {{ 'ok' if badge.compliance.valid else 'warn' }}">
+              {{ 'Contrôles OB OK' if badge.compliance.valid else 'Contrôles OB à lire' }}
+            </div>
           </div>
+
+          {% if badge.compliance.messages %}
+          <div class="fact">
+            <div class="label">Rapport Open Badges</div>
+            {% for message in badge.compliance.messages[:3] %}
+            <div class="value" style="font-size: 0.92rem; font-weight: 600; margin-top: 6px;">{{ message }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
 
           <details class="technical-details">
             <summary>Informations techniques</summary>

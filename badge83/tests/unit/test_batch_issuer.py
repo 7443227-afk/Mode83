@@ -4,6 +4,7 @@ import json
 from io import BytesIO
 
 from app import batch_issuer
+from app import issuer
 
 
 def test_parse_batch_file_normalise_les_colonnes_csv():
@@ -70,7 +71,8 @@ def test_preview_batch_rows_classe_ready_not_passed_error_et_duplicate(tmp_path,
     issued_dir.mkdir()
     existing_assertion = {
         "badge83_template": {"id": "template-1"},
-        "admin_recipient": {"email": "deja@example.org"},
+        "admin_recipient": {"name": "Déjà"},
+        "search": {"email_hash": issuer.make_search_hash("deja@example.org")},
     }
     (issued_dir / "existing.json").write_text(json.dumps(existing_assertion), encoding="utf-8")
     monkeypatch.setattr(batch_issuer.issuer, "DATA_DIR", issued_dir)
@@ -88,6 +90,10 @@ def test_preview_batch_rows_classe_ready_not_passed_error_et_duplicate(tmp_path,
     assert preview["total_rows"] == 5
     assert preview["issue_policy"] == "partial_valid_rows_only"
     assert preview["can_commit"] is True
+    assert preview["ready_count"] == 1
+    assert preview["not_passed_count"] == 1
+    assert preview["error_count"] == 1
+    assert preview["duplicate_count"] == 2
     assert preview["ready_rows"] == 1
     assert preview["skipped_not_passed"] == 1
     assert preview["errors"] == 1

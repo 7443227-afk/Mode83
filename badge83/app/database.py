@@ -196,15 +196,20 @@ def init_db_schema(db_path: str | Path | None = None):
     return conn
 
 
-def build_registry_record(assertion_id: str, assertion: Dict[str, Any]) -> Dict[str, Any]:
+def build_registry_record(
+    assertion_id: str,
+    assertion: Dict[str, Any],
+    private_recipient: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
     admin_recipient = _extract_admin_recipient(assertion)
+    private_recipient = private_recipient if isinstance(private_recipient, dict) else {}
     search = _extract_search(assertion)
     return {
         "assertion_id": assertion_id,
         "assertion_data": assertion,
         "issued_on": assertion.get("issuedOn"),
-        "name": admin_recipient.get("name"),
-        "email": admin_recipient.get("email"),
+        "name": private_recipient.get("name") or admin_recipient.get("name"),
+        "email": private_recipient.get("email") or admin_recipient.get("email"),
         "name_hash": search.get("name_hash"),
         "email_hash": search.get("email_hash"),
     }
@@ -334,10 +339,15 @@ def get_all_assertions(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     return [get_assertion_by_id(conn, dict(row)["assertion_id"]) for row in cursor.fetchall()]
 
 
-def sync_assertion_record(assertion_id: str, assertion: Dict[str, Any], db_path: str | Path | None = None) -> Dict[str, Any]:
+def sync_assertion_record(
+    assertion_id: str,
+    assertion: Dict[str, Any],
+    db_path: str | Path | None = None,
+    private_recipient: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
     conn = init_db_schema(db_path)
     try:
-        payload = build_registry_record(assertion_id, assertion)
+        payload = build_registry_record(assertion_id, assertion, private_recipient=private_recipient)
         upsert_assertion(conn, payload)
         stored = get_assertion_by_id(conn, assertion_id)
         return stored or payload

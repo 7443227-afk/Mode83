@@ -8,19 +8,23 @@ import httpx
 
 from app.baker import unbake_badge
 from app.config import ISSUED_DIR as DATA_DIR
+from app.openbadges_checks import check_assertion, check_openbadges_chain
+from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
 
 
 def verify_badge(badge_id: str) -> dict:
     """Vérifie si une Assertion Open Badges 2.0 existe et retourne son état avec ses données."""
     badge_path = DATA_DIR / f"{badge_id}.json"
     if not badge_path.exists():
-        return {"valid": False, "assertion": None}
+        return {"valid": False, "assertion": None, "compliance": check_assertion(None)}
 
     with badge_path.open("r", encoding="utf-8") as file:
         badge_data = json.load(file)
 
+    compliance = check_assertion(badge_data)
+
     if badge_data.get("type") != "Assertion":
-        return {"valid": False, "assertion": None}
+        return {"valid": False, "assertion": None, "compliance": compliance}
 
     badge_ref = badge_data.get("badge", "")
     issuer_ref = badge_data.get("issuer", "")
@@ -39,6 +43,7 @@ def verify_badge(badge_id: str) -> dict:
     return {
         "valid": True,
         "assertion": badge_data,
+        "compliance": compliance,
         "summary": {
             "assertion_id": badge_id,
             "badge_name": badge_name,
@@ -66,10 +71,17 @@ def verify_baked_badge(png_data: bytes) -> dict:
     try:
         assertion = unbake_badge(png_data)
     except (ValueError, Exception) as exc:
-        return {"valid": False, "error": str(exc), "assertion": None}
+        return {"valid": False, "error": str(exc), "assertion": None, "compliance": check_assertion(None)}
 
     if assertion.get("type") != "Assertion":
-        return {"valid": False, "error": "Ce document n'est pas une assertion Open Badges valide", "assertion": None}
+        return {
+            "valid": False,
+            "error": "Ce document n'est pas une assertion Open Badges valide",
+            "assertion": None,
+            "compliance": check_assertion(assertion),
+        }
+
+    compliance = check_assertion(assertion)
 
     badge_id = assertion.get("id", "unknown")
     badge_ref = assertion.get("badge", "")
@@ -89,6 +101,7 @@ def verify_baked_badge(png_data: bytes) -> dict:
     return {
         "valid": True,
         "assertion": assertion,
+        "compliance": compliance,
         "summary": {
             "assertion_id": badge_id,
             "badge_name": badge_name,
@@ -103,11 +116,28 @@ JsonFetcher = Callable[[str], dict[str, Any]]
 
 
 def _default_fetch_json(url: str) -> dict[str, Any]:
-    """Charge un document JSON distant avec validation TLS active."""
-    with httpx.Client(timeout=10.0, follow_redirects=True) as client:
-        response = client.get(url, headers={"Accept": "application/ld+json, application/json;q=0.9, */*;q=0.1"})
-        response.raise_for_status()
-        return response.json()
+    """Charge un document JSON distant avec validation TLS active et protection SSRF."""
+    current_url = validate_public_http_url(url)
+    headers = {"Accept": "application/ld+json, application/json;q=0.9, */*;q=0.1"}
+    with httpx.Client(timeout=10.0, follow_redirects=False) as client:
+        for _ in range(MAX_REMOTE_REDIRECTS + 1):
+            with client.stream("GET", current_url, headers=headers) as response:
+                if response.is_redirect:
+                    location = response.headers.get("location")
+                    if not location:
+                        raise ValueError("Redirection distante sans destination")
+                    current_url = validate_public_http_url(str(response.url.join(location)))
+                    continue
+
+                response.raise_for_status()
+                content = b""
+                for chunk in response.iter_bytes():
+                    content += chunk
+                    if len(content) > MAX_REMOTE_JSON_BYTES:
+                        raise ValueError("Réponse distante trop volumineuse")
+                return json.loads(content.decode(response.encoding or "utf-8"))
+
+        raise ValueError("Trop de redirections distantes")
 
 
 def _as_url(value: Any) -> str | None:
@@ -163,8 +193,10 @@ def _fetch_document(url: str | None, fetch_json: JsonFetcher) -> dict[str, Any]:
         return {"url": None, "ok": False, "error": "URL absente", "document": None}
     try:
         document = fetch_json(url)
-    except Exception as exc:  # pragma: no cover - exact exception type depends on network layer
+    except SSRFProtectionError as exc:
         return {"url": url, "ok": False, "error": str(exc), "document": None}
+    except Exception as exc:  # pragma: no cover - exact exception type depends on network layer
+        return {"url": url, "ok": False, "error": "Document distant inaccessible ou invalide", "document": None}
     return {"url": url, "ok": True, "error": None, "document": document}
 
 
@@ -237,9 +269,17 @@ def deep_verify_baked_badge(png_data: bytes, fetch_json: JsonFetcher | None = No
                 }
             )
 
-    deep_ok = all(check.get("ok") for check in checks)
+    badge_document = badge_result.get("document") if badge_result.get("ok") else None
+    issuer_document = issuer_result.get("document") if issuer_result.get("ok") else None
+    compliance = check_openbadges_chain(
+        hosted_assertion if isinstance(hosted_assertion, dict) else embedded_assertion,
+        badge_document if isinstance(badge_document, dict) else None,
+        issuer_document if isinstance(issuer_document, dict) else None,
+    )
+    deep_ok = all(check.get("ok") for check in checks) and compliance["valid"]
     return {
         **basic,
+        "compliance": compliance,
         "deep": {
             "ok": deep_ok,
             "assertion_url": assertion_url,

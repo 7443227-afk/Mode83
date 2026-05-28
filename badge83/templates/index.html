@@ -248,7 +248,7 @@
 
       .constructor-nudge-grid {
         display: grid;
-        grid-template-columns: repeat(3, 2.2rem);
+        grid-template-columns: repeat(3, 3.2rem);
         gap: 0.25rem;
         align-items: center;
         justify-content: end;
@@ -259,8 +259,32 @@
         padding-right: 0;
       }
 
+      .constructor-form-section {
+        border: 1px solid var(--border);
+        border-radius: 0.85rem;
+        padding: 0.85rem;
+        margin-bottom: 0.85rem;
+        background: var(--panel-soft);
+      }
+
+      .constructor-form-section-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.035em;
+        color: var(--muted);
+        margin-bottom: 0.6rem;
+      }
+
+      .constructor-post-save-actions {
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        border-radius: 0.85rem;
+        padding: 0.85rem;
+      }
+
       .constructor-nudge-grid .nudge-spacer {
-        width: 2.2rem;
+        width: 3.2rem;
         height: 2rem;
       }
 
@@ -835,17 +859,23 @@
                         <button id="templateCancelEditBtn" class="btn btn-sm btn-outline-secondary d-none" type="button">Annuler</button>
                       </div>
                     </div>
-                    <p class="small text-muted mb-3">Étape 2 — Préparez l’apparence du badge : QR code, textes fixes et textes dynamiques liés aux champs.</p>
+                    <p class="small text-muted mb-3">Étape 2 — Préparez l’apparence du badge : informations du modèle, QR code, textes affichés et aperçu avant enregistrement.</p>
+                    <div class="alert alert-info small py-2 mb-3">
+                      <div class="fw-semibold">Conseil opérateur</div>
+                      Prévisualisez toujours le modèle après avoir déplacé un texte ou le QR code. L’enregistrement est volontairement bloqué si le dernier aperçu ne correspond plus aux réglages affichés.
+                    </div>
                     <form id="templateForm">
+                      <div class="constructor-form-section">
+                        <div class="constructor-form-section-title">A. Informations du modèle</div>
                       <div class="mb-2">
                         <label class="form-label" for="templateName">Nom du modèle</label>
                         <input id="templateName" class="form-control" required placeholder="Ex. Badge standard MODE83" />
                         <div class="form-text">Nom visible uniquement pour l’opérateur dans cette interface.</div>
                       </div>
                       <div class="mb-2">
-                        <label class="form-label" for="templateSchema">Schéma associé</label>
+                        <label class="form-label" for="templateSchema">Données demandées lors de l’émission</label>
                         <select id="templateSchema" class="form-select"></select>
-                        <div class="form-text">Le schéma détermine les champs disponibles pour les textes dynamiques.</div>
+                        <div class="form-text">Choisissez le schéma qui fournit les champs disponibles pour les textes dynamiques.</div>
                       </div>
                       <div class="mb-2">
                         <label class="form-label" for="templateBackgroundImage">Fond PNG du badge</label>
@@ -853,28 +883,34 @@
                         <div id="templateBackgroundHelp" class="form-text">Optionnel. Si aucun PNG n’est choisi, le fond standard MODE83 sera utilisé.</div>
                         <button id="templateBackgroundResetBtn" class="btn btn-sm btn-outline-secondary mt-2 d-none" type="button">Utiliser le fond standard</button>
                       </div>
+                      </div>
+                      <div class="constructor-form-section">
+                        <div class="constructor-form-section-title">B. QR code de vérification</div>
                       <div class="row g-2 mb-2">
                         <div class="col-6">
-                          <label class="form-label" for="templateQrPlacement">Placement QR</label>
+                          <label class="form-label" for="templateQrPlacement">Position du QR</label>
                           <select id="templateQrPlacement" class="form-select">
-                            <option value="bottom-right">Bas droite</option>
-                            <option value="bottom-left">Bas gauche</option>
-                            <option value="top-right">Haut droite</option>
-                            <option value="top-left">Haut gauche</option>
+                            <option value="bottom-right">En bas à droite</option>
+                            <option value="bottom-left">En bas à gauche</option>
+                            <option value="top-right">En haut à droite</option>
+                            <option value="top-left">En haut à gauche</option>
                             <option value="center">Centre</option>
-                            <option value="custom">Personnalisé</option>
+                            <option value="custom">Personnalisée</option>
                           </select>
-                          <div class="form-text">Le QR peut aussi être déplacé directement dans l’aperçu.</div>
+                          <div class="form-text">Le QR peut aussi être déplacé directement dans l’aperçu. Gardez une marge pour faciliter le scan mobile.</div>
                         </div>
                         <div class="col-6">
-                          <label class="form-label" for="templateQrSize">Taille QR</label>
+                          <label class="form-label" for="templateQrSize">Taille du QR</label>
                           <input id="templateQrSize" class="form-control" type="number" min="0.05" max="1" step="0.01" value="0.22" />
                           <div class="form-text">Valeur conseillée : 0.18 à 0.28.</div>
                         </div>
                       </div>
+                      </div>
+                      <div class="constructor-form-section">
+                        <div class="constructor-form-section-title">C. Textes affichés sur le badge</div>
                       <div class="row g-2 mb-2">
                         <div class="col-6">
-                          <label class="form-label" for="templateTextSource">Source du texte</label>
+                          <label class="form-label" for="templateTextSource">Que doit afficher ce texte ?</label>
                           <select id="templateTextSource" class="form-select">
                             <option value="static">Texte fixe</option>
                             <option value="name">Nom du participant</option>
@@ -885,7 +921,7 @@
                           </select>
                         </div>
                         <div class="col-6">
-                          <label class="form-label" for="templateText">Texte fixe</label>
+                          <label class="form-label" for="templateText">Texte à afficher</label>
                           <input id="templateText" class="form-control" value="MODE83" />
                           <div class="form-text">Utilisé seulement si la source est “Texte fixe”.</div>
                         </div>
@@ -894,22 +930,24 @@
                         <label class="form-label" for="templatePositionPreset">Position rapide</label>
                         <select id="templatePositionPreset" class="form-select">
                           <option value="custom">Position personnalisée</option>
-                          <option value="top-center">Haut centre</option>
+                          <option value="top-center">En haut, centré</option>
                           <option value="center">Centre</option>
                           <option value="under-name">Sous le nom</option>
-                          <option value="bottom-left">Bas gauche</option>
-                          <option value="bottom-center">Bas centre</option>
-                          <option value="bottom-right">Bas droite</option>
+                          <option value="bottom-left">En bas à gauche</option>
+                          <option value="bottom-center">En bas, centré</option>
+                          <option value="bottom-right">En bas à droite</option>
                         </select>
-                        <div class="form-text">Vous pouvez ensuite ajuster précisément avec les coordonnées X/Y.</div>
+                        <div class="form-text">Vous pouvez ensuite déplacer le texte dans l’aperçu ou utiliser le réglage précis.</div>
                       </div>
+                      <details class="mb-2">
+                        <summary class="small text-muted">Réglage précis des coordonnées et du style</summary>
                       <div class="row g-2 mb-2">
                         <div class="col-3">
-                          <label class="form-label" for="templateTextX">X gauche</label>
+                          <label class="form-label" for="templateTextX">Horizontal (px)</label>
                           <input id="templateTextX" class="form-control" type="number" value="24" />
                         </div>
                         <div class="col-3">
-                          <label class="form-label" for="templateTextY">Y haut</label>
+                          <label class="form-label" for="templateTextY">Vertical (px)</label>
                           <input id="templateTextY" class="form-control" type="number" value="24" />
                         </div>
                         <div class="col-3">
@@ -920,14 +958,21 @@
                           <label class="form-label" for="templateTextColor">Couleur</label>
                           <input id="templateTextColor" class="form-control form-control-color w-100" type="color" value="#0f172a" />
                         </div>
+                        <div class="col-12 form-text">Les coordonnées se mettent à jour automatiquement quand vous déplacez le texte dans l’aperçu.</div>
                       </div>
+                      </details>
                       <div class="d-flex gap-2 mb-2">
                         <button id="templateAddOverlayBtn" class="btn btn-outline-primary w-100" type="button">Ajouter ce texte au modèle</button>
                         <button id="templateCancelOverlayEditBtn" class="btn btn-outline-secondary d-none" type="button">Annuler</button>
                       </div>
-                      <button id="templateDraftPreviewBtn" class="btn btn-outline-secondary w-100 mb-2" type="button">Prévisualiser le brouillon</button>
+                      </div>
+                      <div class="constructor-form-section">
+                        <div class="constructor-form-section-title">D. Aperçu et enregistrement</div>
+                      <button id="templateDraftPreviewBtn" class="btn btn-outline-secondary w-100 mb-2" type="button">Voir l’aperçu avant enregistrement</button>
+                        <div class="small text-muted">L’aperçu utilise des valeurs d’exemple pour les textes dynamiques.</div>
+                      </div>
                       <div id="templateOverlayList" class="small text-muted mb-2">Aucun texte ajouté. Ajoutez au moins un texte pour visualiser précisément le rendu du modèle.</div>
-                      <button id="templateSubmitBtn" class="btn btn-success w-100" type="submit">Créer le modèle</button>
+                      <button id="templateSubmitBtn" class="btn btn-success w-100" type="submit">Enregistrer ce modèle</button>
                     </form>
                   </div>
                 </div>
@@ -973,7 +1018,7 @@
                         <button class="btn btn-sm btn-outline-primary constructor-nudge-btn" type="button" data-dx="0" data-dy="-1">↑</button>
                         <span class="nudge-spacer"></span>
                         <button class="btn btn-sm btn-outline-primary constructor-nudge-btn" type="button" data-dx="-1" data-dy="0">←</button>
-                        <button class="btn btn-sm btn-outline-secondary" id="constructorNudgeCenterBtn" type="button">•</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="constructorNudgeCenterBtn" type="button" title="Sélectionner le texte actif dans le formulaire">Texte</button>
                         <button class="btn btn-sm btn-outline-primary constructor-nudge-btn" type="button" data-dx="1" data-dy="0">→</button>
                         <span class="nudge-spacer"></span>
                         <button class="btn btn-sm btn-outline-primary constructor-nudge-btn" type="button" data-dx="0" data-dy="1">↓</button>
@@ -981,6 +1026,14 @@
                       </div>
                     </div>
                     <div id="constructorStatus" class="small text-muted">Sélectionnez ou créez un modèle pour afficher l’aperçu.</div>
+                    <div id="templatePostSaveActions" class="constructor-post-save-actions mt-3 d-none">
+                      <div class="fw-semibold mb-1">Modèle prêt à tester</div>
+                      <div class="small text-muted mb-2">Vérifiez maintenant que ce modèle fonctionne en émission individuelle puis en émission groupée.</div>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <button id="templateTestIssueBtn" class="btn btn-sm btn-primary" type="button">Tester en émission individuelle</button>
+                        <button id="templateTestBatchBtn" class="btn btn-sm btn-outline-primary" type="button">Utiliser en émission groupée</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1034,7 +1087,7 @@
     </main>
 
     <script>
-      const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], templateOverlayDrafts: [], editingTemplateId: null, editingOverlayIndex: null, draggingOverlayIndex: null, qrOffsetX: 0, qrOffsetY: 0, draggingQr: false, templateBackgroundReset: false, constructorZoom: 1.5, batchPreview: null };
+      const state = { badges: [], filteredBadges: [], selectedId: null, constructorSchemas: [], constructorTemplates: [], schemaFieldDrafts: [], templateOverlayDrafts: [], editingTemplateId: null, editingOverlayIndex: null, draggingOverlayIndex: null, qrOffsetX: 0, qrOffsetY: 0, draggingQr: false, templateBackgroundReset: false, constructorZoom: 1.5, templateLastPreviewSignature: null, batchPreview: null };
       const QR_SAFE_MARGIN = 12;
       let certificateNumberCheckTimer = null;
 
@@ -1114,6 +1167,9 @@
       const constructorPreview = document.getElementById('constructorPreview');
       const constructorOverlayLayer = document.getElementById('constructorOverlayLayer');
       const constructorStatus = document.getElementById('constructorStatus');
+      const templatePostSaveActions = document.getElementById('templatePostSaveActions');
+      const templateTestIssueBtn = document.getElementById('templateTestIssueBtn');
+      const templateTestBatchBtn = document.getElementById('templateTestBatchBtn');
 
       const translations = {
         fr: {
@@ -1808,13 +1864,15 @@
       function resetTemplateForm() {
         state.editingTemplateId = null;
         state.templateBackgroundReset = false;
+        state.templateLastPreviewSignature = null;
         templateForm.reset();
         templateFormTitle.textContent = 'Nouveau modèle';
-        templateSubmitBtn.textContent = 'Créer le modèle';
+        templateSubmitBtn.textContent = 'Enregistrer ce modèle';
         templateSubmitBtn.classList.remove('btn-primary');
         templateSubmitBtn.classList.add('btn-success');
         templateSaveEditTopBtn.classList.add('d-none');
         templateCancelEditBtn.classList.add('d-none');
+        templatePostSaveActions.classList.add('d-none');
         document.getElementById('templateQrPlacement').value = 'bottom-right';
         document.getElementById('templateQrSize').value = '0.22';
         state.qrOffsetX = 0;
@@ -1845,6 +1903,7 @@
         }
         state.editingTemplateId = template.id;
         state.templateBackgroundReset = false;
+        state.templateLastPreviewSignature = null;
         templateFormTitle.textContent = `Modifier le modèle : ${template.name}`;
         templateSubmitBtn.textContent = 'Enregistrer les modifications';
         templateSubmitBtn.classList.remove('btn-success');
@@ -1879,6 +1938,86 @@
         constructorStatus.textContent = template
           ? `Aperçu du modèle « ${template.name} ».`
           : `Aperçu du modèle ${templateId}`;
+      }
+
+      function showTemplatePostSaveActions(templateId) {
+        if (!templateId) return;
+        templatePostSaveActions.dataset.templateId = templateId;
+        templatePostSaveActions.classList.remove('d-none');
+      }
+
+      function invalidateTemplatePreview(reason = '') {
+        state.templateLastPreviewSignature = null;
+        templatePostSaveActions.classList.add('d-none');
+        if (reason) constructorStatus.textContent = reason;
+      }
+
+      function normalizeTemplateDraftForSignature(payload) {
+        return {
+          name: String(payload.name || '').trim(),
+          schema_id: payload.schema_id || null,
+          background_image: payload.background_image || null,
+          text_overlays: (payload.text_overlays || []).map((overlay) => ({
+            content_type: overlay.content_type,
+            static_text: overlay.static_text || '',
+            field_id: overlay.field_id || '',
+            position_x: Math.round(Number(overlay.position_x || 0)),
+            position_y: Math.round(Number(overlay.position_y || 0)),
+            font_size: Math.round(Number(overlay.font_size || 24)),
+            font_color: overlay.font_color || '#0f172a',
+          })),
+          qr_code_placement: payload.qr_code_placement || 'bottom-right',
+          qr_code_size: Number(payload.qr_code_size || 0.22),
+          qr_code_offset_x: Math.round(Number(payload.qr_code_offset_x || 0)),
+          qr_code_offset_y: Math.round(Number(payload.qr_code_offset_y || 0)),
+        };
+      }
+
+      function templateDraftSignature(payload) {
+        return JSON.stringify(normalizeTemplateDraftForSignature(payload));
+      }
+
+      function validateTemplateDraftPayload(payload) {
+        if (!String(payload.name || '').trim()) {
+          return 'Donnez un nom au modèle avant de l’enregistrer.';
+        }
+        if (!payload.schema_id) {
+          return 'Choisissez les données demandées lors de l’émission avant de prévisualiser ou enregistrer le modèle.';
+        }
+        if (!payload.text_overlays || !payload.text_overlays.length) {
+          return 'Ajoutez au moins un texte au modèle pour vérifier le rendu avant enregistrement.';
+        }
+        const invalidOverlay = payload.text_overlays.find((overlay) => {
+          if (overlay.content_type === 'static') return !String(overlay.static_text || '').trim();
+          return !String(overlay.field_id || '').trim();
+        });
+        if (invalidOverlay) {
+          return 'Un texte du modèle est incomplet : renseignez un texte fixe ou une source dynamique.';
+        }
+        const qrSize = Number(payload.qr_code_size || 0);
+        if (!Number.isFinite(qrSize) || qrSize < 0.05 || qrSize > 1) {
+          return 'La taille du QR doit être comprise entre 0.05 et 1.';
+        }
+        return null;
+      }
+
+      function selectTemplateForIssue(templateId) {
+        if (!templateId) return;
+        switchView('issueView');
+        issueTemplate.value = templateId;
+        renderIssueTemplateFields();
+        issueStatus.textContent = 'Modèle sélectionné depuis le constructeur. Émettez un badge de test pour valider le rendu final.';
+        document.getElementById('issueName').focus();
+      }
+
+      function selectTemplateForBatch(templateId) {
+        if (!templateId) return;
+        switchView('batchIssueView');
+        batchTemplate.value = templateId;
+        renderBatchTemplateRequirements();
+        state.batchPreview = null;
+        batchGenerateBtn.disabled = true;
+        batchIssueStatus.textContent = 'Modèle sélectionné depuis le constructeur. Importez un CSV ou Excel puis lancez la prévisualisation.';
       }
 
       async function duplicateConstructorTemplate(templateId) {
@@ -2121,7 +2260,7 @@
         state.draggingOverlayIndex = null;
         renderTemplateOverlayDrafts();
         renderConstructorOverlayHandles();
-        constructorStatus.textContent = 'Position du texte mise à jour par glisser-déposer. Enregistrez le modèle pour conserver la modification.';
+        invalidateTemplatePreview('Position du texte mise à jour par glisser-déposer. Relancez l’aperçu avant d’enregistrer.');
       }
 
       function nudgeActiveConstructorOverlay(dx, dy, step = 1) {
@@ -2142,7 +2281,7 @@
           startEditTemplateOverlay(index);
         }
         renderTemplateOverlayDrafts();
-        constructorStatus.textContent = `Position ajustée finement : X=${nextX}, Y=${nextY}. Enregistrez le modèle pour conserver la modification.`;
+        invalidateTemplatePreview(`Position ajustée finement : X=${nextX}, Y=${nextY}. Relancez l’aperçu avant d’enregistrer.`);
       }
 
       function startDragConstructorQr(event) {
@@ -2188,7 +2327,7 @@
         event.currentTarget.removeEventListener('pointermove', dragConstructorQr);
         state.draggingQr = false;
         renderConstructorOverlayHandles();
-        constructorStatus.textContent = 'Position du QR mise à jour par glisser-déposer. Enregistrez le modèle pour conserver la modification.';
+        invalidateTemplatePreview('Position du QR mise à jour par glisser-déposer. Relancez l’aperçu avant d’enregistrer.');
       }
 
       function overlayLabel(overlay) {
@@ -2232,6 +2371,7 @@
             }
             renderTemplateOverlayDrafts();
             renderConstructorOverlayHandles();
+            invalidateTemplatePreview('Texte retiré. Relancez l’aperçu avant d’enregistrer.');
           });
         });
         renderConstructorOverlayHandles();
@@ -2301,6 +2441,7 @@
           state.templateOverlayDrafts[index].position_y = positions[preset].y;
           renderTemplateOverlayDrafts();
         }
+        invalidateTemplatePreview('Position rapide appliquée. Relancez l’aperçu avant d’enregistrer.');
       }
 
       function readSelectedBackgroundImage() {
@@ -2344,10 +2485,17 @@
       }
 
       async function previewTemplateDraft() {
+        const payload = await buildTemplateDraftPayload();
+        const validationError = validateTemplateDraftPayload(payload);
+        if (validationError) {
+          constructorStatus.textContent = validationError;
+          setSystemOutput({ error: validationError });
+          return;
+        }
         const response = await fetch('/badge-constructor/templates/preview-draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(await buildTemplateDraftPayload()),
+          body: JSON.stringify(payload),
         });
         if (!response.ok) {
           const error = await response.text();
@@ -2364,7 +2512,8 @@
         constructorPreview.src = url;
         constructorPreview.onload = applyConstructorZoom;
         constructorPreview.classList.remove('d-none');
-        constructorStatus.textContent = 'Aperçu du brouillon avec valeurs d’exemple.';
+        state.templateLastPreviewSignature = templateDraftSignature(payload);
+        constructorStatus.textContent = 'Aperçu du brouillon validé avec valeurs d’exemple. Vous pouvez maintenant enregistrer le modèle.';
       }
 
 
@@ -2792,13 +2941,24 @@
 
       templateForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const text_overlays = collectTemplateOverlays();
         const editingTemplateId = state.editingTemplateId;
-        let backgroundImage = null;
+        let draftPayload = null;
         try {
-          backgroundImage = await resolveTemplateBackgroundImage({ includeExisting: Boolean(editingTemplateId) });
+          draftPayload = await buildTemplateDraftPayload();
         } catch (error) {
           constructorStatus.textContent = String(error.message || error);
+          return;
+        }
+        const validationError = validateTemplateDraftPayload(draftPayload);
+        if (validationError) {
+          constructorStatus.textContent = validationError;
+          setSystemOutput({ error: validationError });
+          return;
+        }
+        if (state.templateLastPreviewSignature !== templateDraftSignature(draftPayload)) {
+          const error = 'Prévisualisez le brouillon après vos dernières modifications avant d’enregistrer le modèle.';
+          constructorStatus.textContent = error;
+          setSystemOutput({ error });
           return;
         }
         const response = await fetch(
@@ -2808,14 +2968,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: editingTemplateId || undefined,
-            name: document.getElementById('templateName').value,
-            schema_id: templateSchema.value || null,
-            background_image: backgroundImage,
-            text_overlays,
-            qr_code_placement: document.getElementById('templateQrPlacement').value,
-            qr_code_size: Number(document.getElementById('templateQrSize').value || 0.22),
-            qr_code_offset_x: Math.round(Number(state.qrOffsetX || 0)),
-            qr_code_offset_y: Math.round(Number(state.qrOffsetY || 0)),
+             ...draftPayload,
           }),
         });
         const data = await response.json();
@@ -2828,8 +2981,11 @@
         setSystemOutput(data);
         resetTemplateForm();
         await loadConstructor();
-        if (editingTemplateId) showConstructorPreview(editingTemplateId);
-        else if (data.id) showConstructorPreview(data.id);
+        const savedTemplateId = editingTemplateId || data.id;
+        if (savedTemplateId) {
+          showConstructorPreview(savedTemplateId);
+          showTemplatePostSaveActions(savedTemplateId);
+        }
       });
 
       constructorRefreshBtn.addEventListener('click', () => loadConstructor().catch((error) => setSystemOutput({ error: 'Erreur constructeur', details: String(error) })));
@@ -2840,6 +2996,8 @@
           templateSubmitBtn.click();
         }
       });
+      templateTestIssueBtn.addEventListener('click', () => selectTemplateForIssue(templatePostSaveActions.dataset.templateId));
+      templateTestBatchBtn.addEventListener('click', () => selectTemplateForBatch(templatePostSaveActions.dataset.templateId));
       templateCancelEditBtn.addEventListener('click', () => {
         resetTemplateForm();
         constructorStatus.textContent = 'Modification annulée. Vous pouvez créer un nouveau modèle.';
@@ -2850,26 +3008,35 @@
         templateBackgroundHelp.textContent = file
           ? `Fond sélectionné : ${file.name}. Cliquez sur “Prévisualiser le brouillon” pour le voir.`
           : 'Optionnel. Si aucun PNG n’est choisi, le fond standard MODE83 sera utilisé.';
+        invalidateTemplatePreview('Fond modifié. Relancez l’aperçu avant d’enregistrer.');
       });
       templateBackgroundResetBtn.addEventListener('click', () => {
         state.templateBackgroundReset = true;
         templateBackgroundImage.value = '';
         templateBackgroundHelp.textContent = 'Le fond personnalisé sera supprimé lors de l’enregistrement. Le fond standard MODE83 sera utilisé.';
-        constructorStatus.textContent = 'Fond standard sélectionné. Enregistrez le modèle pour conserver ce choix.';
+        invalidateTemplatePreview('Fond standard sélectionné. Relancez l’aperçu avant d’enregistrer.');
       });
       templateCancelOverlayEditBtn.addEventListener('click', () => {
         resetOverlayEditor();
         constructorStatus.textContent = 'Modification du texte annulée.';
       });
       document.getElementById('templatePositionPreset').addEventListener('change', applyTemplatePositionPreset);
+      ['templateName', 'templateSchema', 'templateText', 'templateTextX', 'templateTextY', 'templateTextSize', 'templateTextColor'].forEach((fieldId) => {
+        document.getElementById(fieldId)?.addEventListener('input', () => invalidateTemplatePreview('Configuration modifiée. Relancez l’aperçu avant d’enregistrer.'));
+        document.getElementById(fieldId)?.addEventListener('change', () => invalidateTemplatePreview('Configuration modifiée. Relancez l’aperçu avant d’enregistrer.'));
+      });
       document.getElementById('templateQrPlacement').addEventListener('change', () => {
         if (document.getElementById('templateQrPlacement').value !== 'custom') {
           state.qrOffsetX = 0;
           state.qrOffsetY = 0;
         }
         renderConstructorOverlayHandles();
+        invalidateTemplatePreview('Position du QR modifiée. Relancez l’aperçu avant d’enregistrer.');
       });
-      document.getElementById('templateQrSize').addEventListener('input', renderConstructorOverlayHandles);
+      document.getElementById('templateQrSize').addEventListener('input', () => {
+        renderConstructorOverlayHandles();
+        invalidateTemplatePreview('Taille du QR modifiée. Relancez l’aperçu avant d’enregistrer.');
+      });
       constructorZoomSelect.addEventListener('change', applyConstructorZoom);
       window.addEventListener('resize', () => {
         if (constructorZoomSelect.value === 'fit') applyConstructorZoom();
@@ -2901,12 +3068,14 @@
           state.templateOverlayDrafts.push(overlay);
           constructorStatus.textContent = 'Texte ajouté au modèle en préparation.';
         }
+        invalidateTemplatePreview('Texte modifié. Relancez l’aperçu avant d’enregistrer.');
         renderTemplateOverlayDrafts();
       });
       document.getElementById('templateTextSource').addEventListener('change', () => {
         const isStatic = document.getElementById('templateTextSource').value === 'static';
         document.getElementById('templateText').disabled = !isStatic;
         document.getElementById('templateText').placeholder = isStatic ? 'Ex. MODE83' : 'Valeur remplie lors de l’émission';
+        invalidateTemplatePreview('Source du texte modifiée. Relancez l’aperçu avant d’enregistrer.');
       });
       issueTemplate.addEventListener('change', renderIssueTemplateFields);
       batchPreviewBtn.addEventListener('click', () => previewBatchIssue());

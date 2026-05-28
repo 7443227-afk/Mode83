@@ -36,10 +36,8 @@ def test_issue_badge_persists_assertion_and_metadata(isolated_issuer_env):
     assert assertion["evidence"][0]["type"] == "Evidence"
     assert assertion["evidence"][0]["id"] == f"https://tests.mode83.local/evidence/{assertion_id}"
     assert assertion["recipient"]["hashed"] is True
-    assert assertion["admin_recipient"] == {
-        "name": "Alice Example",
-        "email": "alice@example.com",
-    }
+    assert assertion["admin_recipient"] == {"name": "Alice Example"}
+    assert "alice@example.com" not in json.dumps(assertion, ensure_ascii=False)
 
     persisted = json.loads(saved_path.read_text(encoding="utf-8"))
     assert persisted == assertion
@@ -70,6 +68,20 @@ def test_issue_baked_badge_creates_png_and_qr_url(isolated_issuer_env, sample_pn
     assert result["verification_page_url"] == (
         f"https://tests.mode83.local/verify/qr/{result['assertion_id']}"
     )
+    extracted = unbake_badge(result["baked_png_bytes"])
+    assert extracted["admin_recipient"] == {"name": "Alice Example"}
+    assert "alice@example.com" not in json.dumps(extracted, ensure_ascii=False)
+
+
+def test_issue_badge_peut_integrer_email_admin_sur_opt_in(isolated_issuer_env, monkeypatch):
+    monkeypatch.setenv("BADGE83_EMBED_ADMIN_RECIPIENT", "true")
+
+    result = issuer.issue_badge(name="Alice Example", email="Alice@example.com")
+
+    assert result["assertion"]["admin_recipient"] == {
+        "name": "Alice Example",
+        "email": "alice@example.com",
+    }
 
 
 def test_issue_baked_badge_from_template_persists_field_values(isolated_issuer_env, sample_png_bytes):
@@ -133,8 +145,6 @@ def test_issue_baked_badge_from_template_persists_field_values(isolated_issuer_e
         "name": "Blockchain Foundations Standard",
         "schema_id": "schema-1",
     }
-    assert extracted["admin_recipient"] == {
-        "name": "Alice Example",
-        "email": "alice@example.com",
-    }
+    assert extracted["admin_recipient"] == {"name": "Alice Example"}
+    assert "alice@example.com" not in json.dumps(extracted, ensure_ascii=False)
     assert json.loads(saved_path.read_text(encoding="utf-8")) == extracted

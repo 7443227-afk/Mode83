@@ -131,6 +131,7 @@
                 <li>PNG baked disponible : <strong>{{ 'oui' if badge.has_png else 'non' }}</strong></li>
                 <li>Vérification publique HostedBadge : <strong>{{ 'oui' if badge.raw_assertion_url else 'non' }}</strong></li>
                 <li>Identité du titulaire protégée par hash : <strong>{{ 'oui' if badge.recipient.hashed else 'non' }}</strong></li>
+                <li>Rapport Open Badges : <strong>{{ 'conforme' if badge.compliance.valid else 'à contrôler' }}</strong></li>
                 <li>Données personnelles limitées sur la page publique : <strong>oui</strong></li>
               </ul>
             </div>
@@ -146,6 +147,26 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="info-card p-3 mt-3">
+          <div class="label mb-2">Rapport Open Badges</div>
+          <div class="d-flex gap-2 flex-wrap mb-2">
+            <span class="badge text-bg-{{ 'success' if badge.compliance.valid else 'danger' }}">
+              {{ 'Conforme aux contrôles locaux' if badge.compliance.valid else 'Contrôles à corriger' }}
+            </span>
+            <span class="badge text-bg-danger">{{ badge.compliance.errorCount }} erreur(s)</span>
+            <span class="badge text-bg-warning">{{ badge.compliance.warningCount }} avertissement(s)</span>
+          </div>
+          {% if badge.compliance.messages %}
+          <ul class="mb-0">
+            {% for message in badge.compliance.messages[:4] %}
+            <li>{{ message }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="text-muted small">Les contrôles locaux principaux de l'assertion sont satisfaits.</div>
+          {% endif %}
         </div>
 
         <details class="technical-details info-card p-3 mt-3">

@@ -183,6 +183,20 @@ docker compose down
 
 ## Déploiement production HTTPS
 
+### Checklist avant déploiement
+
+Avant de lancer une instance production, confirmer explicitement :
+
+- le nom de domaine public pointe vers la machine cible ;
+- les ports `80` et `443` sont libres ou réservés à la stack Badge83 ;
+- `BADGE83_BASE_URL` utilise l'URL HTTPS publique définitive ;
+- `BADGE83_AUTH_PASSWORD`, `BADGE83_AUTH_SECRET` et `BADGE83_SEARCH_PEPPER` ont été remplacés par des valeurs fortes ;
+- `.env` est présent sur le serveur, protégé par `chmod 600` et exclu de Git ;
+- les certificats TLS sont présents dans `docker/nginx/certs/` et la clé privée n'est pas versionnée ;
+- `runtime-data/` est le dossier persistant de production et sera inclus dans les sauvegardes ;
+- les routes publiques nécessaires aux validateurs restent sans authentification : `/issuers/`, `/badges/`, `/assertions/`, `/assets/`, `/verify/qr/` ;
+- les routes opérateur restent protégées par Nginx `auth_request` et par les contrôles FastAPI.
+
 ### Préparer le fichier `.env`
 
 Depuis `badge83/` :
@@ -326,6 +340,24 @@ done
 ```
 
 Résultat attendu : `HTTP 200` pour chaque URL.
+
+Après émission d'au moins un badge, vérifier aussi les routes publiques liées à
+une assertion réelle :
+
+```bash
+ASSERTION_ID=<uuid_emis>
+
+for url in \
+  "https://${DOMAIN}/assertions/${ASSERTION_ID}" \
+  "https://${DOMAIN}/verify/qr/${ASSERTION_ID}"
+do
+  code=$(curl -ksS -o /tmp/badge83_check_body -w "%{http_code}" "$url")
+  size=$(wc -c < /tmp/badge83_check_body)
+  printf "%s -> HTTP %s, %s bytes\n" "$url" "$code" "$size"
+done
+```
+
+Résultat attendu : `HTTP 200` pour l'assertion et la page QR.
 
 ### 2. Vérifier le contenu Issuer
 
@@ -590,12 +622,19 @@ DOMAIN=badge83.example.com
 for url in \
   "https://${DOMAIN}/issuers/main" \
   "https://${DOMAIN}/badges/blockchain-foundations" \
-  "https://${DOMAIN}/assets/mode83-badge.png" \
-  "https://${DOMAIN}/verify/qr/"
+  "https://${DOMAIN}/assets/mode83-badge.png"
 do
   code=$(curl -ksS -o /tmp/badge83_monitor_body -w "%{http_code}" "$url")
   printf "%s -> HTTP %s\n" "$url" "$code"
 done
+```
+
+Pour contrôler une page QR, utiliser l'identifiant d'un badge réellement émis :
+
+```bash
+ASSERTION_ID=<uuid_emis>
+curl -ksS -o /tmp/badge83_monitor_qr -w "%{http_code}\n" \
+  "https://${DOMAIN}/verify/qr/${ASSERTION_ID}"
 ```
 
 Vérification de l'espace disque :

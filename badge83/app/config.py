@@ -75,6 +75,17 @@ def get_search_pepper() -> str:
     return os.environ.get("BADGE83_SEARCH_PEPPER", DEFAULT_SEARCH_PEPPER).strip() or DEFAULT_SEARCH_PEPPER
 
 
+def get_embed_admin_recipient() -> bool:
+    """Indique si les données administratives lisibles sont intégrées à l'assertion publique.
+
+    Par défaut, Badge83 applique une minimisation RGPD : l'email complet n'est pas
+    inscrit dans l'assertion JSON ni dans le PNG baked. Il reste disponible pour
+    l'administration locale via SQLite quand il est fourni au moment de l'émission.
+    """
+    raw_value = os.environ.get("BADGE83_EMBED_ADMIN_RECIPIENT", "false").strip().lower()
+    return raw_value in {"1", "true", "yes", "oui", "on"}
+
+
 def get_badge83_env() -> str:
     return os.environ.get("BADGE83_ENV", "development").strip().lower() or "development"
 

@@ -33,6 +33,32 @@ def test_sync_assertion_record_persists_searchable_fields(tmp_path, monkeypatch)
     assert stored["assertion_data"]["id"].endswith(assertion_id)
 
 
+def test_sync_assertion_record_conserve_email_prive_hors_assertion(tmp_path, monkeypatch):
+    db_path = tmp_path / "registry.db"
+    monkeypatch.setenv("BADGE83_REGISTRY_DB", str(db_path))
+
+    assertion_id = "privacy-1"
+    assertion = {
+        "id": "https://tests.mode83.local/assertions/privacy-1",
+        "type": "Assertion",
+        "issuedOn": "2026-04-23T09:00:00+00:00",
+        "admin_recipient": {"name": "Alice Example"},
+        "search": {"name_hash": "sha256$name", "email_hash": "sha256$email"},
+    }
+
+    stored = database.sync_assertion_record(
+        assertion_id,
+        assertion,
+        db_path,
+        private_recipient={"name": "Alice Example", "email": "alice@example.com"},
+    )
+
+    assert stored["name"] == "Alice Example"
+    assert stored["email"] == "alice@example.com"
+    assert stored["assertion_data"]["admin_recipient"] == {"name": "Alice Example"}
+    assert "alice@example.com" not in json.dumps(stored["assertion_data"], ensure_ascii=False)
+
+
 def test_import_assertions_from_directory_imports_existing_json(tmp_path):
     issued_dir = tmp_path / "issued"
     issued_dir.mkdir(parents=True, exist_ok=True)

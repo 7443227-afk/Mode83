@@ -12,6 +12,8 @@ Mise à jour complémentaire du 19/05/2026 : génération d'un modèle Excel té
 
 Mise à jour du 27/05/2026 : l'interface opérateur affiche désormais l'identifiant de session d'émission groupée après la génération de l'archive ZIP, afin de faciliter le contrôle technique et la traçabilité.
 
+Mise à jour du 28/05/2026 : le résumé de prévisualisation expose aussi des compteurs explicites `ready_count`, `not_passed_count`, `duplicate_count` et `error_count`, en complément des noms historiques `ready_rows`, `skipped_not_passed`, `skipped_duplicates` et `errors`.
+
 ## 1. Objectif
 
 Cette fonctionnalité permet d'émettre plusieurs badges à partir d'un fichier CSV ou Excel `.xlsx` contenant une liste de participants.
@@ -243,6 +245,10 @@ Réponse :
   "template_id": "...",
   "issue_policy": "partial_valid_rows_only",
   "total_rows": 3,
+  "ready_count": 2,
+  "not_passed_count": 1,
+  "duplicate_count": 0,
+  "error_count": 0,
   "ready_rows": 2,
   "skipped_not_passed": 1,
   "skipped_duplicates": 0,
