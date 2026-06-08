@@ -22,6 +22,7 @@ from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
 from app.openbadges_checks import check_assertion
+from app.proofs.repository import ProofRepository
 from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
 from app.upload_limits import ensure_image_pixels_within_limit, read_upload_limited
 from app.verifier import deep_verify_baked_badge, verify_badge, verify_baked_badge
@@ -673,6 +674,26 @@ async def api_get_badge(assertion_id: str):
         **record,
         "png_preview_url": record["png_url"] if record.get("has_png") else None,
         "png_inspection": png_inspection,
+    }
+
+
+@app.get("/api/badges/{assertion_id}/proof", dependencies=[Depends(require_admin)])
+async def api_get_badge_proof(assertion_id: str):
+    """Retourne la preuve locale associée à un badge."""
+
+    proof = ProofRepository().trouver_par_assertion(assertion_id)
+    if not proof:
+        raise HTTPException(status_code=404, detail="Preuve locale introuvable")
+
+    return {
+        "assertion_id": proof["assertion_id"],
+        "proof_version": proof["proof_version"],
+        "hash_algorithm": proof["hash_algorithm"],
+        "canonicalization": proof["canonicalization"],
+        "credential_hash": proof["credential_hash"],
+        "anchoring_status": proof["anchoring_status"],
+        "created_at": proof["created_at"],
+        "updated_at": proof["updated_at"],
     }
 
 
