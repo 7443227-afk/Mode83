@@ -13,6 +13,7 @@ Il permet d'émettre et de vérifier des assertions conformes au modèle Open Ba
 - Émettre un PNG baked depuis un modèle préparé (`POST /badge-constructor/templates/{template_id}/issue-baked`) avec valeurs dynamiques conservées dans l'assertion.
 - Émettre des badges en groupe depuis un fichier CSV ou Excel `.xlsx` : preview obligatoire, émission partielle contrôlée, archive ZIP, rapport CSV et historisation SQLite des sessions.
 - Ajouter automatiquement un **QR code visible** sur les badges PNG baked, pointant vers la page publique de vérification humaine.
+- Générer une **preuve locale déterministe** pour chaque badge émis : canonicalisation de l'assertion, hash SHA-256, stockage SQLite et affichage du statut sur les pages de vérification.
 - Enrichir les assertions avec des métadonnées minimales de conformité : `@language`, `expires` et `evidence`.
 - Exposer un profil `Issuer` enrichi avec un bloc `verification` (`allowedOrigins`, `startsWith`).
 - Exposer un `BadgeClass` enrichi avec `tags` et `alignment`.
@@ -20,6 +21,7 @@ Il permet d'émettre et de vérifier des assertions conformes au modèle Open Ba
 - Vérifier un badge baked depuis un fichier PNG uploadé (`POST /verify-baked`) — extraction automatique de l'assertion depuis le chunk `openbadges`.
 - **Endpoints publics HostedBadge** — Servir l'Issuer, le BadgeClass et les Assertions via des URLs HTTP publiques pour validation externe (ex. `validator.openbadges.org`).
 - Stocker les assertions en JSON dans `data/issued/` et les PNG baked dans `data/baked/`.
+- Stocker les preuves locales dans la table SQLite `credential_proofs`, sans dépendance blockchain obligatoire.
 - Fournir des fichiers MODE83 de référence pour `Issuer` et `BadgeClass` (via templates).
 - Refuser les anciens badges JSON non conformes au format `Assertion` Open Badges 2.0.
 
@@ -326,6 +328,7 @@ Le comportement actuel est le suivant :
 
 - au démarrage du serveur, les JSON existants de `data/issued/` sont importés/synchronisés dans SQLite ;
 - lors d’une émission de badge (`/issue` ou `/issue-baked`), l’assertion est enregistrée en JSON puis synchronisée dans SQLite ;
+- lors d’une émission, une preuve locale est créée dans `credential_proofs` avec un hash déterministe de l'assertion ;
 - lors d’une modification/suppression via l’API admin, le registre SQLite est mis à jour aussi.
 
 Vous pouvez surcharger le chemin de la base avec :
@@ -625,6 +628,51 @@ Cette séparation garantit que :
 - le QR sert de point d'entrée utilisateur vers une page mobile minimale ;
 - le chunk `openbadges` continue d'assurer la compatibilité avec le flux baked / unbake standardisé.
 
+### Preuve locale et ancrage blockchain optionnel
+
+Badge83 génère maintenant une preuve locale pour chaque badge émis. Cette preuve sert de base à un futur ancrage blockchain optionnel, sans rendre la blockchain nécessaire au fonctionnement quotidien.
+
+Flux appliqué :
+
+```text
+Assertion Open Badges
+  ↓
+Payload canonique
+  ↓
+Hash SHA-256
+  ↓
+Table SQLite credential_proofs
+```
+
+Endpoint administrateur :
+
+```text
+GET /api/badges/{assertion_id}/proof
+```
+
+Les pages publiques suivantes affichent aussi le statut de preuve locale :
+
+```text
+GET /verify/badge/{assertion_id}
+GET /verify/qr/{assertion_id}
+```
+
+États possibles :
+
+| Statut | Signification |
+|--------|---------------|
+| `matches` | le hash courant de l'assertion correspond à la preuve locale |
+| `mismatch` | l'assertion a changé depuis la création de la preuve |
+| `missing` | aucune preuve locale n'existe pour ce badge |
+| `unavailable` | le registre local de preuve n'est pas accessible |
+
+La blockchain reste désactivée et optionnelle. Aucune donnée personnelle n'est prévue pour être stockée on-chain ; seul un hash opaque pourrait être ancré plus tard.
+
+Documentation détaillée :
+
+- [`docs/blockchain-anchoring.md`](docs/blockchain-anchoring.md)
+- [`docs/demo-script-preuve-locale.md`](docs/demo-script-preuve-locale.md)
+
 ### Endpoints publics (HostedBadge)
 
 Ces endpoints sont utilisés par les validateurs externes pour résoudre les URLs contenues dans les badges :
@@ -693,6 +741,7 @@ Voir [`docs/CHANGELOG-130426.md`](docs/CHANGELOG-130426.md) pour les modificatio
 | Interface web | Implémenté | Page unique avec formulaires d'émission et vérification |
 | Endpoints hébergés (HostedBadge) | Implémenté | URLs publiques pour Issuer, BadgeClass et Assertions |
 | Signature JWS (SignedBadge) | 🔲 Planifié | Chiffrer les assertions avec une clé privée, vérification par clé publique |
+| Preuve locale par hash | Implémenté | Canonicalisation, SHA-256, table `credential_proofs`, API admin et affichage public |
 | Ancrage blockchain | 🔲 Planifié | Enregistrer les empreintes d'assertions sur une blockchain pour preuve d'immutabilité |
 | Base de données locale | Implémenté | Registre SQLite local pour index administratif, recherche et cohérence JSON/PNG |
 | Validation avec `openbadges-validator-core` | Validé | Test de conformité réussi sur un badge MODE83 hébergé |
