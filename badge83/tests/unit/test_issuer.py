@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 
+from app import database
 from app import issuer
 from app.baker import unbake_badge
+from app.proofs.repository import ProofRepository
 
 
 def test_normalize_email_and_name():
@@ -41,6 +43,13 @@ def test_issue_badge_persists_assertion_and_metadata(isolated_issuer_env):
 
     persisted = json.loads(saved_path.read_text(encoding="utf-8"))
     assert persisted == assertion
+    assert result["proof"] is not None
+    assert result["proof"]["assertion_id"] == assertion_id
+    assert result["proof"]["credential_hash"].startswith("sha256:")
+
+    proof = ProofRepository(isolated_issuer_env["registry_db"]).trouver_par_assertion(assertion_id)
+    assert proof is not None
+    assert proof["credential_hash"] == result["proof"]["credential_hash"]
     assert result["issuer"]["id"] == "https://tests.mode83.local/issuers/main"
     assert result["issuer"]["@language"] == "fr-FR"
     assert result["issuer"]["verification"]["type"] == "VerificationObject"
@@ -68,6 +77,9 @@ def test_issue_baked_badge_creates_png_and_qr_url(isolated_issuer_env, sample_pn
     assert result["verification_page_url"] == (
         f"https://tests.mode83.local/verify/qr/{result['assertion_id']}"
     )
+    proof = ProofRepository(isolated_issuer_env["registry_db"]).trouver_par_assertion(result["assertion_id"])
+    assert proof is not None
+    assert proof["credential_hash"].startswith("sha256:")
     extracted = unbake_badge(result["baked_png_bytes"])
     assert extracted["admin_recipient"] == {"name": "Alice Example"}
     assert "alice@example.com" not in json.dumps(extracted, ensure_ascii=False)
@@ -148,3 +160,29 @@ def test_issue_baked_badge_from_template_persists_field_values(isolated_issuer_e
     assert extracted["admin_recipient"] == {"name": "Alice Example"}
     assert "alice@example.com" not in json.dumps(extracted, ensure_ascii=False)
     assert json.loads(saved_path.read_text(encoding="utf-8")) == extracted
+    proof = ProofRepository(isolated_issuer_env["registry_db"]).trouver_par_assertion(assertion_id)
+    assert proof is not None
+    assert proof["credential_hash"].startswith("sha256:")
+
+
+def test_issue_badge_continue_si_la_preuve_locale_echoue(isolated_issuer_env, monkeypatch):
+    class RepositoryEnErreur:
+        def sauvegarder(self, preuve):
+            raise RuntimeError("registre indisponible")
+
+    monkeypatch.setattr(issuer, "ProofRepository", lambda: RepositoryEnErreur())
+
+    result = issuer.issue_badge(name="Alice Example", email="alice@example.com")
+    saved_path = isolated_issuer_env["issued_dir"] / f"{result['assertion_id']}.json"
+
+    assert saved_path.exists()
+    assert result["assertion"]["type"] == "Assertion"
+    assert result["proof"] is None
+
+    conn = database.init_db_schema(isolated_issuer_env["registry_db"])
+    try:
+        stored = database.get_assertion_by_id(conn, result["assertion_id"])
+    finally:
+        database.close_connection(conn)
+
+    assert stored is not None

@@ -31,6 +31,7 @@ def isolated_issuer_env(tmp_path, monkeypatch, sample_png_bytes):
     issued_dir = tmp_path / "issued"
     baked_dir = tmp_path / "baked"
     data_dir = tmp_path / "data"
+    registry_db = data_dir / "registry.db"
     issued_dir.mkdir(parents=True, exist_ok=True)
     baked_dir.mkdir(parents=True, exist_ok=True)
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -96,11 +97,13 @@ def isolated_issuer_env(tmp_path, monkeypatch, sample_png_bytes):
 
     monkeypatch.setenv("BADGE83_BASE_URL", "https://tests.mode83.local")
     monkeypatch.setenv("BADGE83_SEARCH_PEPPER", "test-pepper")
+    monkeypatch.setenv("BADGE83_REGISTRY_DB", str(registry_db))
 
     return {
         "issued_dir": issued_dir,
         "baked_dir": baked_dir,
         "base_dir": data_dir,
+        "registry_db": registry_db,
         "issuer_template": issuer_template,
         "badgeclass_template": badgeclass_template,
         "badge_png": badge_png,

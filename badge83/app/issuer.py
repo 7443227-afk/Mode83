@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import secrets
 from hashlib import sha256
 import re
@@ -21,7 +22,12 @@ from app.config import (
     get_search_pepper,
 )
 from app.database import sync_assertion_record
+from app.proofs import HashService, VerificationProof
+from app.proofs.repository import ProofRepository
 from app.qr import make_verification_qr_url, overlay_qr_on_badge, overlay_text_on_badge
+
+
+logger = logging.getLogger(__name__)
 
 
 def _compose_public_base_url() -> str:
@@ -142,6 +148,22 @@ def _build_enriched_assertion(
     }
 
 
+def creer_preuve_locale(assertion_id: str, assertion: dict) -> dict | None:
+    """Crée une preuve locale sans bloquer le flux d'émission."""
+
+    try:
+        hash_service = HashService()
+        preuve = VerificationProof(
+            assertion_id=assertion_id,
+            credential_hash=hash_service.calculer_hash(assertion),
+            canonical_payload=hash_service.construire_payload_canonique(assertion),
+        )
+        return ProofRepository().sauvegarder(preuve)
+    except Exception:
+        logger.exception("Échec de création de la preuve locale pour l'assertion %s", assertion_id)
+        return None
+
+
 def _make_recipient(email: str) -> dict:
     salt = secrets.token_hex(8)
     return {
@@ -183,12 +205,14 @@ def issue_badge(name: str, email: str) -> dict:
         json.dump(badge_data, file, ensure_ascii=False, indent=2)
 
     sync_assertion_record(assertion_id, badge_data, private_recipient=make_private_recipient_metadata(name, email))
+    preuve_locale = creer_preuve_locale(assertion_id, badge_data)
 
     return {
         "assertion_id": assertion_id,
         "assertion": badge_data,
         "issuer": issuer,
         "badgeclass": badgeclass,
+        "proof": preuve_locale,
     }
 
 
@@ -235,6 +259,7 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         json.dump(assertion, file, ensure_ascii=False, indent=2)
 
     sync_assertion_record(assertion_id, assertion, private_recipient=make_private_recipient_metadata(name, email))
+    preuve_locale = creer_preuve_locale(assertion_id, assertion)
 
     # Composition visuelle du badge avec QR avant baking Open Badges.
     if png_data:
@@ -257,6 +282,7 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
         "verification_page_url": verification_page_url,
         "issuer": issuer,
         "badgeclass": badgeclass,
+        "proof": preuve_locale,
     }
 
 
@@ -308,6 +334,7 @@ def issue_baked_badge_from_template(
         json.dump(assertion, file, ensure_ascii=False, indent=2)
 
     sync_assertion_record(assertion_id, assertion, private_recipient=make_private_recipient_metadata(name, email))
+    preuve_locale = creer_preuve_locale(assertion_id, assertion)
 
     source_png = png_data or BADGE_PNG.read_bytes()
     render_values = {
@@ -344,4 +371,5 @@ def issue_baked_badge_from_template(
         "verification_page_url": verification_page_url,
         "issuer": issuer,
         "badgeclass": badgeclass,
+        "proof": preuve_locale,
     }
