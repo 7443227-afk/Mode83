@@ -22,6 +22,7 @@ from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
 from app.openbadges_checks import check_assertion
+from app.proofs import HashService
 from app.proofs.repository import ProofRepository
 from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
 from app.upload_limits import ensure_image_pixels_within_limit, read_upload_limited
@@ -515,6 +516,53 @@ def _build_issuer_check(assertion: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _build_proof_status(assertion_id: str, assertion: dict[str, Any]) -> dict[str, Any]:
+    """Construit un résumé public de la preuve locale d'une assertion."""
+
+    try:
+        proof = ProofRepository().trouver_par_assertion(assertion_id)
+    except Exception:
+        return {
+            "available": False,
+            "status": "unavailable",
+            "label": "Preuve locale indisponible",
+            "tone": "warning",
+            "message": "Le registre local des preuves n'est pas accessible pour le moment.",
+            "credential_hash": None,
+            "anchoring_status": "unavailable",
+        }
+
+    if not proof:
+        return {
+            "available": False,
+            "status": "missing",
+            "label": "Preuve locale absente",
+            "tone": "warning",
+            "message": "Aucune preuve hashée n'est encore associée à cette assertion.",
+            "credential_hash": None,
+            "anchoring_status": "not_requested",
+        }
+
+    current_hash = HashService().calculer_hash(assertion)
+    stored_hash = proof.get("credential_hash")
+    matches = stored_hash == current_hash
+    return {
+        "available": True,
+        "matches": matches,
+        "status": "matches" if matches else "mismatch",
+        "label": "Preuve locale cohérente" if matches else "Preuve locale incohérente",
+        "tone": "success" if matches else "danger",
+        "message": (
+            "Le hash actuel de l'assertion correspond à la preuve locale enregistrée."
+            if matches
+            else "Le hash actuel de l'assertion ne correspond pas à la preuve locale enregistrée."
+        ),
+        "credential_hash": stored_hash,
+        "anchoring_status": proof.get("anchoring_status") or "not_requested",
+        "created_at": proof.get("created_at"),
+    }
+
+
 def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = None) -> dict[str, Any] | None:
     json_path = ISSUED_DIR / f"{assertion_id}.json"
     png_path = BAKED_DIR / f"{assertion_id}.png"
@@ -529,6 +577,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     verification = assertion.get("verification", {}) if isinstance(assertion.get("verification"), dict) else {}
     admin_recipient = assertion.get("admin_recipient", {}) if isinstance(assertion.get("admin_recipient"), dict) else {}
     compliance = check_assertion(assertion)
+    proof_status = _build_proof_status(assertion_id, assertion)
 
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
@@ -556,6 +605,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
         },
         "verification": verification,
         "compliance": compliance,
+        "proof": proof_status,
         "search": {
             "has_name_hash": bool(assertion.get("search", {}).get("name_hash")) if isinstance(assertion.get("search"), dict) else False,
             "has_email_hash": bool(assertion.get("search", {}).get("email_hash")) if isinstance(assertion.get("search"), dict) else False,

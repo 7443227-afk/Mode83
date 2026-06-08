@@ -132,6 +132,8 @@
                 <li>Vérification publique HostedBadge : <strong>{{ 'oui' if badge.raw_assertion_url else 'non' }}</strong></li>
                 <li>Identité du titulaire protégée par hash : <strong>{{ 'oui' if badge.recipient.hashed else 'non' }}</strong></li>
                 <li>Rapport Open Badges : <strong>{{ 'conforme' if badge.compliance.valid else 'à contrôler' }}</strong></li>
+                <li>Preuve locale Badge83 : <strong>{{ badge.proof.label }}</strong></li>
+                <li>Ancrage blockchain : <strong>{{ badge.proof.anchoring_status }}</strong></li>
                 <li>Données personnelles limitées sur la page publique : <strong>oui</strong></li>
               </ul>
             </div>
@@ -147,6 +149,19 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="info-card p-3 mt-3">
+          <div class="label mb-2">Preuve locale Badge83</div>
+          <div class="d-flex gap-2 flex-wrap mb-2">
+            <span class="badge text-bg-{{ badge.proof.tone }}">{{ badge.proof.label }}</span>
+            <span class="badge text-bg-secondary">Ancrage : {{ badge.proof.anchoring_status }}</span>
+          </div>
+          <div class="text-muted small mb-2">{{ badge.proof.message }}</div>
+          {% if badge.proof.credential_hash %}
+          <div class="label mb-1">Hash credential</div>
+          <div class="mono small text-break">{{ badge.proof.credential_hash }}</div>
+          {% endif %}
         </div>
 
         <div class="info-card p-3 mt-3">
@@ -204,6 +219,10 @@
             <div class="col-12 col-lg-6">
               <div class="label mb-1">Identité hashée</div>
               <div class="mono small">{{ 'oui' if badge.recipient.hashed else 'non' }}</div>
+            </div>
+            <div class="col-12">
+              <div class="label mb-1">Statut de la preuve locale</div>
+              <div class="mono small">{{ badge.proof.status }} · {{ badge.proof.anchoring_status }}</div>
             </div>
             <div class="col-12 d-flex gap-2 flex-wrap">
               <a href="{{ badge.json_url }}" class="btn btn-outline-primary btn-sm" target="_blank">Télécharger le JSON</a>

@@ -221,6 +221,17 @@
             <div class="chip {{ 'ok' if badge.compliance.valid else 'warn' }}">
               {{ 'Contrôles OB OK' if badge.compliance.valid else 'Contrôles OB à lire' }}
             </div>
+            <div class="chip {{ 'ok' if badge.proof.status == 'matches' else 'warn' }}">
+              {{ badge.proof.label }}
+            </div>
+          </div>
+
+          <div class="fact">
+            <div class="label">Preuve locale Badge83</div>
+            <div class="value">{{ badge.proof.label }}</div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              {{ badge.proof.message }} Ancrage blockchain : {{ badge.proof.anchoring_status }}.
+            </div>
           </div>
 
           {% if badge.compliance.messages %}
@@ -250,6 +261,12 @@
               <div class="label">Type de vérification</div>
               <div class="value mono">{{ badge.verification.type or 'HostedBadge attendu' }}</div>
             </div>
+            {% if badge.proof.credential_hash %}
+            <div class="fact">
+              <div class="label">Hash credential Badge83</div>
+              <div class="value mono">{{ badge.proof.credential_hash }}</div>
+            </div>
+            {% endif %}
           </details>
           {% endif %}
         </div>
