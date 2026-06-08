@@ -82,6 +82,30 @@ def create_tables(conn: sqlite3.Connection):
             CREATE INDEX IF NOT EXISTS idx_assertion_name_hash
             ON assertions(name_hash)
         ''')
+
+        # Tables de preuve locale et d'ancrage optionnel.
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS credential_proofs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                assertion_id TEXT UNIQUE NOT NULL,
+                proof_version TEXT NOT NULL,
+                hash_algorithm TEXT NOT NULL,
+                canonicalization TEXT NOT NULL,
+                credential_hash TEXT UNIQUE NOT NULL,
+                canonical_payload TEXT NOT NULL,
+                anchoring_status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_credential_proofs_assertion_id
+            ON credential_proofs(assertion_id)
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_credential_proofs_hash
+            ON credential_proofs(credential_hash)
+        ''')
         
         # Tables du constructeur de badges
         conn.execute('''
