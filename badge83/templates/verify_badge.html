@@ -134,7 +134,7 @@
                 <li>Rapport Open Badges : <strong>{{ 'conforme' if badge.compliance.valid else 'à contrôler' }}</strong></li>
                 <li>Statut credential : <strong>{{ badge.credential_status.public_label }}</strong></li>
                 <li>Preuve locale Badge83 : <strong>{{ badge.proof.label }}</strong></li>
-                <li>Ancrage blockchain : <strong>{{ badge.proof.anchoring_status }}</strong></li>
+                <li>Ancrage local : <strong>{{ badge.anchoring.status }}</strong></li>
                 <li>Données personnelles limitées sur la page publique : <strong>oui</strong></li>
               </ul>
             </div>
@@ -161,6 +161,24 @@
           {% if badge.credential_status.reason_category %}
           <div class="label mb-1">Catégorie publique</div>
           <div class="mono small">{{ badge.credential_status.reason_category }}</div>
+          {% endif %}
+        </div>
+
+        <div class="info-card p-3 mt-3">
+          <div class="label mb-2">Ancrage local</div>
+          <div class="d-flex gap-2 flex-wrap mb-2">
+            <span class="badge text-bg-{{ badge.anchoring.tone }}">{{ badge.anchoring.label }}</span>
+            {% if badge.anchoring.provider %}
+            <span class="badge text-bg-secondary">Provider : {{ badge.anchoring.provider }}</span>
+            {% endif %}
+            {% if badge.anchoring.network %}
+            <span class="badge text-bg-secondary">Réseau : {{ badge.anchoring.network }}</span>
+            {% endif %}
+          </div>
+          <div class="text-muted small mb-2">{{ badge.anchoring.message }}</div>
+          {% if badge.anchoring.tx_hash %}
+          <div class="label mb-1">Référence d'ancrage</div>
+          <div class="mono small text-break">{{ badge.anchoring.tx_hash }}</div>
           {% endif %}
         </div>
 
@@ -236,6 +254,10 @@
             <div class="col-12">
               <div class="label mb-1">Statut credential</div>
               <div class="mono small">{{ badge.credential_status.status }}</div>
+            </div>
+            <div class="col-12">
+              <div class="label mb-1">Statut de l'ancrage local</div>
+              <div class="mono small">{{ badge.anchoring.status }}{% if badge.anchoring.tx_hash %} · {{ badge.anchoring.tx_hash }}{% endif %}</div>
             </div>
             <div class="col-12">
               <div class="label mb-1">Statut de la preuve locale</div>

@@ -224,6 +224,9 @@
             <div class="chip {{ 'bad' if badge.credential_status.revoked else 'ok' }}">
               Statut : {{ badge.credential_status.public_label }}
             </div>
+            <div class="chip {{ 'ok' if badge.anchoring.status == 'anchored' else 'warn' }}">
+              Ancrage : {{ badge.anchoring.status }}
+            </div>
             <div class="chip {{ 'ok' if badge.proof.status == 'matches' else 'warn' }}">
               {{ badge.proof.label }}
             </div>
@@ -234,6 +237,14 @@
             <div class="value">{{ badge.credential_status.label }}</div>
             <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
               {{ badge.credential_status.message }}
+            </div>
+          </div>
+
+          <div class="fact">
+            <div class="label">Ancrage local</div>
+            <div class="value">{{ badge.anchoring.label }}</div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              {{ badge.anchoring.message }}{% if badge.anchoring.tx_hash %} Référence : {{ badge.anchoring.tx_hash }}.{% endif %}
             </div>
           </div>
 

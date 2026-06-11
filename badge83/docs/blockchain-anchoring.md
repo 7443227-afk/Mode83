@@ -250,7 +250,136 @@ Le statut Open Badges existant n'est pas remplacé. La preuve locale est une inf
 
 ---
 
-## 10. Limites actuelles
+## 10. File d'ancrage locale et providers
+
+Badge83 dispose maintenant d'une file locale d'ancrage sans dépendance réseau :
+
+```text
+app/proofs/anchoring.py
+app/proofs/anchoring_repository.py
+app/proofs/anchoring_providers.py
+app/proofs/anchoring_service.py
+```
+
+La table `anchoring_transactions` enregistre les demandes et leur cycle de vie :
+
+```text
+queued → pending → anchored
+```
+
+Statuts supportés :
+
+```text
+queued
+pending
+anchored
+failed
+retry_scheduled
+```
+
+Deux providers existent :
+
+- `noop` : provider désactivé, retourne un échec contrôlé sans contacter de réseau ;
+- `mock` : provider de démonstration, simule un ancrage réussi en local.
+
+Le provider `mock` renseigne notamment :
+
+```text
+provider = mock
+network = local-demo
+tx_hash = mock:<fragment_hash>
+block_number = <id_transaction_locale>
+```
+
+Ce provider ne publie rien sur une blockchain. Il sert uniquement à démontrer le cycle applicatif complet.
+
+---
+
+## 11. Service d'ancrage et audit
+
+Le service `AnchoringService` orchestre :
+
+1. la récupération de la preuve locale ;
+2. la création d'une transaction `queued` ;
+3. le passage en `pending` ;
+4. l'appel au provider ;
+5. la transition finale `anchored` ou `failed` ;
+6. l'enregistrement des événements d'audit.
+
+Événements d'audit ajoutés :
+
+```text
+anchoring_requested
+anchoring_completed
+anchoring_failed
+```
+
+Une preuve absente provoque une erreur contrôlée : l'ancrage n'est pas demandé et le système ne casse pas l'émission ni la vérification existante.
+
+---
+
+## 12. API administrateur d'ancrage local
+
+Endpoints ajoutés :
+
+```text
+POST /api/badges/{assertion_id}/anchor
+GET /api/badges/{assertion_id}/anchoring
+```
+
+Accès : administrateur uniquement.
+
+Le endpoint `POST` crée une demande d'ancrage locale et, par défaut, la traite immédiatement avec le provider demandé. Le provider recommandé pour la démonstration est `mock`.
+
+Exemple de corps :
+
+```json
+{
+  "provider": "mock",
+  "actor": "admin",
+  "process": true
+}
+```
+
+Réponse simplifiée attendue :
+
+```json
+{
+  "assertion_id": "...",
+  "transaction": {
+    "status": "anchored",
+    "provider": "mock",
+    "network": "local-demo",
+    "tx_hash": "mock:...",
+    "block_number": 1
+  }
+}
+```
+
+---
+
+## 13. Affichage public enrichi
+
+Les pages publiques de vérification affichent maintenant un résumé de l'ancrage local :
+
+```text
+GET /verify/badge/{assertion_id}
+GET /verify/qr/{assertion_id}
+```
+
+Informations affichées lorsque disponibles :
+
+- statut local (`not_requested`, `queued`, `pending`, `anchored`, `failed`, `retry_scheduled`) ;
+- libellé lisible ;
+- provider ;
+- réseau local simulé ;
+- référence `tx_hash` mock.
+
+Le libellé reste volontairement `Ancrage local` pour éviter de laisser croire à une publication blockchain réelle.
+
+---
+
+## 14. Limites actuelles
 
 Ce qui est déjà présent :
 
@@ -260,24 +389,27 @@ Ce qui est déjà présent :
 - création automatique à l'émission ;
 - endpoint administrateur ;
 - affichage public du statut de preuve ;
-- détection simple d'incohérence si l'assertion est modifiée après preuve.
+- détection simple d'incohérence si l'assertion est modifiée après preuve ;
+- révocation locale ;
+- audit trail ;
+- file d'attente d'ancrage locale ;
+- provider `noop` ;
+- provider `mock` ;
+- API administrateur d'ancrage local ;
+- affichage public du statut d'ancrage local.
 
 Ce qui n'est pas encore présent :
 
-- révocation locale ;
-- audit trail complet ;
-- file d'attente d'ancrage ;
 - smart contract ;
 - transaction testnet ;
+- provider EVM ;
 - vérification blockchain publique.
 
 ---
 
-## 11. Étapes suivantes recommandées
+## 15. Étapes suivantes recommandées
 
-1. Ajouter un modèle de révocation locale.
-2. Ajouter un journal d'audit pour émission, preuve, révocation et ancrage.
-3. Ajouter une table `anchoring_transactions` sans dépendance blockchain.
-4. Ajouter un provider `noop` puis un provider `mock`.
-5. Créer un smart contract isolé hors du runtime Badge83.
-6. Ajouter un provider EVM derrière feature flag uniquement après validation.
+1. Finaliser la documentation de démonstration de bout en bout.
+2. Stabiliser l'interface d'administration autour de l'ancrage local si nécessaire.
+3. Créer un smart contract isolé hors du runtime Badge83 uniquement après validation de la démo locale.
+4. Ajouter un provider EVM derrière feature flag uniquement après validation, sans rendre la blockchain obligatoire.

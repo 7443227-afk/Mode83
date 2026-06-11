@@ -610,6 +610,67 @@ def _build_revocation_status(assertion_id: str) -> dict[str, Any]:
     }
 
 
+def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
+    """Construit un résumé public du dernier ancrage local."""
+
+    try:
+        transactions = AnchoringRepository().lister_par_assertion(assertion_id)
+    except Exception:
+        return {
+            "available": False,
+            "status": "unavailable",
+            "label": "Ancrage indisponible",
+            "tone": "warning",
+            "message": "Le registre local d'ancrage n'est pas accessible pour le moment.",
+            "provider": None,
+            "network": None,
+            "tx_hash": None,
+            "block_number": None,
+        }
+
+    if not transactions:
+        return {
+            "available": True,
+            "status": "not_requested",
+            "label": "Ancrage non demandé",
+            "tone": "secondary",
+            "message": "Aucune demande d'ancrage locale n'est enregistrée pour ce credential.",
+            "provider": None,
+            "network": None,
+            "tx_hash": None,
+            "block_number": None,
+        }
+
+    latest = transactions[-1]
+    status = latest.get("status") or "not_requested"
+    labels = {
+        "queued": "Ancrage en file d'attente",
+        "pending": "Ancrage en cours",
+        "anchored": "Ancrage confirmé",
+        "failed": "Ancrage échoué",
+        "retry_scheduled": "Nouvelle tentative planifiée",
+    }
+    tones = {
+        "queued": "warning",
+        "pending": "warning",
+        "anchored": "success",
+        "failed": "danger",
+        "retry_scheduled": "warning",
+    }
+    return {
+        "available": True,
+        "status": status,
+        "label": labels.get(status, "Ancrage inconnu"),
+        "tone": tones.get(status, "secondary"),
+        "message": "Dernier statut d'ancrage local enregistré dans Badge83.",
+        "provider": latest.get("provider"),
+        "network": latest.get("network"),
+        "tx_hash": latest.get("tx_hash"),
+        "block_number": latest.get("block_number"),
+        "updated_at": latest.get("updated_at"),
+    }
+
+
 def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = None) -> dict[str, Any] | None:
     json_path = ISSUED_DIR / f"{assertion_id}.json"
     png_path = BAKED_DIR / f"{assertion_id}.png"
@@ -626,6 +687,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     compliance = check_assertion(assertion)
     proof_status = _build_proof_status(assertion_id, assertion)
     revocation_status = _build_revocation_status(assertion_id)
+    anchoring_status = _build_anchoring_status(assertion_id)
 
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
@@ -655,6 +717,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
         "compliance": compliance,
         "proof": proof_status,
         "credential_status": revocation_status,
+        "anchoring": anchoring_status,
         "search": {
             "has_name_hash": bool(assertion.get("search", {}).get("name_hash")) if isinstance(assertion.get("search"), dict) else False,
             "has_email_hash": bool(assertion.get("search", {}).get("email_hash")) if isinstance(assertion.get("search"), dict) else False,

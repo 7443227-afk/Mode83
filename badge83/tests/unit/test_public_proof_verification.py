@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app import main
 from app.main import app
 from app.proofs import HashService, VerificationProof
+from app.proofs.anchoring_repository import AnchoringRepository
 from app.proofs.repository import ProofRepository
 from app.proofs.revocation_repository import RevocationRepository
 
@@ -114,3 +115,30 @@ def test_pages_verification_affichent_un_badge_revoque(tmp_path, monkeypatch):
     assert "Credential révoqué" in full_response.text
     assert "erreur_emission" in full_response.text
     assert "Statut : révoqué" in qr_response.text
+
+
+def test_pages_verification_affichent_un_ancrage_mock_confirme(tmp_path, monkeypatch):
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, _assertion("preuve-ancree-1"))
+    repository = AnchoringRepository(tmp_path / "registry.db")
+    transaction = repository.enqueue(
+        assertion_id=assertion_id,
+        credential_hash="sha256:abc123",
+        provider="mock",
+        network="local-demo",
+    )
+    repository.changer_statut(
+        transaction["id"],
+        "anchored",
+        tx_hash="mock:abc123",
+        block_number=1,
+    )
+    client = TestClient(app)
+
+    full_response = client.get(f"/verify/badge/{assertion_id}")
+    qr_response = client.get(f"/verify/qr/{assertion_id}")
+
+    assert full_response.status_code == 200
+    assert qr_response.status_code == 200
+    assert "Ancrage confirmé" in full_response.text
+    assert "mock:abc123" in full_response.text
+    assert "Ancrage : anchored" in qr_response.text
