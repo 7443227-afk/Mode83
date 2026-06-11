@@ -121,6 +121,27 @@ def create_tables(conn: sqlite3.Connection):
             CREATE INDEX IF NOT EXISTS idx_credential_revocations_assertion_id
             ON credential_revocations(assertion_id)
         ''')
+
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS audit_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT UNIQUE NOT NULL,
+                event_type TEXT NOT NULL,
+                actor TEXT,
+                assertion_id TEXT,
+                credential_hash TEXT,
+                payload TEXT,
+                created_at TEXT NOT NULL
+            )
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_audit_events_assertion_id
+            ON audit_events(assertion_id)
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_audit_events_event_type
+            ON audit_events(event_type)
+        ''')
         
         # Tables du constructeur de badges
         conn.execute('''

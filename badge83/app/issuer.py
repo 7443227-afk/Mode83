@@ -23,6 +23,8 @@ from app.config import (
 )
 from app.database import sync_assertion_record
 from app.proofs import HashService, VerificationProof
+from app.proofs.audit import AuditEvent
+from app.proofs.audit_repository import AuditRepository
 from app.proofs.repository import ProofRepository
 from app.qr import make_verification_qr_url, overlay_qr_on_badge, overlay_text_on_badge
 
@@ -158,9 +160,41 @@ def creer_preuve_locale(assertion_id: str, assertion: dict) -> dict | None:
             credential_hash=hash_service.calculer_hash(assertion),
             canonical_payload=hash_service.construire_payload_canonique(assertion),
         )
-        return ProofRepository().sauvegarder(preuve)
+        preuve_stockee = ProofRepository().sauvegarder(preuve)
+        enregistrer_evenement_audit(
+            "proof_created",
+            assertion_id=assertion_id,
+            credential_hash=preuve_stockee.get("credential_hash"),
+            payload={"anchoring_status": preuve_stockee.get("anchoring_status")},
+        )
+        return preuve_stockee
     except Exception:
         logger.exception("Échec de création de la preuve locale pour l'assertion %s", assertion_id)
+        return None
+
+
+def enregistrer_evenement_audit(
+    event_type: str,
+    *,
+    assertion_id: str | None = None,
+    credential_hash: str | None = None,
+    actor: str | None = None,
+    payload: dict | None = None,
+) -> dict | None:
+    """Enregistre un événement d'audit sans bloquer le flux métier."""
+
+    try:
+        return AuditRepository().enregistrer(
+            AuditEvent(
+                event_type=event_type,
+                actor=actor,
+                assertion_id=assertion_id,
+                credential_hash=credential_hash,
+                payload=payload or {},
+            )
+        )
+    except Exception:
+        logger.exception("Échec d'enregistrement de l'événement audit %s", event_type)
         return None
 
 
@@ -206,6 +240,12 @@ def issue_badge(name: str, email: str) -> dict:
 
     sync_assertion_record(assertion_id, badge_data, private_recipient=make_private_recipient_metadata(name, email))
     preuve_locale = creer_preuve_locale(assertion_id, badge_data)
+    enregistrer_evenement_audit(
+        "credential_issued",
+        assertion_id=assertion_id,
+        credential_hash=preuve_locale.get("credential_hash") if preuve_locale else None,
+        payload={"issuance_mode": "json"},
+    )
 
     return {
         "assertion_id": assertion_id,
@@ -260,6 +300,12 @@ def issue_baked_badge(name: str, email: str, png_data: bytes | None = None) -> d
 
     sync_assertion_record(assertion_id, assertion, private_recipient=make_private_recipient_metadata(name, email))
     preuve_locale = creer_preuve_locale(assertion_id, assertion)
+    enregistrer_evenement_audit(
+        "credential_issued",
+        assertion_id=assertion_id,
+        credential_hash=preuve_locale.get("credential_hash") if preuve_locale else None,
+        payload={"issuance_mode": "baked_png"},
+    )
 
     # Composition visuelle du badge avec QR avant baking Open Badges.
     if png_data:
@@ -335,6 +381,12 @@ def issue_baked_badge_from_template(
 
     sync_assertion_record(assertion_id, assertion, private_recipient=make_private_recipient_metadata(name, email))
     preuve_locale = creer_preuve_locale(assertion_id, assertion)
+    enregistrer_evenement_audit(
+        "credential_issued",
+        assertion_id=assertion_id,
+        credential_hash=preuve_locale.get("credential_hash") if preuve_locale else None,
+        payload={"issuance_mode": "template_baked_png", "template_id": template.get("id")},
+    )
 
     source_png = png_data or BADGE_PNG.read_bytes()
     render_values = {

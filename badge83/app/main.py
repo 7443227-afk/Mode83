@@ -20,7 +20,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
-from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash
+from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash, enregistrer_evenement_audit
 from app.openbadges_checks import check_assertion
 from app.proofs import HashService
 from app.proofs.repository import ProofRepository
@@ -806,6 +806,14 @@ async def api_revoke_badge(assertion_id: str, payload: dict[str, Any] | None = B
         assertion_id,
         reason_category=payload.get("reason_category"),
         actor=payload.get("actor") or "admin",
+    )
+    proof = ProofRepository().trouver_par_assertion(assertion_id)
+    enregistrer_evenement_audit(
+        "credential_revoked",
+        assertion_id=assertion_id,
+        credential_hash=proof.get("credential_hash") if proof else None,
+        actor=revocation.get("actor"),
+        payload={"reason_category": revocation.get("reason_category")},
     )
     return {
         "assertion_id": revocation["assertion_id"],

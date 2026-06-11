@@ -5,6 +5,7 @@ import json
 from app import database
 from app import issuer
 from app.baker import unbake_badge
+from app.proofs.audit_repository import AuditRepository
 from app.proofs.repository import ProofRepository
 
 
@@ -50,6 +51,9 @@ def test_issue_badge_persists_assertion_and_metadata(isolated_issuer_env):
     proof = ProofRepository(isolated_issuer_env["registry_db"]).trouver_par_assertion(assertion_id)
     assert proof is not None
     assert proof["credential_hash"] == result["proof"]["credential_hash"]
+    audit_events = AuditRepository(isolated_issuer_env["registry_db"]).lister_par_assertion(assertion_id)
+    assert [event["event_type"] for event in audit_events] == ["proof_created", "credential_issued"]
+    assert audit_events[-1]["payload"] == {"issuance_mode": "json"}
     assert result["issuer"]["id"] == "https://tests.mode83.local/issuers/main"
     assert result["issuer"]["@language"] == "fr-FR"
     assert result["issuer"]["verification"]["type"] == "VerificationObject"

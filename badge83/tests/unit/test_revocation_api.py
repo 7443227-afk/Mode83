@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app import main
 from app.main import AUTH_COOKIE_NAME, _make_auth_cookie, app
+from app.proofs.audit_repository import AuditRepository
 
 
 def _client_admin() -> TestClient:
@@ -110,3 +111,20 @@ def test_api_get_revocation_retourne_le_statut_public(tmp_path, monkeypatch):
     assert data["status"] == "revoked"
     assert data["public_label"] == "révoqué"
     assert data["reason_category"] == "fraude"
+
+
+def test_api_revoke_enregistre_un_evenement_audit(tmp_path, monkeypatch):
+    assertion_id = _sauvegarder_assertion(tmp_path, monkeypatch, "revocation-api-audit-1")
+    client = _client_admin()
+
+    response = client.post(
+        f"/api/badges/{assertion_id}/revoke",
+        json={"reason_category": "erreur_emission", "actor": "admin-audit"},
+    )
+    evenements = AuditRepository(tmp_path / "registry.db").lister_par_assertion(assertion_id)
+
+    assert response.status_code == 200
+    assert len(evenements) == 1
+    assert evenements[0]["event_type"] == "credential_revoked"
+    assert evenements[0]["actor"] == "admin-audit"
+    assert evenements[0]["payload"] == {"reason_category": "erreur_emission"}
