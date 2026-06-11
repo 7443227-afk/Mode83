@@ -46,7 +46,9 @@ mode83/
     │   └── index.html
     ├── docs/
     │   ├── technical-baking-verification.md
-    │   └── plan-hosted-verification.md
+    │   ├── guide-edition-modele-constructeur.md
+    │   ├── guide-emission-groupee-csv.md
+    │   └── guide-formateur-mode83.md
     ├── requirements.txt
     ├── badge83.env.exemple
     └── README.md
@@ -183,7 +185,7 @@ cp .env.production.example .env
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
-Plan détaillé et rollback : [`docs/docker-implementation-and-rollback-210526.md`](docs/docker-implementation-and-rollback-210526.md).
+Voir aussi la méthodologie Docker : [`docs/docker-deployment-test-methodology-220526.md`](docs/docker-deployment-test-methodology-220526.md).
 
 ### Configuration de l'URL publique
 
@@ -418,15 +420,15 @@ cd /home/ubuntu/projects/Mode83/badge83
 /home/ubuntu/projects/Mode83/.venv/bin/python -m pytest tests/unit/test_badge_constructor_api.py -q
 ```
 
-Documentation détaillée : [`docs/tests-constructeur-badge-040526.md`](docs/tests-constructeur-badge-040526.md).
+Guide utilisateur détaillé : [`docs/guide-edition-modele-constructeur.md`](docs/guide-edition-modele-constructeur.md).
 
 Documents de validation Projet A :
 
-- [`docs/rapport-travail-110526-stabilisation.md`](docs/rapport-travail-110526-stabilisation.md) — correction de l'erreur SQLite/threading ;
-- [`docs/test-report-projet-a-120526.md`](docs/test-report-projet-a-120526.md) — validation fonctionnelle de bout en bout ;
 - [`docs/guide-formateur-mode83.md`](docs/guide-formateur-mode83.md) — guide utilisateur pour formateur/opérateur ;
-- [`docs/rapport-validation-projet-a-150526.md`](docs/rapport-validation-projet-a-150526.md) — synthèse de validation Projet A ;
-- [`docs/audit-architecture-security-120526.md`](docs/audit-architecture-security-120526.md) — audit architecture, sécurité et exploitation.
+- [`docs/guide-edition-modele-constructeur.md`](docs/guide-edition-modele-constructeur.md) — guide du constructeur de badges ;
+- [`docs/guide-emission-groupee-csv.md`](docs/guide-emission-groupee-csv.md) — guide de l'émission groupée CSV/XLSX ;
+- [`docs/technical-baking-verification.md`](docs/technical-baking-verification.md) — documentation technique baking/vérification ;
+- [`docs/openbadges-validator-keys-reference.md`](docs/openbadges-validator-keys-reference.md) — référence des clés Open Badges vérifiées.
 
 Test spécifique de la couche base de données :
 
@@ -723,12 +725,8 @@ Cette structure correspond au format effectivement produit par `app/issuer.py` e
 - La vérification d'un badge baked se fait en extrayant le chunk `openbadges` du PNG ; aucune connexion réseau n'est requise.
 - **HostedBadge** : les assertions contiennent des URLs HTTP publiques (au lieu d'objets imbriqués) permettant la validation externe par des tiers comme `validator.openbadges.org`.
 - Le fichier `app/models.py` contient encore des modèles historiques plus anciens ; la structure réellement émise en production est celle implémentée dans `app/issuer.py`.
-- Avant toute exposition production publique, appliquer les recommandations de sécurité documentées dans `docs/audit-architecture-security-120526.md`.
+- Avant toute exposition production publique, vérifier la configuration de sécurité, les secrets, les volumes runtime et l'accès aux routes opérateur.
 - Les routes administrateur sont protégées côté FastAPI ; les routes publiques de vérification et HostedBadge restent accessibles sans authentification.
-
-## Journal des modifications
-
-Voir [`docs/CHANGELOG-130426.md`](docs/CHANGELOG-130426.md) pour les modifications du 13/04/26.
 
 ## Roadmap
 

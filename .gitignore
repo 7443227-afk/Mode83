@@ -13,3 +13,25 @@ badge83/.env.*
 badge83/runtime-data/
 badge83/docker/nginx/certs/*
 !badge83/docker/nginx/certs/.gitkeep
+
+# Local/private work archive (not for public GitHub)
+formation/
+
+# Python/runtime caches
+.venv/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.log
+*.pid
+
+# Badge83 generated runtime data
+badge83/.venv/
+badge83/.pytest_cache/
+badge83/data/issued/
+badge83/data/baked/
+badge83/data/*.sqlite3
+badge83/data/test-baked.png
+
+# Local IDE/workspace files
+badge83/Mode83.code-workspace

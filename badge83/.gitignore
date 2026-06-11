@@ -10,6 +10,13 @@ runtime-data/
 docker/nginx/certs/*
 !docker/nginx/certs/.gitkeep
 
+# Generated Badge83 runtime data
+data/issued/
+data/baked/
+data/registry.db
+data/*.sqlite3
+data/test-baked.png
+
 # Ignore logs
 *.log
 
@@ -20,8 +27,12 @@ __pycache/
 # Ignore pytest cache
 .pytest_cache/
 
+# Ignore local virtualenv
+.venv/
+
 # Ignore IDE files
 .vscode/
 .idea/
+Mode83.code-workspace
 *.swp
 *~badge83.env
