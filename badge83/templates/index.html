@@ -655,6 +655,7 @@
                         <a id="downloadJsonBtn" class="btn btn-outline-primary btn-sm" target="_blank">Télécharger JSON</a>
                         <a id="downloadPngBtn" class="btn btn-outline-success btn-sm" target="_blank">Télécharger PNG</a>
                         <a id="openVerifyPageBtn" class="btn btn-outline-secondary btn-sm" target="_blank">Open verification page</a>
+                        <button id="anchorLocalBtn" class="btn btn-outline-warning btn-sm">Demander un ancrage local</button>
                         <button id="inspectPngBtn" class="btn btn-outline-dark btn-sm">Analyser les champs PNG</button>
                         <button id="deleteBtn" class="btn btn-outline-danger btn-sm">Supprimer</button>
                       </div>
@@ -1111,6 +1112,7 @@
       const downloadJsonBtn = document.getElementById('downloadJsonBtn');
       const downloadPngBtn = document.getElementById('downloadPngBtn');
       const openVerifyPageBtn = document.getElementById('openVerifyPageBtn');
+      const anchorLocalBtn = document.getElementById('anchorLocalBtn');
       const inspectPngBtn = document.getElementById('inspectPngBtn');
       const deleteBtn = document.getElementById('deleteBtn');
       const assertionEditor = document.getElementById('assertionEditor');
@@ -1205,6 +1207,7 @@
           downloadJsonBtn: 'Télécharger JSON',
           downloadPngBtn: 'Télécharger PNG',
           openVerifyPageBtn: 'Ouvrir la page de vérification',
+          anchorLocalBtn: 'Demander un ancrage local',
           inspectPngBtn: 'Analyser les champs PNG',
           deleteBtn: 'Supprimer',
           editorTitle: 'JSON d’assertion éditable',
@@ -1277,6 +1280,7 @@
           downloadJsonBtn: 'Download JSON',
           downloadPngBtn: 'Download PNG',
           openVerifyPageBtn: 'Open verification page',
+          anchorLocalBtn: 'Request local anchoring',
           inspectPngBtn: 'Parse PNG fields',
           deleteBtn: 'Delete',
           editorTitle: 'Editable assertion JSON',
@@ -1349,6 +1353,7 @@
           downloadJsonBtn: 'Скачать JSON',
           downloadPngBtn: 'Скачать PNG',
           openVerifyPageBtn: 'Открыть страницу проверки',
+          anchorLocalBtn: 'Запросить локальное anchoring',
           inspectPngBtn: 'Распарсить поля PNG',
           deleteBtn: 'Удалить',
           editorTitle: 'Редактируемый assertion JSON',
@@ -1407,7 +1412,7 @@
           'pageTitle','pageSubtitle','labelCurrentBadge','labelCurrentView','labelSystem','sidebarTitle','searchLabel',
           'filterLabel','filterJsonLabel','filterPngLabel','filterHostedLabel',
           'registryTitle','registryDesc','inspectorTitle','inspectorDesc','emptyInspector','previewTitle','downloadJsonBtn',
-          'downloadPngBtn','openVerifyPageBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
+          'downloadPngBtn','openVerifyPageBtn','anchorLocalBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
           'issueNameLabel','issueEmailLabel','issueModeLabel','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn','batchIssueTitle','batchIssueDesc',
           'verifyTitle','verifyDesc','verifyBadgeIdLabel','verifyAssertionUrlLabel','verifyPngFileLabel','verifyIdBtn','verifyUrlBtn',
           'systemTitle','systemDesc','refreshBtn'
@@ -1656,6 +1661,25 @@
         return '';
       }
 
+      function renderAnchoringAdminSummary(anchoring) {
+        const data = anchoring || {};
+        const status = data.status || 'not_requested';
+        const label = data.label || status;
+        const tone = data.tone || 'secondary';
+        const provider = data.provider ? `<span class="badge text-bg-secondary me-1">Provider : ${escapeHtml(data.provider)}</span>` : '';
+        const network = data.network ? `<span class="badge text-bg-secondary me-1">Réseau : ${escapeHtml(data.network)}</span>` : '';
+        const txHash = data.tx_hash
+          ? `<div class="small mono text-break mt-1">Référence : ${escapeHtml(data.tx_hash)}</div>`
+          : '';
+        return `
+          <div class="mt-2 pt-2 border-top">
+            <div><strong>Ancrage local:</strong> <span class="badge text-bg-${escapeHtml(tone)}">${escapeHtml(label)}</span></div>
+            <div class="mt-1">${provider}${network}</div>
+            ${txHash}
+          </div>
+        `;
+      }
+
       function renderTable() {
         resultsCount.textContent = `${state.filteredBadges.length} ${t('resultsCountLabel')}`;
         if (!state.filteredBadges.length) {
@@ -1778,12 +1802,15 @@
           <div><strong>Issued:</strong> ${escapeHtml(item.issued_on || '—')}</div>
           <div><strong>Hosted URL:</strong> <a href="${escapeHtml(item.public_assertion_url || '#')}" target="_blank">${escapeHtml(item.public_assertion_url || '—')}</a></div>
           <div><strong>Verification page:</strong> <a href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">/verify/badge/${escapeHtml(item.assertion_id)}</a></div>
+          ${renderAnchoringAdminSummary(item.anchoring)}
         `;
         downloadJsonBtn.href = item.json_url;
         downloadPngBtn.href = item.has_png ? item.png_url : '#';
         downloadPngBtn.classList.toggle('disabled', !item.has_png);
         openVerifyPageBtn.href = `/verify/badge/${encodeURIComponent(item.assertion_id)}`;
         inspectPngBtn.disabled = !item.has_png;
+        anchorLocalBtn.disabled = !item.has_json;
+        anchorLocalBtn.dataset.id = item.assertion_id;
         deleteBtn.dataset.id = item.assertion_id;
         saveEditBtn.dataset.id = item.assertion_id;
         inspectPngBtn.dataset.id = item.assertion_id;
@@ -3233,6 +3260,33 @@
         const data = await response.json();
         inspectionOutput.textContent = JSON.stringify(data, null, 2);
         switchView('inspectorView');
+      });
+
+      anchorLocalBtn.addEventListener('click', async () => {
+        const badgeId = anchorLocalBtn.dataset.id;
+        if (!badgeId) return;
+
+        anchorLocalBtn.disabled = true;
+        const previousText = anchorLocalBtn.textContent;
+        anchorLocalBtn.textContent = 'Ancrage local…';
+
+        try {
+          const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider: 'mock', actor: 'admin-ui', process: true }),
+          });
+          const data = await response.json();
+          setSystemOutput(data);
+          await loadDashboard(badgeId);
+          switchView('inspectorView');
+        } catch (error) {
+          setSystemOutput({ error: 'Erreur lors de la demande d’ancrage local', details: String(error) });
+          switchView('systemView');
+        } finally {
+          anchorLocalBtn.textContent = previousText || t('anchorLocalBtn');
+          anchorLocalBtn.disabled = false;
+        }
       });
 
       saveEditBtn.addEventListener('click', async () => {
