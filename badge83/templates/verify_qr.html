@@ -221,8 +221,19 @@
             <div class="chip {{ 'ok' if badge.compliance.valid else 'warn' }}">
               {{ 'Contrôles OB OK' if badge.compliance.valid else 'Contrôles OB à lire' }}
             </div>
+            <div class="chip {{ 'bad' if badge.credential_status.revoked else 'ok' }}">
+              Statut : {{ badge.credential_status.public_label }}
+            </div>
             <div class="chip {{ 'ok' if badge.proof.status == 'matches' else 'warn' }}">
               {{ badge.proof.label }}
+            </div>
+          </div>
+
+          <div class="fact">
+            <div class="label">Statut credential</div>
+            <div class="value">{{ badge.credential_status.label }}</div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              {{ badge.credential_status.message }}
             </div>
           </div>
 

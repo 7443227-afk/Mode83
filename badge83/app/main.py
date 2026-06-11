@@ -24,6 +24,7 @@ from app.issuer import issue_badge, issue_baked_badge, normalize_email, normaliz
 from app.openbadges_checks import check_assertion
 from app.proofs import HashService
 from app.proofs.repository import ProofRepository
+from app.proofs.revocation_repository import RevocationRepository
 from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
 from app.upload_limits import ensure_image_pixels_within_limit, read_upload_limited
 from app.verifier import deep_verify_baked_badge, verify_badge, verify_baked_badge
@@ -563,6 +564,50 @@ def _build_proof_status(assertion_id: str, assertion: dict[str, Any]) -> dict[st
     }
 
 
+def _build_revocation_status(assertion_id: str) -> dict[str, Any]:
+    """Construit un résumé public du statut de révocation locale."""
+
+    try:
+        revocation = RevocationRepository().trouver(assertion_id)
+    except Exception:
+        return {
+            "available": False,
+            "revoked": False,
+            "status": "unavailable",
+            "label": "Statut credential indisponible",
+            "public_label": "indisponible",
+            "tone": "warning",
+            "message": "Le registre local des révocations n'est pas accessible pour le moment.",
+            "reason_category": None,
+            "updated_at": None,
+        }
+
+    if revocation and revocation.get("revoked"):
+        return {
+            "available": True,
+            "revoked": True,
+            "status": "revoked",
+            "label": "Credential révoqué",
+            "public_label": "révoqué",
+            "tone": "danger",
+            "message": "Ce credential a été marqué comme révoqué dans le registre local Badge83.",
+            "reason_category": revocation.get("reason_category"),
+            "updated_at": revocation.get("updated_at"),
+        }
+
+    return {
+        "available": True,
+        "revoked": False,
+        "status": "active",
+        "label": "Credential actif",
+        "public_label": "actif",
+        "tone": "success",
+        "message": "Aucune révocation locale n'est enregistrée pour ce credential.",
+        "reason_category": None,
+        "updated_at": None,
+    }
+
+
 def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = None) -> dict[str, Any] | None:
     json_path = ISSUED_DIR / f"{assertion_id}.json"
     png_path = BAKED_DIR / f"{assertion_id}.png"
@@ -578,6 +623,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     admin_recipient = assertion.get("admin_recipient", {}) if isinstance(assertion.get("admin_recipient"), dict) else {}
     compliance = check_assertion(assertion)
     proof_status = _build_proof_status(assertion_id, assertion)
+    revocation_status = _build_revocation_status(assertion_id)
 
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
@@ -606,6 +652,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
         "verification": verification,
         "compliance": compliance,
         "proof": proof_status,
+        "credential_status": revocation_status,
         "search": {
             "has_name_hash": bool(assertion.get("search", {}).get("name_hash")) if isinstance(assertion.get("search"), dict) else False,
             "has_email_hash": bool(assertion.get("search", {}).get("email_hash")) if isinstance(assertion.get("search"), dict) else False,
@@ -744,6 +791,43 @@ async def api_get_badge_proof(assertion_id: str):
         "anchoring_status": proof["anchoring_status"],
         "created_at": proof["created_at"],
         "updated_at": proof["updated_at"],
+    }
+
+
+@app.post("/api/badges/{assertion_id}/revoke", dependencies=[Depends(require_admin)])
+async def api_revoke_badge(assertion_id: str, payload: dict[str, Any] | None = Body(default=None)):
+    """Marque un badge comme révoqué dans le registre local."""
+
+    if _collect_badge_record(assertion_id) is None:
+        raise HTTPException(status_code=404, detail="Badge introuvable")
+
+    payload = payload or {}
+    revocation = RevocationRepository().revoquer(
+        assertion_id,
+        reason_category=payload.get("reason_category"),
+        actor=payload.get("actor") or "admin",
+    )
+    return {
+        "assertion_id": revocation["assertion_id"],
+        "revoked": revocation["revoked"],
+        "reason_category": revocation["reason_category"],
+        "actor": revocation["actor"],
+        "created_at": revocation["created_at"],
+        "updated_at": revocation["updated_at"],
+    }
+
+
+@app.get("/api/badges/{assertion_id}/revocation", dependencies=[Depends(require_admin)])
+async def api_get_badge_revocation(assertion_id: str):
+    """Retourne le statut de révocation locale associé à un badge."""
+
+    if _collect_badge_record(assertion_id) is None:
+        raise HTTPException(status_code=404, detail="Badge introuvable")
+
+    revocation_status = _build_revocation_status(assertion_id)
+    return {
+        "assertion_id": assertion_id,
+        **revocation_status,
     }
 
 

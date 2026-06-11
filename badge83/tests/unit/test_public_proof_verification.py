@@ -8,6 +8,7 @@ from app import main
 from app.main import app
 from app.proofs import HashService, VerificationProof
 from app.proofs.repository import ProofRepository
+from app.proofs.revocation_repository import RevocationRepository
 
 
 def _assertion(assertion_id: str = "preuve-publique-1") -> dict:
@@ -93,3 +94,23 @@ def test_page_verification_signale_une_preuve_incoherente(tmp_path, monkeypatch)
 
     assert response.status_code == 200
     assert "Preuve locale incohérente" in response.text
+
+
+def test_pages_verification_affichent_un_badge_revoque(tmp_path, monkeypatch):
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, _assertion("preuve-revoquee-1"))
+    RevocationRepository(tmp_path / "registry.db").revoquer(
+        assertion_id,
+        reason_category="erreur_emission",
+        actor="admin-test",
+    )
+    client = TestClient(app)
+
+    full_response = client.get(f"/verify/badge/{assertion_id}")
+    qr_response = client.get(f"/verify/qr/{assertion_id}")
+
+    assert full_response.status_code == 200
+    assert qr_response.status_code == 200
+    assert "Statut credential" in full_response.text
+    assert "Credential révoqué" in full_response.text
+    assert "erreur_emission" in full_response.text
+    assert "Statut : révoqué" in qr_response.text
