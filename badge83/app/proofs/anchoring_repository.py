@@ -88,6 +88,13 @@ class AnchoringRepository:
         finally:
             database.close_connection(conn)
 
+    def lister_par_assertion(self, assertion_id: str) -> list[dict[str, Any]]:
+        conn = self.initialiser_connexion()
+        try:
+            return lister_transactions_par_assertion(conn, assertion_id)
+        finally:
+            database.close_connection(conn)
+
 
 def enregistrer_transaction(conn: sqlite3.Connection, transaction: AnchoringTransaction) -> dict[str, Any]:
     with conn:
@@ -174,5 +181,13 @@ def lister_transactions_par_statut(conn: sqlite3.Connection, status: str) -> lis
     cursor = conn.execute(
         "SELECT * FROM anchoring_transactions WHERE status = ? ORDER BY id ASC",
         (normaliser_statut_ancrage(status),),
+    )
+    return [_ligne_vers_dict(row) for row in cursor.fetchall() if row is not None]
+
+
+def lister_transactions_par_assertion(conn: sqlite3.Connection, assertion_id: str) -> list[dict[str, Any]]:
+    cursor = conn.execute(
+        "SELECT * FROM anchoring_transactions WHERE assertion_id = ? ORDER BY id ASC",
+        (assertion_id,),
     )
     return [_ligne_vers_dict(row) for row in cursor.fetchall() if row is not None]
