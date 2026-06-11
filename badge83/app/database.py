@@ -106,6 +106,21 @@ def create_tables(conn: sqlite3.Connection):
             CREATE INDEX IF NOT EXISTS idx_credential_proofs_hash
             ON credential_proofs(credential_hash)
         ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS credential_revocations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                assertion_id TEXT UNIQUE NOT NULL,
+                revoked INTEGER NOT NULL DEFAULT 1,
+                reason_category TEXT,
+                actor TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_credential_revocations_assertion_id
+            ON credential_revocations(assertion_id)
+        ''')
         
         # Tables du constructeur de badges
         conn.execute('''
