@@ -23,6 +23,8 @@ from app.database import delete_assertion_record, import_assertions_from_directo
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash, enregistrer_evenement_audit
 from app.openbadges_checks import check_assertion
 from app.proofs import HashService
+from app.proofs.anchoring_repository import AnchoringRepository
+from app.proofs.anchoring_service import AnchoringService
 from app.proofs.repository import ProofRepository
 from app.proofs.revocation_repository import RevocationRepository
 from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
@@ -836,6 +838,49 @@ async def api_get_badge_revocation(assertion_id: str):
     return {
         "assertion_id": assertion_id,
         **revocation_status,
+    }
+
+
+@app.post("/api/badges/{assertion_id}/anchor", dependencies=[Depends(require_admin)])
+async def api_anchor_badge(assertion_id: str, payload: dict[str, Any] | None = Body(default=None)):
+    """Crée et traite une demande d'ancrage local pour un badge."""
+
+    if _collect_badge_record(assertion_id) is None:
+        raise HTTPException(status_code=404, detail="Badge introuvable")
+
+    payload = payload or {}
+    provider = payload.get("provider") or "mock"
+    actor = payload.get("actor") or "admin"
+    process_immediately = payload.get("process", True)
+    service = AnchoringService()
+
+    try:
+        transaction = service.demander_ancrage(assertion_id, provider=provider, actor=actor)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if process_immediately:
+        transaction = service.traiter_transaction(transaction["id"], provider=provider, actor=actor)
+
+    return {
+        "assertion_id": assertion_id,
+        "transaction": transaction,
+    }
+
+
+@app.get("/api/badges/{assertion_id}/anchoring", dependencies=[Depends(require_admin)])
+async def api_get_badge_anchoring(assertion_id: str):
+    """Retourne les transactions d'ancrage locales associées à un badge."""
+
+    if _collect_badge_record(assertion_id) is None:
+        raise HTTPException(status_code=404, detail="Badge introuvable")
+
+    transactions = AnchoringRepository().lister_par_assertion(assertion_id)
+    latest = transactions[-1] if transactions else None
+    return {
+        "assertion_id": assertion_id,
+        "latest_status": latest.get("status") if latest else "not_requested",
+        "items": transactions,
     }
 
 
