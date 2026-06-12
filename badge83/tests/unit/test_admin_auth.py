@@ -57,3 +57,15 @@ def test_admin_index_expose_le_bouton_ancrage_local():
     assert "Demander un ancrage local" in response.text
     assert "/anchor" in response.text
     assert "provider: 'mock'" in response.text
+
+
+def test_admin_index_expose_option_ancrage_local_apres_emission():
+    client = _client_admin()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'id="issueAnchorLocal"' in response.text
+    assert "Demander aussi un ancrage local mock après émission" in response.text
+    assert "requestLocalMockAnchoring" in response.text
+    assert "maybeAnchorIssuedBadge" in response.text

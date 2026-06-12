@@ -715,6 +715,11 @@
                     <option value="png">PNG baked</option>
                   </select>
                 </div>
+                <div class="form-check form-switch mb-3">
+                  <input id="issueAnchorLocal" class="form-check-input" type="checkbox" />
+                  <label id="issueAnchorLocalLabel" class="form-check-label" for="issueAnchorLocal">Demander aussi un ancrage local mock après émission</label>
+                  <div id="issueAnchorLocalHelp" class="form-text">Optionnel. Badge83 créera la preuve locale puis lancera l’ancrage mock sans blockchain réelle.</div>
+                </div>
                 <div class="mb-3">
                   <label id="issueBadgeImageLabel" class="form-label" for="issueBadgeImage">PNG personnalisé</label>
                   <input id="issueBadgeImage" type="file" class="form-control" accept=".png" />
@@ -1122,6 +1127,7 @@
       const issueStatus = document.getElementById('issueStatus');
       const issueResultCard = document.getElementById('issueResultCard');
       const issueTemplate = document.getElementById('issueTemplate');
+      const issueAnchorLocal = document.getElementById('issueAnchorLocal');
       const issueTemplateFields = document.getElementById('issueTemplateFields');
       const issueTemplatePreviewWrap = document.getElementById('issueTemplatePreviewWrap');
       const issueTemplatePreview = document.getElementById('issueTemplatePreview');
@@ -1219,6 +1225,8 @@
           issueNameLabel: 'Nom',
           issueEmailLabel: 'Email',
           issueModeLabel: 'Mode d’émission',
+          issueAnchorLocalLabel: 'Demander aussi un ancrage local mock après émission',
+          issueAnchorLocalHelp: 'Optionnel. Badge83 créera la preuve locale puis lancera l’ancrage mock sans blockchain réelle.',
           issueBadgeImageLabel: 'PNG personnalisé',
           issueBadgeImageHelp: 'Optionnel. Utilisez votre propre PNG ou le badge standard.',
           issueSubmitBtn: 'Émettre le badge',
@@ -1292,6 +1300,8 @@
           issueNameLabel: 'Name',
           issueEmailLabel: 'Email',
           issueModeLabel: 'Issue mode',
+          issueAnchorLocalLabel: 'Also request local mock anchoring after issuing',
+          issueAnchorLocalHelp: 'Optional. Badge83 creates the local proof then runs mock anchoring without a real blockchain.',
           issueBadgeImageLabel: 'Custom PNG',
           issueBadgeImageHelp: 'Optional. Use your own PNG or the standard badge.',
           issueSubmitBtn: 'Issue badge',
@@ -1365,6 +1375,8 @@
           issueNameLabel: 'Имя',
           issueEmailLabel: 'Email',
           issueModeLabel: 'Режим выпуска',
+          issueAnchorLocalLabel: 'Также запросить локальное mock-anchoring после выпуска',
+          issueAnchorLocalHelp: 'Опционально. Badge83 создаст локальное доказательство и запустит mock-анкеринг без реальной blockchain.',
           issueBadgeImageLabel: 'Кастомный PNG',
           issueBadgeImageHelp: 'Опционально. Используйте свой PNG или стандартный badge.',
           issueSubmitBtn: 'Выпустить badge',
@@ -1413,7 +1425,7 @@
           'filterLabel','filterJsonLabel','filterPngLabel','filterHostedLabel',
           'registryTitle','registryDesc','inspectorTitle','inspectorDesc','emptyInspector','previewTitle','downloadJsonBtn',
           'downloadPngBtn','openVerifyPageBtn','anchorLocalBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
-          'issueNameLabel','issueEmailLabel','issueModeLabel','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn','batchIssueTitle','batchIssueDesc',
+          'issueNameLabel','issueEmailLabel','issueModeLabel','issueAnchorLocalLabel','issueAnchorLocalHelp','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn','batchIssueTitle','batchIssueDesc',
           'verifyTitle','verifyDesc','verifyBadgeIdLabel','verifyAssertionUrlLabel','verifyPngFileLabel','verifyIdBtn','verifyUrlBtn',
           'systemTitle','systemDesc','refreshBtn'
         ];
@@ -2931,6 +2943,59 @@
         return values;
       }
 
+      async function requestLocalMockAnchoring(badgeId) {
+        const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'mock', actor: 'admin-ui', process: true }),
+        });
+        const data = await response.json().catch(async () => ({ detail: await response.text() }));
+        if (!response.ok) {
+          const message = data.detail || data.error || 'Erreur lors de la demande d’ancrage local';
+          const error = new Error(message);
+          error.payload = data;
+          throw error;
+        }
+        return data;
+      }
+
+      async function maybeAnchorIssuedBadge(assertionId, issuePayload) {
+        const shouldAnchor = Boolean(issueAnchorLocal?.checked);
+        if (!shouldAnchor || !assertionId) {
+          return { output: issuePayload, anchored: false };
+        }
+
+        issueStatus.textContent = currentLang === 'fr'
+          ? 'Badge émis. Demande d’ancrage local mock…'
+          : currentLang === 'en'
+            ? 'Badge issued. Requesting local mock anchoring…'
+            : 'Badge выпущен. Запрос локального mock-анкеринга…';
+
+        try {
+          const anchoring = await requestLocalMockAnchoring(assertionId);
+          issueStatus.textContent = currentLang === 'fr'
+            ? 'Badge émis et ancrage local mock confirmé.'
+            : currentLang === 'en'
+              ? 'Badge issued and local mock anchoring confirmed.'
+              : 'Badge выпущен, локальный mock-анкеринг подтверждён.';
+          return { output: { issue: issuePayload, anchoring }, anchored: true };
+        } catch (error) {
+          issueStatus.textContent = currentLang === 'fr'
+            ? 'Badge émis, mais l’ancrage local mock a échoué.'
+            : currentLang === 'en'
+              ? 'Badge issued, but local mock anchoring failed.'
+              : 'Badge выпущен, но локальный mock-анкеринг не удался.';
+          return {
+            output: {
+              issue: issuePayload,
+              anchoring_error: error.payload || { detail: String(error.message || error) },
+            },
+            anchored: false,
+            error: true,
+          };
+        }
+      }
+
       schemaForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const fieldLabel = document.getElementById('schemaFieldLabel').value.trim();
@@ -3150,17 +3215,19 @@
         if (mode === 'json') {
           const response = await fetch('/issue', { method: 'POST', body: formData });
           const data = await response.json();
+          const assertionId = data.badge?.assertion_id;
           issueStatus.textContent = currentLang === 'fr' ? 'Assertion JSON émise.' : currentLang === 'en' ? 'JSON assertion issued.' : 'JSON assertion выпущен.';
-          setSystemOutput(data);
+          const anchoringResult = await maybeAnchorIssuedBadge(assertionId, data);
+          setSystemOutput(anchoringResult.output);
           renderIssueResultCard({
             name,
             email,
             mode: 'json',
-            assertionId: data.badge?.assertion_id,
+            assertionId,
             templateName: 'Assertion JSON',
           });
           issuePanelForm.reset();
-          await loadDashboard(data.badge?.assertion_id || null);
+          await loadDashboard(assertionId || null);
         } else {
           const fieldValues = collectIssueTemplateValues();
           const response = templateId
@@ -3194,7 +3261,9 @@
           issueStatus.textContent = certificateNumber
             ? `PNG baked émis et téléchargé. Numéro de certificat : ${certificateNumber}.`
             : currentLang === 'fr' ? 'PNG baked émis et téléchargé.' : currentLang === 'en' ? 'Baked PNG issued and downloaded.' : 'PNG baked выпущен и скачан.';
-          setSystemOutput({ status: 'baked', filename: a.download, assertion_id: assertionId, certificate_number: certificateNumber });
+          const issuePayload = { status: 'baked', filename: a.download, assertion_id: assertionId, certificate_number: certificateNumber };
+          const anchoringResult = await maybeAnchorIssuedBadge(assertionId, issuePayload);
+          setSystemOutput(anchoringResult.output);
           renderIssueResultCard({
             name,
             email,
@@ -3271,12 +3340,7 @@
         anchorLocalBtn.textContent = 'Ancrage local…';
 
         try {
-          const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider: 'mock', actor: 'admin-ui', process: true }),
-          });
-          const data = await response.json();
+          const data = await requestLocalMockAnchoring(badgeId);
           setSystemOutput(data);
           await loadDashboard(badgeId);
           switchView('inspectorView');
