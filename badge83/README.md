@@ -745,3 +745,11 @@ Cette structure correspond au format effectivement produit par `app/issuer.py` e
 | Validation avec `openbadges-validator-core` | Validé | Test de conformité réussi sur un badge MODE83 hébergé |
 | Validation IMS officielle | 🔲 À poursuivre | Vérifications complémentaires sur l'infrastructure publique / HTTPS |
 | Émission groupée CSV/XLSX | Implémenté | Preview, commit, archive ZIP, rapport et historisation SQLite |
+
+## Droits d'auteur et attribution
+
+Badge83 est un projet développé pour MODE83.
+
+Conception fonctionnelle, développement logiciel, documentation technique et intégration : © 2026 Nikolay Semin. Tous droits réservés.
+
+La réutilisation du code, de la documentation ou des éléments de conception doit conserver cette mention d'attribution, sauf autorisation écrite préalable.
