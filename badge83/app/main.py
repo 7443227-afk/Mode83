@@ -25,6 +25,7 @@ from app.openbadges_checks import check_assertion
 from app.proofs import HashService
 from app.proofs.anchoring_repository import AnchoringRepository
 from app.proofs.anchoring_service import AnchoringService
+from app.proofs.audit_repository import AuditRepository
 from app.proofs.repository import ProofRepository
 from app.proofs.revocation_repository import RevocationRepository
 from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
@@ -671,6 +672,27 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
     }
 
 
+def _build_audit_trail(assertion_id: str) -> dict[str, Any]:
+    """Construit un résumé admin des événements d'audit associés à un badge."""
+
+    try:
+        events = AuditRepository().lister_par_assertion(assertion_id)
+    except Exception:
+        return {
+            "available": False,
+            "count": 0,
+            "latest_event_type": None,
+            "items": [],
+        }
+
+    return {
+        "available": True,
+        "count": len(events),
+        "latest_event_type": events[-1].get("event_type") if events else None,
+        "items": events,
+    }
+
+
 def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = None) -> dict[str, Any] | None:
     json_path = ISSUED_DIR / f"{assertion_id}.json"
     png_path = BAKED_DIR / f"{assertion_id}.png"
@@ -688,6 +710,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     proof_status = _build_proof_status(assertion_id, assertion)
     revocation_status = _build_revocation_status(assertion_id)
     anchoring_status = _build_anchoring_status(assertion_id)
+    audit_trail = _build_audit_trail(assertion_id)
 
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
@@ -718,6 +741,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
         "proof": proof_status,
         "credential_status": revocation_status,
         "anchoring": anchoring_status,
+        "audit": audit_trail,
         "search": {
             "has_name_hash": bool(assertion.get("search", {}).get("name_hash")) if isinstance(assertion.get("search"), dict) else False,
             "has_email_hash": bool(assertion.get("search", {}).get("email_hash")) if isinstance(assertion.get("search"), dict) else False,
@@ -944,6 +968,20 @@ async def api_get_badge_anchoring(assertion_id: str):
         "assertion_id": assertion_id,
         "latest_status": latest.get("status") if latest else "not_requested",
         "items": transactions,
+    }
+
+
+@app.get("/api/badges/{assertion_id}/audit", dependencies=[Depends(require_admin)])
+async def api_get_badge_audit(assertion_id: str):
+    """Retourne l'historique d'audit local associé à un badge."""
+
+    if _collect_badge_record(assertion_id) is None:
+        raise HTTPException(status_code=404, detail="Badge introuvable")
+
+    audit_trail = _build_audit_trail(assertion_id)
+    return {
+        "assertion_id": assertion_id,
+        **audit_trail,
     }
 
 

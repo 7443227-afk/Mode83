@@ -69,3 +69,14 @@ def test_admin_index_expose_option_ancrage_local_apres_emission():
     assert "Demander aussi un ancrage local mock après émission" in response.text
     assert "requestLocalMockAnchoring" in response.text
     assert "maybeAnchorIssuedBadge" in response.text
+
+
+def test_admin_index_expose_audit_trail_dans_inspecteur():
+    client = _client_admin()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Audit trail" in response.text
+    assert "renderAuditAdminSummary" in response.text
+    assert "/audit" in response.text

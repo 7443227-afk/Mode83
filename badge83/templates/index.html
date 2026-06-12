@@ -1692,6 +1692,37 @@
         `;
       }
 
+      function renderAuditAdminSummary(audit) {
+        const data = audit || {};
+        if (data.available === false) {
+          return `
+            <div class="mt-2 pt-2 border-top">
+              <div><strong>Audit trail:</strong> <span class="badge text-bg-warning">indisponible</span></div>
+            </div>
+          `;
+        }
+        const items = Array.isArray(data.items) ? data.items : [];
+        const preview = items.slice(-5).reverse();
+        const rows = preview.length
+          ? preview.map((event) => `
+              <li class="mb-1">
+                <span class="badge text-bg-light border me-1">${escapeHtml(event.event_type || 'event')}</span>
+                <span class="small text-muted">${escapeHtml(event.created_at || '')}</span>
+                ${event.actor ? `<span class="small text-muted"> · ${escapeHtml(event.actor)}</span>` : ''}
+              </li>
+            `).join('')
+          : '<li class="small text-muted">Aucun événement enregistré.</li>';
+        return `
+          <div class="mt-2 pt-2 border-top">
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+              <div><strong>Audit trail:</strong> <span class="badge text-bg-info">${Number(data.count || items.length)} événement(s)</span></div>
+              <a class="small" href="/api/badges/${encodeURIComponent(state.selectedId || '')}/audit" target="_blank">JSON audit</a>
+            </div>
+            <ul class="mt-2 mb-0 ps-3">${rows}</ul>
+          </div>
+        `;
+      }
+
       function renderTable() {
         resultsCount.textContent = `${state.filteredBadges.length} ${t('resultsCountLabel')}`;
         if (!state.filteredBadges.length) {
@@ -1815,6 +1846,7 @@
           <div><strong>Hosted URL:</strong> <a href="${escapeHtml(item.public_assertion_url || '#')}" target="_blank">${escapeHtml(item.public_assertion_url || '—')}</a></div>
           <div><strong>Verification page:</strong> <a href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">/verify/badge/${escapeHtml(item.assertion_id)}</a></div>
           ${renderAnchoringAdminSummary(item.anchoring)}
+          ${renderAuditAdminSummary(item.audit)}
         `;
         downloadJsonBtn.href = item.json_url;
         downloadPngBtn.href = item.has_png ? item.png_url : '#';
