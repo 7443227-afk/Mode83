@@ -1576,7 +1576,28 @@
         });
       }
 
-      function renderIssueResultCard({ name, email, mode, assertionId, filename, certificateNumber, templateName }) {
+      function renderIssueAnchoringResultSummary(anchoringResult) {
+        if (!anchoringResult || (!anchoringResult.anchored && !anchoringResult.error)) return '';
+        const transaction = anchoringResult.output?.anchoring?.transaction || null;
+        const error = anchoringResult.output?.anchoring_error || null;
+        if (transaction) {
+          return `
+            <div class="alert alert-success py-2 mt-3 mb-0">
+              <div class="fw-semibold">Ancrage local confirmé</div>
+              <div class="small">Provider : ${escapeHtml(transaction.provider || 'mock')} · Réseau : ${escapeHtml(transaction.network || 'local-demo')}</div>
+              ${transaction.tx_hash ? `<div class="small mono text-break">Référence : ${escapeHtml(transaction.tx_hash)}</div>` : ''}
+            </div>
+          `;
+        }
+        return `
+          <div class="alert alert-warning py-2 mt-3 mb-0">
+            <div class="fw-semibold">Ancrage local non confirmé</div>
+            <div class="small">${escapeHtml(error?.detail || error?.error || 'Consultez la sortie système pour les détails.')}</div>
+          </div>
+        `;
+      }
+
+      function renderIssueResultCard({ name, email, mode, assertionId, filename, certificateNumber, templateName, anchoringResult = null }) {
         const verificationUrl = assertionId ? `/verify/badge/${encodeURIComponent(assertionId)}` : null;
         const qrUrl = assertionId ? `/verify/qr/${encodeURIComponent(assertionId)}` : null;
         const pngUrl = assertionId ? `/api/badges/${encodeURIComponent(assertionId)}/png` : null;
@@ -1613,6 +1634,7 @@
             <button type="button" id="issueSimilarBtn" class="btn btn-sm btn-outline-success">Émettre un autre badge similaire</button>
           </div>
           ${filename ? `<div class="small text-muted mt-2">Fichier téléchargé : ${escapeHtml(filename)}</div>` : ''}
+          ${renderIssueAnchoringResultSummary(anchoringResult)}
         `;
         const similarBtn = document.getElementById('issueSimilarBtn');
         if (similarBtn) {
@@ -3257,6 +3279,7 @@
             mode: 'json',
             assertionId,
             templateName: 'Assertion JSON',
+            anchoringResult,
           });
           issuePanelForm.reset();
           await loadDashboard(assertionId || null);
@@ -3304,6 +3327,7 @@
             filename: a.download,
             certificateNumber,
             templateName: selectedTemplateName,
+            anchoringResult,
           });
           issuePanelForm.reset();
           await loadDashboard(assertionId || null);

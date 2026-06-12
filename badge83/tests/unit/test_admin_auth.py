@@ -80,3 +80,14 @@ def test_admin_index_expose_audit_trail_dans_inspecteur():
     assert "Audit trail" in response.text
     assert "renderAuditAdminSummary" in response.text
     assert "/audit" in response.text
+
+
+def test_admin_index_expose_resume_ancrage_apres_emission():
+    client = _client_admin()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "renderIssueAnchoringResultSummary" in response.text
+    assert "Ancrage local confirmé" in response.text
+    assert "Ancrage local non confirmé" in response.text
