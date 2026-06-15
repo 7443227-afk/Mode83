@@ -277,10 +277,11 @@ failed
 retry_scheduled
 ```
 
-Deux providers existent :
+Trois providers existent maintenant :
 
 - `noop` : provider désactivé, retourne un échec contrôlé sans contacter de réseau ;
-- `mock` : provider de démonstration, simule un ancrage réussi en local.
+- `mock` : provider de démonstration, simule un ancrage réussi en local ;
+- `evm` : provider optionnel, désactivable, qui publie uniquement le digest `bytes32` sur un contrat EVM compatible.
 
 Le provider `mock` renseigne notamment :
 
@@ -292,6 +293,40 @@ block_number = <id_transaction_locale>
 ```
 
 Ce provider ne publie rien sur une blockchain. Il sert uniquement à démontrer le cycle applicatif complet.
+
+Le provider `evm` reste séparé du runtime principal : il importe `web3` uniquement au moment d'ancrer une transaction et retourne un échec contrôlé si la configuration ou la dépendance optionnelle manque.
+
+Variables d'environnement prévues :
+
+```text
+BADGE83_ANCHORING_PROVIDER=mock
+BADGE83_EVM_RPC_URL=
+BADGE83_EVM_CHAIN_ID=
+BADGE83_EVM_CONTRACT_ADDRESS=
+BADGE83_EVM_PRIVATE_KEY=
+BADGE83_EVM_NETWORK_LABEL=hardhat-local
+BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS=120
+```
+
+Les dépendances EVM ne sont pas dans `requirements.txt`. Elles s'installent seulement si l'opérateur active l'ancrage réel :
+
+```bash
+pip install -r requirements-blockchain.txt
+```
+
+En cas de succès, le provider retourne une référence compatible avec les transactions locales :
+
+```json
+{
+  "status": "anchored",
+  "provider": "evm",
+  "network": "hardhat-local",
+  "tx_hash": "0x...",
+  "block_number": 123
+}
+```
+
+En cas de configuration absente, de RPC indisponible ou de dépendance `web3` non installée, Badge83 ne casse pas au démarrage et la transaction passe en `failed` avec un message explicite.
 
 ---
 
@@ -329,7 +364,7 @@ GET /api/badges/{assertion_id}/anchoring
 
 Accès : administrateur uniquement.
 
-Le endpoint `POST` crée une demande d'ancrage locale et, par défaut, la traite immédiatement avec le provider demandé. Le provider recommandé pour la démonstration est `mock`.
+Le endpoint `POST` crée une demande d'ancrage locale et, par défaut, la traite immédiatement avec le provider demandé. Le provider recommandé pour la démonstration est `mock`. Si `provider` est omis, Badge83 utilise `BADGE83_ANCHORING_PROVIDER`, dont la valeur par défaut reste `mock`.
 
 Exemple de corps :
 
@@ -340,6 +375,18 @@ Exemple de corps :
   "process": true
 }
 ```
+
+Pour demander explicitement un ancrage EVM réel, utiliser un corps séparé afin de ne pas confondre démonstration locale et transaction blockchain :
+
+```json
+{
+  "provider": "evm",
+  "actor": "admin",
+  "process": true
+}
+```
+
+Le provider EVM n'envoie au contrat que le digest converti en `bytes32`, jamais `assertion_id`, nom, email, assertion JSON, PNG, payload canonique ou données opérateur.
 
 Réponse simplifiée attendue :
 
@@ -395,21 +442,23 @@ Ce qui est déjà présent :
 - file d'attente d'ancrage locale ;
 - provider `noop` ;
 - provider `mock` ;
+- smart contract minimal `Badge83Anchor` dans `blockchain/` ;
+- provider `evm` optionnel avec imports `web3` lazy ;
+- configuration EVM optionnelle ;
+- tests unitaires du provider EVM sans réseau réel ;
 - API administrateur d'ancrage local ;
 - affichage public du statut d'ancrage local.
 
 Ce qui n'est pas encore présent :
 
-- smart contract ;
 - transaction testnet ;
-- provider EVM ;
 - vérification blockchain publique.
 
 ---
 
 ## 15. Étapes suivantes recommandées
 
-1. Finaliser la documentation de démonstration de bout en bout.
-2. Stabiliser l'interface d'administration autour de l'ancrage local si nécessaire.
-3. Créer un smart contract isolé hors du runtime Badge83 uniquement après validation de la démo locale.
-4. Ajouter un provider EVM derrière feature flag uniquement après validation, sans rendre la blockchain obligatoire.
+1. Tester l'intégration locale complète avec Hardhat node, contrat déployé et variables `BADGE83_EVM_*`.
+2. Documenter le flux EVM de bout en bout dans une page dédiée.
+3. Ajouter une action UI distincte pour l'ancrage blockchain réel, sans remplacer le bouton local `mock`.
+4. Préparer plus tard une vérification blockchain publique du hash, sans publier de donnée personnelle on-chain.

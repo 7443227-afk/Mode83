@@ -632,7 +632,7 @@ Cette séparation garantit que :
 
 ### Preuve locale et ancrage blockchain optionnel
 
-Badge83 génère maintenant une preuve locale pour chaque badge émis. Cette preuve sert de base à un futur ancrage blockchain optionnel, sans rendre la blockchain nécessaire au fonctionnement quotidien.
+Badge83 génère maintenant une preuve locale pour chaque badge émis. Cette preuve sert de base à un ancrage blockchain optionnel, sans rendre la blockchain nécessaire au fonctionnement quotidien.
 
 Flux appliqué :
 
@@ -644,6 +644,10 @@ Payload canonique
 Hash SHA-256
   ↓
 Table SQLite credential_proofs
+  ↓ optionnellement
+File anchoring_transactions
+  ↓
+Provider noop / mock / evm
 ```
 
 Endpoint administrateur :
@@ -668,7 +672,37 @@ GET /verify/qr/{assertion_id}
 | `missing` | aucune preuve locale n'existe pour ce badge |
 | `unavailable` | le registre local de preuve n'est pas accessible |
 
-La blockchain reste désactivée et optionnelle. Aucune donnée personnelle n'est prévue pour être stockée on-chain ; seul un hash opaque pourrait être ancré plus tard.
+La blockchain reste désactivable et optionnelle. Aucune donnée personnelle n'est stockée on-chain ; le provider EVM ne transmet que le digest opaque `sha256:<64 hex>` converti en `bytes32`.
+
+Le provider par défaut est configuré par :
+
+```text
+BADGE83_ANCHORING_PROVIDER=mock
+```
+
+Pour un ancrage EVM réel, les dépendances restent séparées du runtime principal :
+
+```bash
+pip install -r requirements-blockchain.txt
+```
+
+Puis renseigner localement, sans committer de secret :
+
+```text
+BADGE83_EVM_RPC_URL=
+BADGE83_EVM_CHAIN_ID=
+BADGE83_EVM_CONTRACT_ADDRESS=
+BADGE83_EVM_PRIVATE_KEY=
+BADGE83_EVM_NETWORK_LABEL=hardhat-local
+BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS=120
+```
+
+Le smart contract Hardhat isolé se trouve dans `blockchain/` et les tests se lancent avec :
+
+```bash
+cd blockchain
+npm test
+```
 
 Documentation détaillée :
 
@@ -740,7 +774,7 @@ Cette structure correspond au format effectivement produit par `app/issuer.py` e
 | Endpoints hébergés (HostedBadge) | Implémenté | URLs publiques pour Issuer, BadgeClass et Assertions |
 | Signature JWS (SignedBadge) | 🔲 Planifié | Chiffrer les assertions avec une clé privée, vérification par clé publique |
 | Preuve locale par hash | Implémenté | Canonicalisation, SHA-256, table `credential_proofs`, API admin et affichage public |
-| Ancrage blockchain | 🔲 Planifié | Enregistrer les empreintes d'assertions sur une blockchain pour preuve d'immutabilité |
+| Ancrage blockchain | Partiel / optionnel | Smart contract minimal, configuration EVM optionnelle et provider `evm` hash-only sans dépendance obligatoire |
 | Base de données locale | Implémenté | Registre SQLite local pour index administratif, recherche et cohérence JSON/PNG |
 | Validation avec `openbadges-validator-core` | Validé | Test de conformité réussi sur un badge MODE83 hébergé |
 | Validation IMS officielle | 🔲 À poursuivre | Vérifications complémentaires sur l'infrastructure publique / HTTPS |
