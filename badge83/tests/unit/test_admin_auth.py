@@ -59,6 +59,20 @@ def test_admin_index_expose_le_bouton_ancrage_local():
     assert "provider: 'mock'" in response.text
 
 
+def test_admin_index_expose_le_bouton_ancrage_blockchain_evm_distinct():
+    client = _client_admin()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'id="anchorEvmBtn"' in response.text
+    assert "Demander un ancrage blockchain réel" in response.text
+    assert "Request real blockchain anchoring" in response.text
+    assert "Запросить реальный blockchain-анкеринг" in response.text
+    assert "requestRealEvmAnchoring" in response.text
+    assert "provider: 'evm'" in response.text
+
+
 def test_admin_index_expose_option_ancrage_local_apres_emission():
     client = _client_admin()
 

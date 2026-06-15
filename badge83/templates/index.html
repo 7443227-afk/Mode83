@@ -656,6 +656,7 @@
                         <a id="downloadPngBtn" class="btn btn-outline-success btn-sm" target="_blank">Télécharger PNG</a>
                         <a id="openVerifyPageBtn" class="btn btn-outline-secondary btn-sm" target="_blank">Open verification page</a>
                         <button id="anchorLocalBtn" class="btn btn-outline-warning btn-sm">Demander un ancrage local</button>
+                        <button id="anchorEvmBtn" class="btn btn-outline-info btn-sm">Demander un ancrage blockchain réel</button>
                         <button id="inspectPngBtn" class="btn btn-outline-dark btn-sm">Analyser les champs PNG</button>
                         <button id="deleteBtn" class="btn btn-outline-danger btn-sm">Supprimer</button>
                       </div>
@@ -1118,6 +1119,7 @@
       const downloadPngBtn = document.getElementById('downloadPngBtn');
       const openVerifyPageBtn = document.getElementById('openVerifyPageBtn');
       const anchorLocalBtn = document.getElementById('anchorLocalBtn');
+      const anchorEvmBtn = document.getElementById('anchorEvmBtn');
       const inspectPngBtn = document.getElementById('inspectPngBtn');
       const deleteBtn = document.getElementById('deleteBtn');
       const assertionEditor = document.getElementById('assertionEditor');
@@ -1214,6 +1216,7 @@
           downloadPngBtn: 'Télécharger PNG',
           openVerifyPageBtn: 'Ouvrir la page de vérification',
           anchorLocalBtn: 'Demander un ancrage local',
+          anchorEvmBtn: 'Demander un ancrage blockchain réel',
           inspectPngBtn: 'Analyser les champs PNG',
           deleteBtn: 'Supprimer',
           editorTitle: 'JSON d’assertion éditable',
@@ -1289,6 +1292,7 @@
           downloadPngBtn: 'Download PNG',
           openVerifyPageBtn: 'Open verification page',
           anchorLocalBtn: 'Request local anchoring',
+          anchorEvmBtn: 'Request real blockchain anchoring',
           inspectPngBtn: 'Parse PNG fields',
           deleteBtn: 'Delete',
           editorTitle: 'Editable assertion JSON',
@@ -1364,6 +1368,7 @@
           downloadPngBtn: 'Скачать PNG',
           openVerifyPageBtn: 'Открыть страницу проверки',
           anchorLocalBtn: 'Запросить локальное anchoring',
+          anchorEvmBtn: 'Запросить реальный blockchain-анкеринг',
           inspectPngBtn: 'Распарсить поля PNG',
           deleteBtn: 'Удалить',
           editorTitle: 'Редактируемый assertion JSON',
@@ -1424,7 +1429,7 @@
           'pageTitle','pageSubtitle','labelCurrentBadge','labelCurrentView','labelSystem','sidebarTitle','searchLabel',
           'filterLabel','filterJsonLabel','filterPngLabel','filterHostedLabel',
           'registryTitle','registryDesc','inspectorTitle','inspectorDesc','emptyInspector','previewTitle','downloadJsonBtn',
-          'downloadPngBtn','openVerifyPageBtn','anchorLocalBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
+          'downloadPngBtn','openVerifyPageBtn','anchorLocalBtn','anchorEvmBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
           'issueNameLabel','issueEmailLabel','issueModeLabel','issueAnchorLocalLabel','issueAnchorLocalHelp','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn','batchIssueTitle','batchIssueDesc',
           'verifyTitle','verifyDesc','verifyBadgeIdLabel','verifyAssertionUrlLabel','verifyPngFileLabel','verifyIdBtn','verifyUrlBtn',
           'systemTitle','systemDesc','refreshBtn'
@@ -1876,7 +1881,9 @@
         openVerifyPageBtn.href = `/verify/badge/${encodeURIComponent(item.assertion_id)}`;
         inspectPngBtn.disabled = !item.has_png;
         anchorLocalBtn.disabled = !item.has_json;
+        anchorEvmBtn.disabled = !item.has_json;
         anchorLocalBtn.dataset.id = item.assertion_id;
+        anchorEvmBtn.dataset.id = item.assertion_id;
         deleteBtn.dataset.id = item.assertion_id;
         saveEditBtn.dataset.id = item.assertion_id;
         inspectPngBtn.dataset.id = item.assertion_id;
@@ -3013,6 +3020,22 @@
         return data;
       }
 
+      async function requestRealEvmAnchoring(badgeId) {
+        const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'evm', actor: 'admin-ui', process: true }),
+        });
+        const data = await response.json().catch(async () => ({ detail: await response.text() }));
+        if (!response.ok) {
+          const message = data.detail || data.error || 'Erreur lors de la demande d’ancrage blockchain EVM';
+          const error = new Error(message);
+          error.payload = data;
+          throw error;
+        }
+        return data;
+      }
+
       async function maybeAnchorIssuedBadge(assertionId, issuePayload) {
         const shouldAnchor = Boolean(issueAnchorLocal?.checked);
         if (!shouldAnchor || !assertionId) {
@@ -3406,6 +3429,32 @@
         } finally {
           anchorLocalBtn.textContent = previousText || t('anchorLocalBtn');
           anchorLocalBtn.disabled = false;
+        }
+      });
+
+      anchorEvmBtn.addEventListener('click', async () => {
+        const badgeId = anchorEvmBtn.dataset.id;
+        if (!badgeId) return;
+
+        anchorEvmBtn.disabled = true;
+        const previousText = anchorEvmBtn.textContent;
+        anchorEvmBtn.textContent = currentLang === 'fr'
+          ? 'Ancrage blockchain…'
+          : currentLang === 'en'
+            ? 'Blockchain anchoring…'
+            : 'Blockchain-анкеринг…';
+
+        try {
+          const data = await requestRealEvmAnchoring(badgeId);
+          setSystemOutput(data);
+          await loadDashboard(badgeId);
+          switchView('inspectorView');
+        } catch (error) {
+          setSystemOutput({ error: 'Erreur lors de la demande d’ancrage blockchain EVM', details: String(error), payload: error.payload || null });
+          switchView('systemView');
+        } finally {
+          anchorEvmBtn.textContent = previousText || t('anchorEvmBtn');
+          anchorEvmBtn.disabled = false;
         }
       });
 
