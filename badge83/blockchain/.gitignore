@@ -1,0 +1,19 @@
+# Dépendances locales du sous-projet blockchain
+node_modules/
+
+# Sorties générées par Hardhat
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain-types/
+
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
+
+# Journaux locaux
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
