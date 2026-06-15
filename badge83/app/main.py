@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_default_anchoring_provider, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
+from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_default_anchoring_provider, get_evm_explorer_tx_url_template, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash, enregistrer_evenement_audit
 from app.openbadges_checks import check_assertion
@@ -627,6 +627,7 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
             "provider": None,
             "network": None,
             "tx_hash": None,
+            "explorer_tx_url": None,
             "block_number": None,
             "blockchain_verification": _blockchain_verification_not_applicable(),
         }
@@ -641,12 +642,14 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
             "provider": None,
             "network": None,
             "tx_hash": None,
+            "explorer_tx_url": None,
             "block_number": None,
             "blockchain_verification": _blockchain_verification_not_applicable(),
         }
 
     latest = transactions[-1]
     status = latest.get("status") or "not_requested"
+    tx_hash = latest.get("tx_hash")
     labels = {
         "queued": "Ancrage en file d'attente",
         "pending": "Ancrage en cours",
@@ -669,11 +672,27 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
         "message": "Dernier statut d'ancrage local enregistré dans Badge83.",
         "provider": latest.get("provider"),
         "network": latest.get("network"),
-        "tx_hash": latest.get("tx_hash"),
+        "tx_hash": tx_hash,
+        "explorer_tx_url": _build_evm_explorer_tx_url(tx_hash, latest.get("provider")),
         "block_number": latest.get("block_number"),
         "updated_at": latest.get("updated_at"),
         "blockchain_verification": _build_blockchain_verification_status(latest),
     }
+
+
+def _build_evm_explorer_tx_url(tx_hash: Any, provider: Any) -> str | None:
+    """Construit une URL explorer optionnelle sans exposer autre chose que le tx_hash."""
+
+    if provider != "evm" or not isinstance(tx_hash, str) or not tx_hash.startswith("0x"):
+        return None
+
+    template = get_evm_explorer_tx_url_template()
+    if not template or not template.startswith(("https://", "http://")):
+        return None
+
+    if "{tx_hash}" in template:
+        return template.replace("{tx_hash}", tx_hash)
+    return f"{template.rstrip('/')}/{tx_hash}"
 
 
 def _blockchain_verification_not_applicable() -> dict[str, Any]:

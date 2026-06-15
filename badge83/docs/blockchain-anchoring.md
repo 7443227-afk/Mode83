@@ -305,6 +305,7 @@ BADGE83_EVM_CHAIN_ID=
 BADGE83_EVM_CONTRACT_ADDRESS=
 BADGE83_EVM_PRIVATE_KEY=
 BADGE83_EVM_NETWORK_LABEL=hardhat-local
+BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=
 BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS=120
 ```
 
@@ -388,6 +389,8 @@ Pour demander explicitement un ancrage EVM réel, utiliser un corps séparé afi
 
 Le provider EVM n'envoie au contrat que le digest converti en `bytes32`, jamais `assertion_id`, nom, email, assertion JSON, PNG, payload canonique ou données opérateur.
 
+`BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE` est optionnel et sert uniquement à afficher un lien public vers le `tx_hash` déjà enregistré, par exemple `https://sepolia.etherscan.io/tx/{tx_hash}`. Il ne crée aucune transaction, n'appelle pas `web3` et n'ajoute aucune donnée personnelle.
+
 Réponse simplifiée attendue :
 
 ```json
@@ -452,13 +455,13 @@ Ce qui est déjà présent :
 Ce qui n'est pas encore présent :
 
 - transaction testnet ;
-- vérification blockchain publique.
+- indexation externe des événements `CredentialHashAnchored`.
 
 ---
 
 ## 15. Étapes suivantes recommandées
 
-1. Ajouter une action UI distincte pour l'ancrage blockchain réel, sans remplacer le bouton local `mock`.
-2. Préparer plus tard une vérification blockchain publique du hash, sans publier de donnée personnelle on-chain.
+1. Préparer un flux testnet avec la même règle hash-only.
+2. Étudier une indexation externe optionnelle des événements `CredentialHashAnchored`, sans données personnelles.
 
 Le flux EVM local de bout en bout est documenté dans [`blockchain-evm-anchoring.md`](blockchain-evm-anchoring.md).

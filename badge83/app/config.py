@@ -171,6 +171,11 @@ def get_evm_network_label() -> str:
     return os.environ.get("BADGE83_EVM_NETWORK_LABEL", DEFAULT_EVM_NETWORK_LABEL).strip() or DEFAULT_EVM_NETWORK_LABEL
 
 
+def get_evm_explorer_tx_url_template() -> str:
+    """Template optionnel d'URL explorer pour afficher un tx_hash public."""
+    return os.environ.get("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "").strip()
+
+
 def get_evm_confirmation_timeout_seconds() -> int:
     return _get_int_env("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS)
 

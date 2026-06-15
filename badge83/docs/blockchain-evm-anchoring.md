@@ -136,6 +136,7 @@ export BADGE83_EVM_CHAIN_ID=31337
 export BADGE83_EVM_CONTRACT_ADDRESS=0x...
 export BADGE83_EVM_PRIVATE_KEY=0x...
 export BADGE83_EVM_NETWORK_LABEL=hardhat-local
+export BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=
 export BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS=120
 ```
 
@@ -239,6 +240,22 @@ BADGE83_EVM_CONTRACT_ADDRESS
 BADGE83_EVM_NETWORK_LABEL
 ```
 
+Une URL d'explorer peut aussi être affichée à partir du `tx_hash` déjà public, sans appel RPC supplémentaire :
+
+```bash
+export BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=https://sepolia.etherscan.io/tx/{tx_hash}
+```
+
+Cette option est purement informative :
+
+- elle ne déclenche aucune transaction ;
+- elle n'utilise pas `web3` ;
+- elle n'utilise pas `BADGE83_EVM_PRIVATE_KEY` ;
+- elle n'ajoute aucune donnée on-chain ;
+- elle n'est affichée que pour un ancrage `provider=evm` avec un `tx_hash` commençant par `0x`.
+
+Si le template ne contient pas `{tx_hash}`, Badge83 ajoute le hash à la fin de l'URL. Exemple : `https://explorer.example/tx` devient `https://explorer.example/tx/0x...`.
+
 Si `web3` ou la configuration RPC est absente, Badge83 continue de fonctionner. La page affiche alors un statut informatif, par exemple `Vérification blockchain non configurée` ou `Dépendance blockchain absente`.
 
 Les pages concernées sont :
@@ -323,4 +340,5 @@ La clé privée n'est pas nécessaire pour cette vérification.
 
 - pas encore de transaction testnet ;
 - vérification blockchain publique limitée au dernier ancrage EVM local enregistré ;
-- pas d'indexation externe des événements `CredentialHashAnchored`.
+- pas d'indexation externe des événements `CredentialHashAnchored` ;
+- lien explorer optionnel limité au `tx_hash`, sans indexation ni synchronisation externe.

@@ -118,6 +118,7 @@ def test_pages_verification_affichent_un_badge_revoque(tmp_path, monkeypatch):
 
 
 def test_pages_verification_affichent_un_ancrage_mock_confirme(tmp_path, monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "https://explorer.test/tx/{tx_hash}")
     assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, _assertion("preuve-ancree-1"))
     repository = AnchoringRepository(tmp_path / "registry.db")
     transaction = repository.enqueue(
@@ -141,10 +142,18 @@ def test_pages_verification_affichent_un_ancrage_mock_confirme(tmp_path, monkeyp
     assert qr_response.status_code == 200
     assert "Ancrage confirmé" in full_response.text
     assert "mock:abc123" in full_response.text
+    assert "https://explorer.test/tx/mock:abc123" not in full_response.text
     assert "Ancrage : anchored" in qr_response.text
 
 
+def test_url_explorer_evm_refuse_un_template_non_http(monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "javascript:alert('{tx_hash}')")
+
+    assert main._build_evm_explorer_tx_url("0xabc123", "evm") is None
+
+
 def test_pages_verification_affichent_la_verification_blockchain_evm(tmp_path, monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "https://explorer.test/tx/{tx_hash}")
     assertion = _assertion("preuve-evm-verifiee-1")
     assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, assertion)
     proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
@@ -183,6 +192,8 @@ def test_pages_verification_affichent_la_verification_blockchain_evm(tmp_path, m
     assert "Vérification blockchain publique" in full_response.text
     assert "Hash confirmé sur blockchain" in full_response.text
     assert "0xabc123" in full_response.text
+    assert "https://explorer.test/tx/0xabc123" in full_response.text
     assert "Bloc" in full_response.text
     assert "Vérification blockchain publique" in qr_response.text
     assert "Hash confirmé sur blockchain" in qr_response.text
+    assert "https://explorer.test/tx/0xabc123" in qr_response.text

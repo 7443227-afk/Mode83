@@ -179,6 +179,9 @@
           {% if badge.anchoring.tx_hash %}
           <div class="label mb-1">Référence d'ancrage</div>
           <div class="mono small text-break">{{ badge.anchoring.tx_hash }}</div>
+          {% if badge.anchoring.explorer_tx_url %}
+          <a class="btn btn-outline-primary btn-sm mt-2" href="{{ badge.anchoring.explorer_tx_url }}" target="_blank" rel="noopener noreferrer">Ouvrir dans l'explorer blockchain</a>
+          {% endif %}
           {% endif %}
           {% if badge.anchoring.block_number %}
           <div class="label mt-2 mb-1">Bloc</div>
@@ -279,6 +282,9 @@
             <div class="col-12">
               <div class="label mb-1">Statut de l'ancrage local</div>
               <div class="mono small">{{ badge.anchoring.status }}{% if badge.anchoring.tx_hash %} · {{ badge.anchoring.tx_hash }}{% endif %}</div>
+              {% if badge.anchoring.explorer_tx_url %}
+              <a class="mono small" href="{{ badge.anchoring.explorer_tx_url }}" target="_blank" rel="noopener noreferrer">{{ badge.anchoring.explorer_tx_url }}</a>
+              {% endif %}
             </div>
             <div class="col-12">
               <div class="label mb-1">Vérification blockchain publique</div>
