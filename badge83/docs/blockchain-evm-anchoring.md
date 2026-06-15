@@ -154,6 +154,8 @@ export BADGE83_ANCHORING_PROVIDER=mock
 
 et appeler explicitement le provider EVM dans le corps API.
 
+Dans l'interface d'émission individuelle, un interrupteur permet aussi de demander l'ancrage EVM juste après l'émission. Cette option est désactivée par défaut et reste non bloquante : le badge est émis même si la transaction EVM échoue.
+
 Ne pas écrire de clé privée réelle dans un fichier versionné. Utiliser un `.env` local non commité ou des variables d'environnement de session.
 
 ---
@@ -222,6 +224,8 @@ block_number = 2
 ## 9. Vérification blockchain publique du hash
 
 Après un ancrage EVM confirmé, les pages publiques de vérification Badge83 affichent une vérification blockchain en lecture seule.
+
+Les ancrages `mock` et `evm` sont affichés séparément. Ils ne sont pas mutuellement exclusifs : le `mock` sert au workflow local, tandis que `evm` représente la publication réelle du hash sur le contrat. La vérification blockchain publique utilise le dernier ancrage `evm` confirmé, même si une transaction `mock` plus récente existe.
 
 Cette vérification :
 

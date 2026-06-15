@@ -242,13 +242,21 @@
 
           <div class="fact">
             <div class="label">Ancrage local</div>
-            <div class="value">{{ badge.anchoring.label }}</div>
+            <div class="value">{{ badge.anchoring.mock.label }}</div>
             <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
-              {{ badge.anchoring.message }}{% if badge.anchoring.tx_hash %} Référence : {{ badge.anchoring.tx_hash }}.{% endif %}
+              Provider mock local.{% if badge.anchoring.mock.tx_hash %} Référence : {{ badge.anchoring.mock.tx_hash }}.{% endif %}
             </div>
-            {% if badge.anchoring.explorer_tx_url %}
+          </div>
+
+          <div class="fact">
+            <div class="label">Ancrage blockchain EVM</div>
+            <div class="value">{{ badge.anchoring.evm.label }}</div>
             <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
-              <a href="{{ badge.anchoring.explorer_tx_url }}" target="_blank" rel="noopener noreferrer">Ouvrir la transaction dans l'explorer blockchain</a>
+              Provider EVM réel, optionnel et hash-only.{% if badge.anchoring.evm.tx_hash %} Transaction : {{ badge.anchoring.evm.tx_hash }}.{% endif %}
+            </div>
+            {% if badge.anchoring.evm.explorer_tx_url %}
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              <a href="{{ badge.anchoring.evm.explorer_tx_url }}" target="_blank" rel="noopener noreferrer">Ouvrir la transaction dans l'explorer blockchain</a>
             </div>
             {% endif %}
           </div>

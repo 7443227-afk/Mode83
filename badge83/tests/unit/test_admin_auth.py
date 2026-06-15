@@ -85,6 +85,20 @@ def test_admin_index_expose_option_ancrage_local_apres_emission():
     assert "maybeAnchorIssuedBadge" in response.text
 
 
+def test_admin_index_expose_option_ancrage_evm_apres_emission():
+    client = _client_admin()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'id="issueAnchorEvm"' in response.text
+    assert "Demander un ancrage blockchain réel après émission" in response.text
+    assert "Request real blockchain anchoring after issuing" in response.text
+    assert "Записать хеш в блокчейн после выдачи" in response.text
+    assert "requestRealEvmAnchoring" in response.text
+    assert "anchoring_results" in response.text
+
+
 def test_admin_index_expose_audit_trail_dans_inspecteur():
     client = _client_admin()
 
@@ -103,5 +117,6 @@ def test_admin_index_expose_resume_ancrage_apres_emission():
 
     assert response.status_code == 200
     assert "renderIssueAnchoringResultSummary" in response.text
-    assert "Ancrage local confirmé" in response.text
-    assert "Ancrage local non confirmé" in response.text
+    assert "Ancrage local mock" in response.text
+    assert "Ancrage blockchain EVM" in response.text
+    assert "non confirmé" in response.text

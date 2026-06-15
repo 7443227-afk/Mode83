@@ -674,6 +674,8 @@ GET /verify/qr/{assertion_id}
 
 La blockchain reste désactivable et optionnelle. Aucune donnée personnelle n'est stockée on-chain ; le provider EVM ne transmet que le digest opaque `sha256:<64 hex>` converti en `bytes32`.
 
+L'ancrage local `mock` et l'ancrage blockchain `evm` ne sont pas mutuellement exclusifs. L'interface les affiche séparément : `mock` sert au workflow local de démonstration, tandis que `evm` correspond à la publication réelle du hash sur un contrat EVM. Un interrupteur de l'écran d'émission individuelle permet de demander l'ancrage EVM juste après la création du badge ; cette étape reste optionnelle et non bloquante.
+
 Le provider par défaut est configuré par :
 
 ```text

@@ -197,3 +197,68 @@ def test_pages_verification_affichent_la_verification_blockchain_evm(tmp_path, m
     assert "Vérification blockchain publique" in qr_response.text
     assert "Hash confirmé sur blockchain" in qr_response.text
     assert "https://explorer.test/tx/0xabc123" in qr_response.text
+
+
+def test_pages_verification_separent_mock_et_evm_meme_si_mock_est_plus_recent(tmp_path, monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "https://explorer.test/tx/{tx_hash}")
+    assertion = _assertion("preuve-mock-evm-separes-1")
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, assertion)
+    proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
+    repository = AnchoringRepository(tmp_path / "registry.db")
+    evm_transaction = repository.enqueue(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="evm",
+        network="hardhat-unit",
+    )
+    repository.changer_statut(
+        evm_transaction["id"],
+        "anchored",
+        tx_hash="0xevm123",
+        block_number=42,
+    )
+    mock_transaction = repository.enqueue(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="mock",
+        network="local-demo",
+    )
+    repository.changer_statut(
+        mock_transaction["id"],
+        "anchored",
+        tx_hash="mock:latest",
+        block_number=43,
+    )
+    verifier_calls = []
+    monkeypatch.setattr(
+        main.EvmAnchoringProvider,
+        "verifier_hash_ancre",
+        lambda self, credential_hash: verifier_calls.append(credential_hash) or {
+            "available": True,
+            "verified": True,
+            "status": "verified",
+            "provider": "evm",
+            "network": "hardhat-unit",
+            "error_message": None,
+        },
+    )
+    client = TestClient(app)
+
+    full_response = client.get(f"/verify/badge/{assertion_id}")
+    qr_response = client.get(f"/verify/qr/{assertion_id}")
+
+    assert full_response.status_code == 200
+    assert qr_response.status_code == 200
+    assert "Ancrage local" in full_response.text
+    assert "mock:latest" in full_response.text
+    assert "Ancrage blockchain EVM" in full_response.text
+    assert "0xevm123" in full_response.text
+    assert "https://explorer.test/tx/0xevm123" in full_response.text
+    assert "Hash confirmé sur blockchain" in full_response.text
+    assert "Ancrage local" in qr_response.text
+    assert "mock:latest" in qr_response.text
+    assert "Ancrage blockchain EVM" in qr_response.text
+    assert "0xevm123" in qr_response.text
+    assert "https://explorer.test/tx/0xevm123" in qr_response.text
+    assert "Hash confirmé sur blockchain" in qr_response.text
+    assert verifier_calls == [proof["credential_hash"], proof["credential_hash"]]

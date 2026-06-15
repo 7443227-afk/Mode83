@@ -613,11 +613,13 @@ def _build_revocation_status(assertion_id: str) -> dict[str, Any]:
 
 
 def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
-    """Construit un résumé public du dernier ancrage local."""
+    """Construit un résumé public des ancrages locaux et EVM sans les opposer."""
 
     try:
         transactions = AnchoringRepository().lister_par_assertion(assertion_id)
     except Exception:
+        unavailable = _anchoring_provider_status(None, provider="mock", unavailable=True)
+        evm_unavailable = _anchoring_provider_status(None, provider="evm", unavailable=True)
         return {
             "available": False,
             "status": "unavailable",
@@ -629,33 +631,73 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
             "tx_hash": None,
             "explorer_tx_url": None,
             "block_number": None,
+            "mock": unavailable,
+            "evm": evm_unavailable,
             "blockchain_verification": _blockchain_verification_not_applicable(),
         }
 
-    if not transactions:
+    latest = transactions[-1] if transactions else None
+    latest_mock = _latest_transaction_for_provider(transactions, "mock")
+    latest_evm = _latest_transaction_for_provider(transactions, "evm")
+
+    if latest is None:
         return {
             "available": True,
             "status": "not_requested",
             "label": "Ancrage non demandé",
             "tone": "secondary",
-            "message": "Aucune demande d'ancrage locale n'est enregistrée pour ce credential.",
+            "message": "Aucune demande d'ancrage locale ou EVM n'est enregistrée pour ce credential.",
             "provider": None,
             "network": None,
             "tx_hash": None,
             "explorer_tx_url": None,
             "block_number": None,
+            "mock": _anchoring_provider_status(None, provider="mock"),
+            "evm": _anchoring_provider_status(None, provider="evm"),
             "blockchain_verification": _blockchain_verification_not_applicable(),
         }
 
-    latest = transactions[-1]
-    status = latest.get("status") or "not_requested"
-    tx_hash = latest.get("tx_hash")
+    latest_status = _anchoring_provider_status(latest, provider=str(latest.get("provider") or "unknown"))
+    evm_status = _anchoring_provider_status(latest_evm, provider="evm")
+    return {
+        "available": True,
+        "status": latest_status["status"],
+        "label": latest_status["label"],
+        "tone": latest_status["tone"],
+        "message": "Dernier statut d'ancrage enregistré dans Badge83. Les statuts mock et EVM restent séparés.",
+        "provider": latest.get("provider"),
+        "network": latest.get("network"),
+        "tx_hash": latest.get("tx_hash"),
+        "explorer_tx_url": _build_evm_explorer_tx_url(latest.get("tx_hash"), latest.get("provider")),
+        "block_number": latest.get("block_number"),
+        "updated_at": latest.get("updated_at"),
+        "mock": _anchoring_provider_status(latest_mock, provider="mock"),
+        "evm": evm_status,
+        "blockchain_verification": _build_blockchain_verification_status(latest_evm) if latest_evm else _blockchain_verification_not_applicable(),
+    }
+
+
+def _latest_transaction_for_provider(transactions: list[dict[str, Any]], provider: str) -> dict[str, Any] | None:
+    for transaction in reversed(transactions):
+        if transaction.get("provider") == provider:
+            return transaction
+    return None
+
+
+def _anchoring_provider_status(
+    transaction: dict[str, Any] | None,
+    *,
+    provider: str,
+    unavailable: bool = False,
+) -> dict[str, Any]:
     labels = {
         "queued": "Ancrage en file d'attente",
         "pending": "Ancrage en cours",
         "anchored": "Ancrage confirmé",
         "failed": "Ancrage échoué",
         "retry_scheduled": "Nouvelle tentative planifiée",
+        "not_requested": "Ancrage non demandé",
+        "unavailable": "Ancrage indisponible",
     }
     tones = {
         "queued": "warning",
@@ -663,20 +705,48 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
         "anchored": "success",
         "failed": "danger",
         "retry_scheduled": "warning",
+        "not_requested": "secondary",
+        "unavailable": "warning",
     }
+    provider_labels = {
+        "mock": "Ancrage local mock",
+        "evm": "Ancrage blockchain EVM",
+    }
+    if unavailable:
+        status = "unavailable"
+        tx_hash = None
+        network = None
+        block_number = None
+        updated_at = None
+        error_message = None
+    elif transaction is None:
+        status = "not_requested"
+        tx_hash = None
+        network = None
+        block_number = None
+        updated_at = None
+        error_message = None
+    else:
+        status = transaction.get("status") or "not_requested"
+        tx_hash = transaction.get("tx_hash")
+        network = transaction.get("network")
+        block_number = transaction.get("block_number")
+        updated_at = transaction.get("updated_at")
+        error_message = transaction.get("error_message")
+
     return {
-        "available": True,
+        "available": not unavailable,
+        "provider": provider,
+        "title": provider_labels.get(provider, f"Ancrage {provider}"),
         "status": status,
         "label": labels.get(status, "Ancrage inconnu"),
         "tone": tones.get(status, "secondary"),
-        "message": "Dernier statut d'ancrage local enregistré dans Badge83.",
-        "provider": latest.get("provider"),
-        "network": latest.get("network"),
+        "network": network,
         "tx_hash": tx_hash,
-        "explorer_tx_url": _build_evm_explorer_tx_url(tx_hash, latest.get("provider")),
-        "block_number": latest.get("block_number"),
-        "updated_at": latest.get("updated_at"),
-        "blockchain_verification": _build_blockchain_verification_status(latest),
+        "explorer_tx_url": _build_evm_explorer_tx_url(tx_hash, provider),
+        "block_number": block_number,
+        "updated_at": updated_at,
+        "error_message": error_message,
     }
 
 

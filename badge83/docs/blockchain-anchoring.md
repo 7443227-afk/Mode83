@@ -296,6 +296,8 @@ Ce provider ne publie rien sur une blockchain. Il sert uniquement à démontrer 
 
 Le provider `evm` reste séparé du runtime principal : il importe `web3` uniquement au moment d'ancrer une transaction et retourne un échec contrôlé si la configuration ou la dépendance optionnelle manque.
 
+Les providers ne sont pas exclusifs : un même credential peut avoir un ancrage `mock` de démonstration et un ancrage `evm` réel. Badge83 affiche donc les statuts `mock` et `evm` séparément afin qu'un ancrage local plus récent ne masque pas une transaction blockchain déjà confirmée.
+
 Variables d'environnement prévues :
 
 ```text
@@ -389,6 +391,8 @@ Pour demander explicitement un ancrage EVM réel, utiliser un corps séparé afi
 
 Le provider EVM n'envoie au contrat que le digest converti en `bytes32`, jamais `assertion_id`, nom, email, assertion JSON, PNG, payload canonique ou données opérateur.
 
+Depuis l'interface d'émission individuelle, l'opérateur peut aussi cocher `Demander un ancrage blockchain réel après émission`. Badge83 émet d'abord le badge et crée la preuve locale, puis demande l'ancrage `evm` de manière non bloquante. Si l'ancrage EVM échoue, le badge reste émis et l'erreur est affichée séparément.
+
 `BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE` est optionnel et sert uniquement à afficher un lien public vers le `tx_hash` déjà enregistré, par exemple `https://sepolia.etherscan.io/tx/{tx_hash}`. Il ne crée aucune transaction, n'appelle pas `web3` et n'ajoute aucune donnée personnelle.
 
 Réponse simplifiée attendue :
@@ -421,11 +425,12 @@ Informations affichées lorsque disponibles :
 
 - statut local (`not_requested`, `queued`, `pending`, `anchored`, `failed`, `retry_scheduled`) ;
 - libellé lisible ;
-- provider ;
-- réseau local simulé ;
-- référence `tx_hash` mock.
+- statut `mock` local séparé ;
+- statut `evm` blockchain séparé ;
+- réseau et référence `tx_hash` lorsque disponibles ;
+- lien explorer optionnel pour les transactions EVM.
 
-Le libellé reste volontairement `Ancrage local` pour éviter de laisser croire à une publication blockchain réelle.
+Le libellé distingue volontairement `Ancrage local` et `Ancrage blockchain EVM` pour éviter de laisser croire que le provider `mock` publie réellement sur une blockchain.
 
 ---
 

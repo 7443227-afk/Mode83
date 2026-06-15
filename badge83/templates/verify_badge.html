@@ -167,26 +167,40 @@
         <div class="info-card p-3 mt-3">
           <div class="label mb-2">Ancrage local</div>
           <div class="d-flex gap-2 flex-wrap mb-2">
-            <span class="badge text-bg-{{ badge.anchoring.tone }}">{{ badge.anchoring.label }}</span>
-            {% if badge.anchoring.provider %}
-            <span class="badge text-bg-secondary">Provider : {{ badge.anchoring.provider }}</span>
-            {% endif %}
-            {% if badge.anchoring.network %}
-            <span class="badge text-bg-secondary">Réseau : {{ badge.anchoring.network }}</span>
+            <span class="badge text-bg-{{ badge.anchoring.mock.tone }}">{{ badge.anchoring.mock.label }}</span>
+            <span class="badge text-bg-secondary">Provider : mock</span>
+            {% if badge.anchoring.mock.network %}
+            <span class="badge text-bg-secondary">Réseau : {{ badge.anchoring.mock.network }}</span>
             {% endif %}
           </div>
-          <div class="text-muted small mb-2">{{ badge.anchoring.message }}</div>
-          {% if badge.anchoring.tx_hash %}
-          <div class="label mb-1">Référence d'ancrage</div>
-          <div class="mono small text-break">{{ badge.anchoring.tx_hash }}</div>
-          {% if badge.anchoring.explorer_tx_url %}
-          <a class="btn btn-outline-primary btn-sm mt-2" href="{{ badge.anchoring.explorer_tx_url }}" target="_blank" rel="noopener noreferrer">Ouvrir dans l'explorer blockchain</a>
+          <div class="text-muted small mb-2">Ancrage local de démonstration, séparé de l'ancrage blockchain réel.</div>
+          {% if badge.anchoring.mock.tx_hash %}
+          <div class="label mb-1">Référence d'ancrage local</div>
+          <div class="mono small text-break">{{ badge.anchoring.mock.tx_hash }}</div>
           {% endif %}
-          {% endif %}
-          {% if badge.anchoring.block_number %}
-          <div class="label mt-2 mb-1">Bloc</div>
-          <div class="mono small">{{ badge.anchoring.block_number }}</div>
-          {% endif %}
+
+          <div class="border-top pt-3 mt-3">
+            <div class="label mb-2">Ancrage blockchain EVM</div>
+            <div class="d-flex gap-2 flex-wrap mb-2">
+              <span class="badge text-bg-{{ badge.anchoring.evm.tone }}">{{ badge.anchoring.evm.label }}</span>
+              <span class="badge text-bg-secondary">Provider : evm</span>
+              {% if badge.anchoring.evm.network %}
+              <span class="badge text-bg-secondary">Réseau : {{ badge.anchoring.evm.network }}</span>
+              {% endif %}
+            </div>
+            <div class="text-muted small mb-2">Ancrage blockchain réel optionnel : seul le hash du credential est publié on-chain.</div>
+            {% if badge.anchoring.evm.tx_hash %}
+            <div class="label mb-1">Transaction blockchain</div>
+            <div class="mono small text-break">{{ badge.anchoring.evm.tx_hash }}</div>
+            {% if badge.anchoring.evm.explorer_tx_url %}
+            <a class="btn btn-outline-primary btn-sm mt-2" href="{{ badge.anchoring.evm.explorer_tx_url }}" target="_blank" rel="noopener noreferrer">Ouvrir dans l'explorer blockchain</a>
+            {% endif %}
+            {% endif %}
+            {% if badge.anchoring.evm.block_number %}
+            <div class="label mt-2 mb-1">Bloc</div>
+            <div class="mono small">{{ badge.anchoring.evm.block_number }}</div>
+            {% endif %}
+          </div>
           {% if badge.anchoring.blockchain_verification.status != 'not_applicable' %}
           <div class="border-top pt-3 mt-3">
             <div class="label mb-2">Vérification blockchain publique</div>

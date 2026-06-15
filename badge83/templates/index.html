@@ -721,6 +721,11 @@
                   <label id="issueAnchorLocalLabel" class="form-check-label" for="issueAnchorLocal">Demander aussi un ancrage local mock après émission</label>
                   <div id="issueAnchorLocalHelp" class="form-text">Optionnel. Badge83 créera la preuve locale puis lancera l’ancrage mock sans blockchain réelle.</div>
                 </div>
+                <div class="form-check form-switch mb-3">
+                  <input id="issueAnchorEvm" class="form-check-input" type="checkbox" />
+                  <label id="issueAnchorEvmLabel" class="form-check-label" for="issueAnchorEvm">Demander un ancrage blockchain réel après émission</label>
+                  <div id="issueAnchorEvmHelp" class="form-text">Optionnel et non bloquant. Nécessite une configuration EVM complète ; seul le hash du credential est envoyé on-chain.</div>
+                </div>
                 <div class="mb-3">
                   <label id="issueBadgeImageLabel" class="form-label" for="issueBadgeImage">PNG personnalisé</label>
                   <input id="issueBadgeImage" type="file" class="form-control" accept=".png" />
@@ -1130,6 +1135,7 @@
       const issueResultCard = document.getElementById('issueResultCard');
       const issueTemplate = document.getElementById('issueTemplate');
       const issueAnchorLocal = document.getElementById('issueAnchorLocal');
+      const issueAnchorEvm = document.getElementById('issueAnchorEvm');
       const issueTemplateFields = document.getElementById('issueTemplateFields');
       const issueTemplatePreviewWrap = document.getElementById('issueTemplatePreviewWrap');
       const issueTemplatePreview = document.getElementById('issueTemplatePreview');
@@ -1230,6 +1236,8 @@
           issueModeLabel: 'Mode d’émission',
           issueAnchorLocalLabel: 'Demander aussi un ancrage local mock après émission',
           issueAnchorLocalHelp: 'Optionnel. Badge83 créera la preuve locale puis lancera l’ancrage mock sans blockchain réelle.',
+          issueAnchorEvmLabel: 'Demander un ancrage blockchain réel après émission',
+          issueAnchorEvmHelp: 'Optionnel et non bloquant. Nécessite une configuration EVM complète ; seul le hash du credential est envoyé on-chain.',
           issueBadgeImageLabel: 'PNG personnalisé',
           issueBadgeImageHelp: 'Optionnel. Utilisez votre propre PNG ou le badge standard.',
           issueSubmitBtn: 'Émettre le badge',
@@ -1306,6 +1314,8 @@
           issueModeLabel: 'Issue mode',
           issueAnchorLocalLabel: 'Also request local mock anchoring after issuing',
           issueAnchorLocalHelp: 'Optional. Badge83 creates the local proof then runs mock anchoring without a real blockchain.',
+          issueAnchorEvmLabel: 'Request real blockchain anchoring after issuing',
+          issueAnchorEvmHelp: 'Optional and non-blocking. Requires full EVM configuration; only the credential hash is sent on-chain.',
           issueBadgeImageLabel: 'Custom PNG',
           issueBadgeImageHelp: 'Optional. Use your own PNG or the standard badge.',
           issueSubmitBtn: 'Issue badge',
@@ -1382,6 +1392,8 @@
           issueModeLabel: 'Режим выпуска',
           issueAnchorLocalLabel: 'Также запросить локальное mock-anchoring после выпуска',
           issueAnchorLocalHelp: 'Опционально. Badge83 создаст локальное доказательство и запустит mock-анкеринг без реальной blockchain.',
+          issueAnchorEvmLabel: 'Записать хеш в блокчейн после выдачи',
+          issueAnchorEvmHelp: 'Опционально и не блокирует выдачу. Нужна полная EVM-конфигурация; on-chain отправляется только hash credential.',
           issueBadgeImageLabel: 'Кастомный PNG',
           issueBadgeImageHelp: 'Опционально. Используйте свой PNG или стандартный badge.',
           issueSubmitBtn: 'Выпустить badge',
@@ -1430,7 +1442,7 @@
           'filterLabel','filterJsonLabel','filterPngLabel','filterHostedLabel',
           'registryTitle','registryDesc','inspectorTitle','inspectorDesc','emptyInspector','previewTitle','downloadJsonBtn',
           'downloadPngBtn','openVerifyPageBtn','anchorLocalBtn','anchorEvmBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
-          'issueNameLabel','issueEmailLabel','issueModeLabel','issueAnchorLocalLabel','issueAnchorLocalHelp','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn','batchIssueTitle','batchIssueDesc',
+          'issueNameLabel','issueEmailLabel','issueModeLabel','issueAnchorLocalLabel','issueAnchorLocalHelp','issueAnchorEvmLabel','issueAnchorEvmHelp','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn','batchIssueTitle','batchIssueDesc',
           'verifyTitle','verifyDesc','verifyBadgeIdLabel','verifyAssertionUrlLabel','verifyPngFileLabel','verifyIdBtn','verifyUrlBtn',
           'systemTitle','systemDesc','refreshBtn'
         ];
@@ -1583,23 +1595,35 @@
 
       function renderIssueAnchoringResultSummary(anchoringResult) {
         if (!anchoringResult || (!anchoringResult.anchored && !anchoringResult.error)) return '';
-        const transaction = anchoringResult.output?.anchoring?.transaction || null;
-        const error = anchoringResult.output?.anchoring_error || null;
-        if (transaction) {
+        const legacyTransaction = anchoringResult.output?.anchoring?.transaction || null;
+        const legacyError = anchoringResult.output?.anchoring_error || null;
+        const results = anchoringResult.output?.anchoring_results || (
+          legacyTransaction || legacyError
+            ? [{ provider: legacyTransaction?.provider || 'mock', anchoring: legacyTransaction ? { transaction: legacyTransaction } : null, error: legacyError }]
+            : []
+        );
+        if (!results.length) return '';
+        return results.map((item) => {
+          const transaction = item.anchoring?.transaction || null;
+          const error = item.error || null;
+          const provider = item.provider || transaction?.provider || 'mock';
+          const title = provider === 'evm' ? 'Ancrage blockchain EVM' : 'Ancrage local mock';
+          if (transaction) {
+            return `
+              <div class="alert alert-success py-2 mt-3 mb-0">
+                <div class="fw-semibold">${title} confirmé</div>
+                <div class="small">Provider : ${escapeHtml(transaction.provider || provider)} · Réseau : ${escapeHtml(transaction.network || '—')}</div>
+                ${transaction.tx_hash ? `<div class="small mono text-break">Référence : ${escapeHtml(transaction.tx_hash)}</div>` : ''}
+              </div>
+            `;
+          }
           return `
-            <div class="alert alert-success py-2 mt-3 mb-0">
-              <div class="fw-semibold">Ancrage local confirmé</div>
-              <div class="small">Provider : ${escapeHtml(transaction.provider || 'mock')} · Réseau : ${escapeHtml(transaction.network || 'local-demo')}</div>
-              ${transaction.tx_hash ? `<div class="small mono text-break">Référence : ${escapeHtml(transaction.tx_hash)}</div>` : ''}
+            <div class="alert alert-warning py-2 mt-3 mb-0">
+              <div class="fw-semibold">${title} non confirmé</div>
+              <div class="small">${escapeHtml(error?.detail || error?.error || 'Consultez la sortie système pour les détails.')}</div>
             </div>
           `;
-        }
-        return `
-          <div class="alert alert-warning py-2 mt-3 mb-0">
-            <div class="fw-semibold">Ancrage local non confirmé</div>
-            <div class="small">${escapeHtml(error?.detail || error?.error || 'Consultez la sortie système pour les détails.')}</div>
-          </div>
-        `;
+        }).join('');
       }
 
       function renderIssueResultCard({ name, email, mode, assertionId, filename, certificateNumber, templateName, anchoringResult = null }) {
@@ -1700,21 +1724,28 @@
         return '';
       }
 
+      function renderAnchoringProviderLine(statusData) {
+        const data = statusData || {};
+        const label = data.label || data.status || 'not_requested';
+        const tone = data.tone || 'secondary';
+        const network = data.network ? `<span class="badge text-bg-secondary me-1">Réseau : ${escapeHtml(data.network)}</span>` : '';
+        const txHash = data.tx_hash ? `<div class="small mono text-break mt-1">Référence : ${escapeHtml(data.tx_hash)}</div>` : '';
+        const explorer = data.explorer_tx_url ? `<div class="small mt-1"><a href="${escapeHtml(data.explorer_tx_url)}" target="_blank" rel="noopener noreferrer">Explorer transaction</a></div>` : '';
+        return `
+          <div class="mt-2">
+            <div><strong>${escapeHtml(data.title || 'Ancrage')}:</strong> <span class="badge text-bg-${escapeHtml(tone)}">${escapeHtml(label)}</span></div>
+            <div class="mt-1"><span class="badge text-bg-secondary me-1">Provider : ${escapeHtml(data.provider || '—')}</span>${network}</div>
+            ${txHash}${explorer}
+          </div>
+        `;
+      }
+
       function renderAnchoringAdminSummary(anchoring) {
         const data = anchoring || {};
-        const status = data.status || 'not_requested';
-        const label = data.label || status;
-        const tone = data.tone || 'secondary';
-        const provider = data.provider ? `<span class="badge text-bg-secondary me-1">Provider : ${escapeHtml(data.provider)}</span>` : '';
-        const network = data.network ? `<span class="badge text-bg-secondary me-1">Réseau : ${escapeHtml(data.network)}</span>` : '';
-        const txHash = data.tx_hash
-          ? `<div class="small mono text-break mt-1">Référence : ${escapeHtml(data.tx_hash)}</div>`
-          : '';
         return `
           <div class="mt-2 pt-2 border-top">
-            <div><strong>Ancrage local:</strong> <span class="badge text-bg-${escapeHtml(tone)}">${escapeHtml(label)}</span></div>
-            <div class="mt-1">${provider}${network}</div>
-            ${txHash}
+            ${renderAnchoringProviderLine(data.mock || { provider: 'mock', title: 'Ancrage local mock', status: data.provider === 'mock' ? data.status : 'not_requested', label: data.provider === 'mock' ? data.label : 'Ancrage non demandé', tone: data.provider === 'mock' ? data.tone : 'secondary', network: data.provider === 'mock' ? data.network : null, tx_hash: data.provider === 'mock' ? data.tx_hash : null })}
+            ${renderAnchoringProviderLine(data.evm || { provider: 'evm', title: 'Ancrage blockchain EVM', status: data.provider === 'evm' ? data.status : 'not_requested', label: data.provider === 'evm' ? data.label : 'Ancrage non demandé', tone: data.provider === 'evm' ? data.tone : 'secondary', network: data.provider === 'evm' ? data.network : null, tx_hash: data.provider === 'evm' ? data.tx_hash : null, explorer_tx_url: data.provider === 'evm' ? data.explorer_tx_url : null })}
           </div>
         `;
       }
@@ -3037,40 +3068,50 @@
       }
 
       async function maybeAnchorIssuedBadge(assertionId, issuePayload) {
-        const shouldAnchor = Boolean(issueAnchorLocal?.checked);
-        if (!shouldAnchor || !assertionId) {
+        const requestedProviders = [];
+        if (issueAnchorLocal?.checked) requestedProviders.push({ provider: 'mock', request: requestLocalMockAnchoring });
+        if (issueAnchorEvm?.checked) requestedProviders.push({ provider: 'evm', request: requestRealEvmAnchoring });
+        if (!requestedProviders.length || !assertionId) {
           return { output: issuePayload, anchored: false };
         }
 
-        issueStatus.textContent = currentLang === 'fr'
-          ? 'Badge émis. Demande d’ancrage local mock…'
-          : currentLang === 'en'
-            ? 'Badge issued. Requesting local mock anchoring…'
-            : 'Badge выпущен. Запрос локального mock-анкеринга…';
-
-        try {
-          const anchoring = await requestLocalMockAnchoring(assertionId);
+        const results = [];
+        for (const item of requestedProviders) {
+          const label = item.provider === 'evm' ? 'blockchain EVM' : 'local mock';
           issueStatus.textContent = currentLang === 'fr'
-            ? 'Badge émis et ancrage local mock confirmé.'
+            ? `Badge émis. Demande d’ancrage ${label}…`
             : currentLang === 'en'
-              ? 'Badge issued and local mock anchoring confirmed.'
-              : 'Badge выпущен, локальный mock-анкеринг подтверждён.';
-          return { output: { issue: issuePayload, anchoring }, anchored: true };
-        } catch (error) {
-          issueStatus.textContent = currentLang === 'fr'
-            ? 'Badge émis, mais l’ancrage local mock a échoué.'
-            : currentLang === 'en'
-              ? 'Badge issued, but local mock anchoring failed.'
-              : 'Badge выпущен, но локальный mock-анкеринг не удался.';
-          return {
-            output: {
-              issue: issuePayload,
-              anchoring_error: error.payload || { detail: String(error.message || error) },
-            },
-            anchored: false,
-            error: true,
-          };
+              ? `Badge issued. Requesting ${label} anchoring…`
+              : `Badge выпущен. Запрос ${label}-анкеринга…`;
+          try {
+            const anchoring = await item.request(assertionId);
+            results.push({ provider: item.provider, anchoring });
+          } catch (error) {
+            results.push({
+              provider: item.provider,
+              error: error.payload || { detail: String(error.message || error) },
+            });
+          }
         }
+
+        const successCount = results.filter((item) => item.anchoring?.transaction).length;
+        const errorCount = results.length - successCount;
+        issueStatus.textContent = errorCount
+          ? (currentLang === 'fr'
+              ? `Badge émis. Ancrages confirmés : ${successCount}, échecs : ${errorCount}.`
+              : currentLang === 'en'
+                ? `Badge issued. Confirmed anchorings: ${successCount}, failures: ${errorCount}.`
+                : `Badge выпущен. Подтверждено анкерингов: ${successCount}, ошибок: ${errorCount}.`)
+          : (currentLang === 'fr'
+              ? 'Badge émis et ancrages demandés confirmés.'
+              : currentLang === 'en'
+                ? 'Badge issued and requested anchorings confirmed.'
+                : 'Badge выпущен, запрошенные анкеринги подтверждены.');
+        return {
+          output: { issue: issuePayload, anchoring_results: results },
+          anchored: successCount > 0,
+          error: errorCount > 0,
+        };
       }
 
       schemaForm.addEventListener('submit', async (event) => {
