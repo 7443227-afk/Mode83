@@ -140,6 +140,13 @@ export BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=
 export BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS=120
 ```
 
+Règles de durcissement appliquées par Badge83 :
+
+- `BADGE83_EVM_CONTRACT_ADDRESS` doit être au format `0x` + 40 caractères hexadécimaux ;
+- une adresse invalide bloque l'ancrage EVM et la vérification read-only avant tout import de `web3` ;
+- `BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS` doit être strictement positif ; une valeur vide, invalide, nulle ou négative retombe sur la valeur par défaut `120` ;
+- ces contrôles restent locaux et ne rendent pas la blockchain obligatoire.
+
 Pour que l'API utilise EVM par défaut si le corps ne précise pas de provider :
 
 ```bash

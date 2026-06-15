@@ -12,6 +12,7 @@ from app.config import (
     get_evm_network_label,
     get_evm_private_key,
     get_evm_rpc_url,
+    is_valid_evm_address,
 )
 
 
@@ -104,6 +105,8 @@ class EvmAnchoringProvider:
         private_key = get_evm_private_key()
         if not rpc_url or not contract_address or not private_key:
             return self._failed("Configuration EVM incomplète.")
+        if not is_valid_evm_address(contract_address):
+            return self._failed("Adresse de contrat EVM invalide.")
 
         try:
             web3_module = importlib.import_module("web3")
@@ -166,6 +169,13 @@ class EvmAnchoringProvider:
                 verified=False,
                 status="configuration_incomplete",
                 error_message="Configuration EVM de vérification incomplète.",
+            )
+        if not is_valid_evm_address(contract_address):
+            return self._verification_result(
+                available=False,
+                verified=False,
+                status="invalid_contract_address",
+                error_message="Adresse de contrat EVM invalide.",
             )
 
         try:

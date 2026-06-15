@@ -60,6 +60,18 @@ def test_evm_web3_absent_retourne_failed(monkeypatch):
     assert "web3" in str(result.error_message)
 
 
+def test_evm_adresse_contrat_invalide_echoue_avant_import_web3(monkeypatch):
+    _configure_evm(monkeypatch)
+    monkeypatch.setenv("BADGE83_EVM_CONTRACT_ADDRESS", "not-an-address")
+
+    with patch("app.proofs.anchoring_providers.importlib.import_module") as import_module:
+        result = EvmAnchoringProvider().anchor({"credential_hash": VALID_HASH})
+
+    assert result.status == "failed"
+    assert "Adresse de contrat EVM invalide" in str(result.error_message)
+    import_module.assert_not_called()
+
+
 def test_evm_web3_mocke_retourne_anchored_et_bytes32(monkeypatch):
     _configure_evm(monkeypatch)
     recorder: dict[str, object] = {}
@@ -137,6 +149,20 @@ def test_evm_verification_sans_configuration_ne_demande_pas_de_cle_privee(monkey
     assert result["available"] is False
     assert result["verified"] is False
     assert result["status"] == "configuration_incomplete"
+
+
+def test_evm_verification_adresse_contrat_invalide_echoue_avant_import_web3(monkeypatch):
+    _configure_evm(monkeypatch)
+    monkeypatch.setenv("BADGE83_EVM_CONTRACT_ADDRESS", "0xinvalid")
+
+    with patch("app.proofs.anchoring_providers.importlib.import_module") as import_module:
+        result = EvmAnchoringProvider().verifier_hash_ancre(VALID_HASH)
+
+    assert result["available"] is False
+    assert result["verified"] is False
+    assert result["status"] == "invalid_contract_address"
+    assert "Adresse de contrat EVM invalide" in str(result["error_message"])
+    import_module.assert_not_called()
 
 
 def _fake_web3_module(recorder: dict[str, object]):

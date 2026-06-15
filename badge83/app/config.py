@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import re
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -34,6 +35,7 @@ DEFAULT_MAX_IMAGE_PIXELS = 50_000_000
 DEFAULT_ANCHORING_PROVIDER = "mock"
 DEFAULT_EVM_NETWORK_LABEL = "hardhat-local"
 DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS = 120
+EVM_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 PRODUCTION_ENV_VALUES = {"prod", "production"}
 
 ROOT_VENV_DIR = WORKSPACE_DIR / ".venv"
@@ -162,6 +164,11 @@ def get_evm_contract_address() -> str:
     return os.environ.get("BADGE83_EVM_CONTRACT_ADDRESS", "").strip()
 
 
+def is_valid_evm_address(address: str) -> bool:
+    """Valide le format minimal d'une adresse EVM sans dépendance web3 obligatoire."""
+    return bool(EVM_ADDRESS_RE.fullmatch(str(address or "").strip()))
+
+
 def get_evm_private_key() -> str:
     """Clé privée EVM optionnelle lue depuis l'environnement, jamais loggée."""
     return os.environ.get("BADGE83_EVM_PRIVATE_KEY", "").strip()
@@ -177,7 +184,10 @@ def get_evm_explorer_tx_url_template() -> str:
 
 
 def get_evm_confirmation_timeout_seconds() -> int:
-    return _get_int_env("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS)
+    timeout = _get_int_env("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS)
+    if timeout <= 0:
+        return DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS
+    return timeout
 
 
 def validate_production_security_config() -> None:

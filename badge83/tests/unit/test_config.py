@@ -152,3 +152,23 @@ def test_evm_chain_id_invalid_returns_none(monkeypatch):
     monkeypatch.setenv("BADGE83_EVM_CHAIN_ID", "not-an-int")
 
     assert config.get_evm_chain_id() is None
+
+
+def test_evm_contract_address_validation_is_format_only():
+    assert config.is_valid_evm_address("0x0000000000000000000000000000000000000001") is True
+    assert config.is_valid_evm_address("0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD") is True
+    assert config.is_valid_evm_address("") is False
+    assert config.is_valid_evm_address("0x1234") is False
+    assert config.is_valid_evm_address("not-an-address") is False
+    assert config.is_valid_evm_address("javascript:alert(1)") is False
+
+
+def test_evm_confirmation_timeout_invalid_or_non_positive_uses_default(monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", "0")
+    assert config.get_evm_confirmation_timeout_seconds() == config.DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS
+
+    monkeypatch.setenv("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", "-10")
+    assert config.get_evm_confirmation_timeout_seconds() == config.DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS
+
+    monkeypatch.setenv("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", "not-an-int")
+    assert config.get_evm_confirmation_timeout_seconds() == config.DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS
