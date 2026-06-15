@@ -4,7 +4,7 @@ import pytest
 
 from app.proofs import HashService, VerificationProof
 from app.proofs.audit_repository import AuditRepository
-from app.proofs.anchoring_providers import MockAnchoringProvider, NoopAnchoringProvider, get_anchoring_provider
+from app.proofs.anchoring_providers import EvmAnchoringProvider, MockAnchoringProvider, NoopAnchoringProvider, get_anchoring_provider
 from app.proofs.anchoring_repository import AnchoringRepository
 from app.proofs.anchoring_service import AnchoringService
 from app.proofs.repository import ProofRepository
@@ -64,6 +64,7 @@ def test_noop_provider_retourne_un_echec_controle():
 
 def test_get_anchoring_provider_retourne_mock_ou_noop():
     assert isinstance(get_anchoring_provider("mock"), MockAnchoringProvider)
+    assert isinstance(get_anchoring_provider("evm"), EvmAnchoringProvider)
     assert isinstance(get_anchoring_provider("inconnu"), NoopAnchoringProvider)
 
 

@@ -106,3 +106,45 @@ def test_upload_limits_fallback_to_large_defaults(monkeypatch):
     assert config.get_max_png_upload_bytes() == config.DEFAULT_MAX_PNG_UPLOAD_BYTES
     assert config.get_max_csv_upload_bytes() == config.DEFAULT_MAX_CSV_UPLOAD_BYTES
     assert config.get_max_image_pixels() == config.DEFAULT_MAX_IMAGE_PIXELS
+
+
+def test_evm_config_defaults_keep_blockchain_optional(monkeypatch):
+    monkeypatch.delenv("BADGE83_ANCHORING_PROVIDER", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_RPC_URL", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_CHAIN_ID", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_CONTRACT_ADDRESS", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_PRIVATE_KEY", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_NETWORK_LABEL", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", raising=False)
+
+    assert config.get_default_anchoring_provider() == "mock"
+    assert config.get_evm_rpc_url() == ""
+    assert config.get_evm_chain_id() is None
+    assert config.get_evm_contract_address() == ""
+    assert config.get_evm_private_key() == ""
+    assert config.get_evm_network_label() == "hardhat-local"
+    assert config.get_evm_confirmation_timeout_seconds() == 120
+
+
+def test_evm_config_can_be_overridden(monkeypatch):
+    monkeypatch.setenv("BADGE83_ANCHORING_PROVIDER", " evm ")
+    monkeypatch.setenv("BADGE83_EVM_RPC_URL", " http://127.0.0.1:8545 ")
+    monkeypatch.setenv("BADGE83_EVM_CHAIN_ID", "31337")
+    monkeypatch.setenv("BADGE83_EVM_CONTRACT_ADDRESS", " 0x0000000000000000000000000000000000000001 ")
+    monkeypatch.setenv("BADGE83_EVM_PRIVATE_KEY", " 0xabc ")
+    monkeypatch.setenv("BADGE83_EVM_NETWORK_LABEL", " hardhat-test ")
+    monkeypatch.setenv("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", "30")
+
+    assert config.get_default_anchoring_provider() == "evm"
+    assert config.get_evm_rpc_url() == "http://127.0.0.1:8545"
+    assert config.get_evm_chain_id() == 31337
+    assert config.get_evm_contract_address() == "0x0000000000000000000000000000000000000001"
+    assert config.get_evm_private_key() == "0xabc"
+    assert config.get_evm_network_label() == "hardhat-test"
+    assert config.get_evm_confirmation_timeout_seconds() == 30
+
+
+def test_evm_chain_id_invalid_returns_none(monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_CHAIN_ID", "not-an-int")
+
+    assert config.get_evm_chain_id() is None

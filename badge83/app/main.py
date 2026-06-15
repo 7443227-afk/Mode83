@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
+from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_default_anchoring_provider, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash, enregistrer_evenement_audit
 from app.openbadges_checks import check_assertion
@@ -936,7 +936,7 @@ async def api_anchor_badge(assertion_id: str, payload: dict[str, Any] | None = B
         raise HTTPException(status_code=404, detail="Badge introuvable")
 
     payload = payload or {}
-    provider = payload.get("provider") or "mock"
+    provider = payload.get("provider") or get_default_anchoring_provider()
     actor = payload.get("actor") or "admin"
     process_immediately = payload.get("process", True)
     service = AnchoringService()

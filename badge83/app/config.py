@@ -31,6 +31,9 @@ DEFAULT_AUTH_SECRET = "badge83-dev-auth-secret-change-me"
 DEFAULT_MAX_PNG_UPLOAD_BYTES = 50 * 1024 * 1024
 DEFAULT_MAX_CSV_UPLOAD_BYTES = 10 * 1024 * 1024
 DEFAULT_MAX_IMAGE_PIXELS = 50_000_000
+DEFAULT_ANCHORING_PROVIDER = "mock"
+DEFAULT_EVM_NETWORK_LABEL = "hardhat-local"
+DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS = 120
 PRODUCTION_ENV_VALUES = {"prod", "production"}
 
 ROOT_VENV_DIR = WORKSPACE_DIR / ".venv"
@@ -134,6 +137,42 @@ def get_max_csv_upload_bytes() -> int:
 def get_max_image_pixels() -> int:
     """Nombre maximal configurable de pixels pour éviter les decompression bombs."""
     return _get_int_env("BADGE83_MAX_IMAGE_PIXELS", DEFAULT_MAX_IMAGE_PIXELS)
+
+
+def get_default_anchoring_provider() -> str:
+    """Provider d'ancrage utilisé si l'API ne reçoit pas de choix explicite."""
+    return os.environ.get("BADGE83_ANCHORING_PROVIDER", DEFAULT_ANCHORING_PROVIDER).strip().lower() or DEFAULT_ANCHORING_PROVIDER
+
+
+def get_evm_rpc_url() -> str:
+    return os.environ.get("BADGE83_EVM_RPC_URL", "").strip()
+
+
+def get_evm_chain_id() -> int | None:
+    raw_value = os.environ.get("BADGE83_EVM_CHAIN_ID", "").strip()
+    if not raw_value:
+        return None
+    try:
+        return int(raw_value)
+    except Exception:
+        return None
+
+
+def get_evm_contract_address() -> str:
+    return os.environ.get("BADGE83_EVM_CONTRACT_ADDRESS", "").strip()
+
+
+def get_evm_private_key() -> str:
+    """Clé privée EVM optionnelle lue depuis l'environnement, jamais loggée."""
+    return os.environ.get("BADGE83_EVM_PRIVATE_KEY", "").strip()
+
+
+def get_evm_network_label() -> str:
+    return os.environ.get("BADGE83_EVM_NETWORK_LABEL", DEFAULT_EVM_NETWORK_LABEL).strip() or DEFAULT_EVM_NETWORK_LABEL
+
+
+def get_evm_confirmation_timeout_seconds() -> int:
+    return _get_int_env("BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS", DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS)
 
 
 def validate_production_security_config() -> None:
