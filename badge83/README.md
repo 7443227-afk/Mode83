@@ -707,6 +707,7 @@ npm test
 Documentation détaillée :
 
 - [`docs/blockchain-anchoring.md`](docs/blockchain-anchoring.md)
+- [`docs/blockchain-evm-anchoring.md`](docs/blockchain-evm-anchoring.md)
 - [`docs/demo-script-preuve-locale.md`](docs/demo-script-preuve-locale.md)
 
 ### Endpoints publics (HostedBadge)

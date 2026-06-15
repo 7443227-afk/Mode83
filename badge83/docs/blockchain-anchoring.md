@@ -458,7 +458,7 @@ Ce qui n'est pas encore présent :
 
 ## 15. Étapes suivantes recommandées
 
-1. Tester l'intégration locale complète avec Hardhat node, contrat déployé et variables `BADGE83_EVM_*`.
-2. Documenter le flux EVM de bout en bout dans une page dédiée.
-3. Ajouter une action UI distincte pour l'ancrage blockchain réel, sans remplacer le bouton local `mock`.
-4. Préparer plus tard une vérification blockchain publique du hash, sans publier de donnée personnelle on-chain.
+1. Ajouter une action UI distincte pour l'ancrage blockchain réel, sans remplacer le bouton local `mock`.
+2. Préparer plus tard une vérification blockchain publique du hash, sans publier de donnée personnelle on-chain.
+
+Le flux EVM local de bout en bout est documenté dans [`blockchain-evm-anchoring.md`](blockchain-evm-anchoring.md).
