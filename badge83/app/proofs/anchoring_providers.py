@@ -24,6 +24,13 @@ BADGE83_ANCHOR_ABI = [
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function",
+    },
+    {
+        "inputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+        "name": "anchored",
+        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function",
     }
 ]
 
@@ -139,8 +146,85 @@ class EvmAnchoringProvider:
         except Exception as exc:
             return self._failed(f"Erreur ancrage EVM : {exc}")
 
+    def verifier_hash_ancre(self, credential_hash: str) -> dict[str, object]:
+        """Vérifie en lecture seule si le digest est marqué comme ancré on-chain."""
+
+        digest_match = SHA256_CREDENTIAL_HASH_RE.match(str(credential_hash or ""))
+        if not digest_match:
+            return self._verification_result(
+                available=False,
+                verified=False,
+                status="invalid_hash",
+                error_message="Hash credential invalide : format sha256:<64 hex> attendu.",
+            )
+
+        rpc_url = get_evm_rpc_url()
+        contract_address = get_evm_contract_address()
+        if not rpc_url or not contract_address:
+            return self._verification_result(
+                available=False,
+                verified=False,
+                status="configuration_incomplete",
+                error_message="Configuration EVM de vérification incomplète.",
+            )
+
+        try:
+            web3_module = importlib.import_module("web3")
+        except ImportError:
+            return self._verification_result(
+                available=False,
+                verified=False,
+                status="dependency_missing",
+                error_message="Dépendance optionnelle web3 non installée.",
+            )
+
+        try:
+            web3_class = web3_module.Web3
+            w3 = web3_class(web3_class.HTTPProvider(rpc_url))
+            if hasattr(w3, "is_connected") and not w3.is_connected():
+                return self._verification_result(
+                    available=False,
+                    verified=False,
+                    status="rpc_unavailable",
+                    error_message="RPC EVM indisponible.",
+                )
+
+            checksum_address = web3_class.to_checksum_address(contract_address)
+            contract = w3.eth.contract(address=checksum_address, abi=BADGE83_ANCHOR_ABI)
+            digest_bytes = bytes.fromhex(digest_match.group(1))
+            is_anchored = bool(contract.functions.anchored(digest_bytes).call())
+            return self._verification_result(
+                available=True,
+                verified=is_anchored,
+                status="verified" if is_anchored else "not_found_on_chain",
+            )
+        except Exception as exc:
+            return self._verification_result(
+                available=False,
+                verified=False,
+                status="verification_failed",
+                error_message=f"Erreur vérification EVM : {exc}",
+            )
+
     def _failed(self, message: str) -> AnchoringProviderResult:
         return AnchoringProviderResult(status="failed", error_message=message, network=self.network)
+
+    def _verification_result(
+        self,
+        *,
+        available: bool,
+        verified: bool,
+        status: str,
+        error_message: str | None = None,
+    ) -> dict[str, object]:
+        return {
+            "available": available,
+            "verified": verified,
+            "status": status,
+            "provider": self.name,
+            "network": self.network,
+            "error_message": error_message,
+        }
 
     @staticmethod
     def _receipt_get(receipt: object, key: str) -> object | None:

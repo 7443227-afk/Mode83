@@ -180,6 +180,27 @@
           <div class="label mb-1">Référence d'ancrage</div>
           <div class="mono small text-break">{{ badge.anchoring.tx_hash }}</div>
           {% endif %}
+          {% if badge.anchoring.block_number %}
+          <div class="label mt-2 mb-1">Bloc</div>
+          <div class="mono small">{{ badge.anchoring.block_number }}</div>
+          {% endif %}
+          {% if badge.anchoring.blockchain_verification.status != 'not_applicable' %}
+          <div class="border-top pt-3 mt-3">
+            <div class="label mb-2">Vérification blockchain publique</div>
+            <div class="d-flex gap-2 flex-wrap mb-2">
+              <span class="badge text-bg-{{ badge.anchoring.blockchain_verification.tone }}">
+                {{ badge.anchoring.blockchain_verification.label }}
+              </span>
+              {% if badge.anchoring.blockchain_verification.network %}
+              <span class="badge text-bg-secondary">Réseau : {{ badge.anchoring.blockchain_verification.network }}</span>
+              {% endif %}
+            </div>
+            <div class="text-muted small mb-0">{{ badge.anchoring.blockchain_verification.message }}</div>
+            {% if badge.anchoring.blockchain_verification.error_message %}
+            <div class="mono small text-break text-muted mt-2">{{ badge.anchoring.blockchain_verification.error_message }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
 
         <div class="info-card p-3 mt-3">
@@ -258,6 +279,10 @@
             <div class="col-12">
               <div class="label mb-1">Statut de l'ancrage local</div>
               <div class="mono small">{{ badge.anchoring.status }}{% if badge.anchoring.tx_hash %} · {{ badge.anchoring.tx_hash }}{% endif %}</div>
+            </div>
+            <div class="col-12">
+              <div class="label mb-1">Vérification blockchain publique</div>
+              <div class="mono small">{{ badge.anchoring.blockchain_verification.status }}</div>
             </div>
             <div class="col-12">
               <div class="label mb-1">Statut de la preuve locale</div>

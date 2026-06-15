@@ -248,6 +248,16 @@
             </div>
           </div>
 
+          {% if badge.anchoring.blockchain_verification.status != 'not_applicable' %}
+          <div class="fact">
+            <div class="label">Vérification blockchain publique</div>
+            <div class="value">{{ badge.anchoring.blockchain_verification.label }}</div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              {{ badge.anchoring.blockchain_verification.message }}
+            </div>
+          </div>
+          {% endif %}
+
           <div class="fact">
             <div class="label">Preuve locale Badge83</div>
             <div class="value">{{ badge.proof.label }}</div>
@@ -289,6 +299,10 @@
               <div class="value mono">{{ badge.proof.credential_hash }}</div>
             </div>
             {% endif %}
+            <div class="fact">
+              <div class="label">Vérification blockchain publique</div>
+              <div class="value mono">{{ badge.anchoring.blockchain_verification.status }}</div>
+            </div>
           </details>
           {% endif %}
         </div>

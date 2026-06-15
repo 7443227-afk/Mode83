@@ -218,7 +218,41 @@ block_number = 2
 
 ---
 
-## 9. Vérifications de non-régression
+## 9. Vérification blockchain publique du hash
+
+Après un ancrage EVM confirmé, les pages publiques de vérification Badge83 affichent une vérification blockchain en lecture seule.
+
+Cette vérification :
+
+- utilise le dernier ancrage local dont `provider=evm` et `status=anchored` ;
+- relit uniquement le `credential_hash` local ;
+- convertit `sha256:<64 hex>` en `bytes32` ;
+- appelle la fonction view `anchored(bytes32)` du contrat ;
+- n'utilise pas `BADGE83_EVM_PRIVATE_KEY` ;
+- ne publie aucune donnée personnelle et ne crée aucune transaction.
+
+La configuration minimale de lecture est :
+
+```text
+BADGE83_EVM_RPC_URL
+BADGE83_EVM_CONTRACT_ADDRESS
+BADGE83_EVM_NETWORK_LABEL
+```
+
+Si `web3` ou la configuration RPC est absente, Badge83 continue de fonctionner. La page affiche alors un statut informatif, par exemple `Vérification blockchain non configurée` ou `Dépendance blockchain absente`.
+
+Les pages concernées sont :
+
+```text
+GET /verify/badge/<assertion_id>
+GET /verify/qr/<assertion_id>
+```
+
+Important : la page publique contient toujours l'`assertion_id` car c'est son identifiant de consultation Badge83, mais cet identifiant n'est pas envoyé au smart contract. Le contrat ne voit que le hash `bytes32`.
+
+---
+
+## 10. Vérifications de non-régression
 
 Les tests unitaires Python doivent rester passants sans RPC réel obligatoire :
 
@@ -237,13 +271,13 @@ npm test
 Résultat de référence après intégration locale du 15/06/2026 :
 
 ```text
-Python unit suite : 157 passed, 11 warnings
+Python unit suite : 158 passed, 12 warnings
 Hardhat tests : 6 passing
 ```
 
 ---
 
-## 10. Dépannage
+## 11. Dépannage
 
 ### `Configuration EVM incomplète.`
 
@@ -271,13 +305,22 @@ Vérifier que le nœud Hardhat est lancé sur `127.0.0.1:8545`.
 
 Le contrat refuse deux appels `anchor(bytes32)` avec le même hash. Pour refaire un test, utiliser une assertion différente ou redéployer le contrat sur un nœud Hardhat réinitialisé.
 
+### Vérification blockchain publique non disponible
+
+La vérification publique est read-only. Elle peut être indisponible même si Badge83 fonctionne correctement. Vérifier :
+
+```text
+BADGE83_EVM_RPC_URL
+BADGE83_EVM_CONTRACT_ADDRESS
+requirements-blockchain.txt installé si l'on veut activer web3
+```
+
+La clé privée n'est pas nécessaire pour cette vérification.
+
 ---
 
-## 11. Limites actuelles
+## 12. Limites actuelles
 
 - pas encore de transaction testnet ;
-- pas encore de vérification blockchain publique depuis la page de vérification ;
-- pas encore de bouton UI séparé pour l'ancrage blockchain réel ;
+- vérification blockchain publique limitée au dernier ancrage EVM local enregistré ;
 - pas d'indexation externe des événements `CredentialHashAnchored`.
-
-Le bouton UI existant correspond à l'ancrage local `mock`. Une action distincte devra être ajoutée plus tard pour l'ancrage EVM réel afin d'éviter toute confusion.

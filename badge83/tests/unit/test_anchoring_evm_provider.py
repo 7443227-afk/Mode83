@@ -110,6 +110,35 @@ def test_evm_ne_transmet_aucune_donnee_personnelle(monkeypatch):
     assert "Alice" not in repr(contract_calls)
 
 
+def test_evm_verification_hash_ancre_read_only(monkeypatch):
+    _configure_evm(monkeypatch)
+    recorder: dict[str, object] = {"anchored_result": True}
+    fake_web3_module = _fake_web3_module(recorder)
+    monkeypatch.setitem(sys.modules, "web3", fake_web3_module)
+
+    result = EvmAnchoringProvider().verifier_hash_ancre(VALID_HASH)
+
+    assert result["available"] is True
+    assert result["verified"] is True
+    assert result["status"] == "verified"
+    assert result["provider"] == "evm"
+    assert recorder["anchored_digest"] == bytes.fromhex("ab" * 32)
+    assert "private_key_used" not in recorder
+
+
+def test_evm_verification_sans_configuration_ne_demande_pas_de_cle_privee(monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_NETWORK_LABEL", "hardhat-unit")
+    monkeypatch.delenv("BADGE83_EVM_RPC_URL", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_CONTRACT_ADDRESS", raising=False)
+    monkeypatch.setenv("BADGE83_EVM_PRIVATE_KEY", "0x" + "11" * 32)
+
+    result = EvmAnchoringProvider().verifier_hash_ancre(VALID_HASH)
+
+    assert result["available"] is False
+    assert result["verified"] is False
+    assert result["status"] == "configuration_incomplete"
+
+
 def _fake_web3_module(recorder: dict[str, object]):
     class FakeAccount:
         address = "0xAccount"
@@ -138,10 +167,22 @@ def _fake_web3_module(recorder: dict[str, object]):
             recorder["tx_params"] = tx_params
             return {"to": "0xContract", "data": self.digest.hex(), **tx_params}
 
+    class FakeAnchoredFunction:
+        def __init__(self, digest: bytes) -> None:
+            self.digest = digest
+
+        def call(self):
+            recorder["anchored_digest"] = self.digest
+            return recorder.get("anchored_result", False)
+
     class FakeFunctions:
         def anchor(self, credential_hash: bytes):
             recorder.setdefault("contract_calls", []).append(credential_hash)
             return FakeAnchorFunction(credential_hash)
+
+        def anchored(self, credential_hash: bytes):
+            recorder.setdefault("contract_read_calls", []).append(credential_hash)
+            return FakeAnchoredFunction(credential_hash)
 
     class FakeContract:
         functions = FakeFunctions()

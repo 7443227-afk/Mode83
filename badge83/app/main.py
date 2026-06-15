@@ -25,6 +25,7 @@ from app.openbadges_checks import check_assertion
 from app.proofs import HashService
 from app.proofs.anchoring_repository import AnchoringRepository
 from app.proofs.anchoring_service import AnchoringService
+from app.proofs.anchoring_providers import EvmAnchoringProvider
 from app.proofs.audit_repository import AuditRepository
 from app.proofs.repository import ProofRepository
 from app.proofs.revocation_repository import RevocationRepository
@@ -627,6 +628,7 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
             "network": None,
             "tx_hash": None,
             "block_number": None,
+            "blockchain_verification": _blockchain_verification_not_applicable(),
         }
 
     if not transactions:
@@ -640,6 +642,7 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
             "network": None,
             "tx_hash": None,
             "block_number": None,
+            "blockchain_verification": _blockchain_verification_not_applicable(),
         }
 
     latest = transactions[-1]
@@ -669,6 +672,60 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
         "tx_hash": latest.get("tx_hash"),
         "block_number": latest.get("block_number"),
         "updated_at": latest.get("updated_at"),
+        "blockchain_verification": _build_blockchain_verification_status(latest),
+    }
+
+
+def _blockchain_verification_not_applicable() -> dict[str, Any]:
+    return {
+        "available": False,
+        "verified": False,
+        "status": "not_applicable",
+        "label": "Vérification blockchain non applicable",
+        "tone": "secondary",
+        "message": "Aucun ancrage EVM confirmé n'est disponible pour ce credential.",
+        "provider": None,
+        "network": None,
+        "error_message": None,
+    }
+
+
+def _build_blockchain_verification_status(transaction: dict[str, Any]) -> dict[str, Any]:
+    """Vérifie publiquement le hash EVM sans envoyer de donnée personnelle."""
+
+    if transaction.get("provider") != "evm" or transaction.get("status") != "anchored":
+        return _blockchain_verification_not_applicable()
+
+    result = EvmAnchoringProvider().verifier_hash_ancre(str(transaction.get("credential_hash") or ""))
+    status = str(result.get("status") or "unavailable")
+    labels = {
+        "verified": "Hash confirmé sur blockchain",
+        "not_found_on_chain": "Hash absent du contrat EVM",
+        "configuration_incomplete": "Vérification blockchain non configurée",
+        "dependency_missing": "Dépendance blockchain absente",
+        "rpc_unavailable": "RPC blockchain indisponible",
+        "invalid_hash": "Hash credential invalide",
+        "verification_failed": "Vérification blockchain échouée",
+    }
+    tones = {
+        "verified": "success",
+        "not_found_on_chain": "danger",
+        "configuration_incomplete": "warning",
+        "dependency_missing": "warning",
+        "rpc_unavailable": "warning",
+        "invalid_hash": "danger",
+        "verification_failed": "warning",
+    }
+    verified = bool(result.get("verified"))
+    return {
+        **result,
+        "label": labels.get(status, "Vérification blockchain indisponible"),
+        "tone": tones.get(status, "warning"),
+        "message": (
+            "Le hash local du credential est présent dans le contrat EVM configuré."
+            if verified
+            else "La vérification blockchain est informative et n'expose que le hash du credential."
+        ),
     }
 
 

@@ -142,3 +142,47 @@ def test_pages_verification_affichent_un_ancrage_mock_confirme(tmp_path, monkeyp
     assert "Ancrage confirmé" in full_response.text
     assert "mock:abc123" in full_response.text
     assert "Ancrage : anchored" in qr_response.text
+
+
+def test_pages_verification_affichent_la_verification_blockchain_evm(tmp_path, monkeypatch):
+    assertion = _assertion("preuve-evm-verifiee-1")
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, assertion)
+    proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
+    repository = AnchoringRepository(tmp_path / "registry.db")
+    transaction = repository.enqueue(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="evm",
+        network="hardhat-unit",
+    )
+    repository.changer_statut(
+        transaction["id"],
+        "anchored",
+        tx_hash="0xabc123",
+        block_number=42,
+    )
+    monkeypatch.setattr(
+        main.EvmAnchoringProvider,
+        "verifier_hash_ancre",
+        lambda self, credential_hash: {
+            "available": True,
+            "verified": True,
+            "status": "verified",
+            "provider": "evm",
+            "network": "hardhat-unit",
+            "error_message": None,
+        },
+    )
+    client = TestClient(app)
+
+    full_response = client.get(f"/verify/badge/{assertion_id}")
+    qr_response = client.get(f"/verify/qr/{assertion_id}")
+
+    assert full_response.status_code == 200
+    assert qr_response.status_code == 200
+    assert "Vérification blockchain publique" in full_response.text
+    assert "Hash confirmé sur blockchain" in full_response.text
+    assert "0xabc123" in full_response.text
+    assert "Bloc" in full_response.text
+    assert "Vérification blockchain publique" in qr_response.text
+    assert "Hash confirmé sur blockchain" in qr_response.text
