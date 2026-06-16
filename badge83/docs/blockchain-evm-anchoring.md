@@ -267,6 +267,37 @@ cd /home/ubuntu/projects/Mode83/badge83
 
 Pour un lancement Docker futur, le même bloc `BADGE83_EVM_*` devra être fourni au conteneur via `env_file` ou `environment`. Contrairement à Hardhat local, Sepolia ne nécessite pas de nœud local : Badge83 doit seulement pouvoir joindre le RPC configuré.
 
+### Déploiement Sepolia réalisé le 16/06/2026
+
+Un premier déploiement public Sepolia a été validé pour Badge83 :
+
+```text
+network = sepolia
+chain_id = 11155111
+contract = 0x0ECac02EB4B38A130492ED1Cb3b78C154B75B64e
+```
+
+Le code du contrat a été vérifié par RPC avec `eth_getCode` : le résultat n'était pas `0x`.
+
+Un smoke-test du provider Python `EvmAnchoringProvider` a ensuite ancré un hash de test généré localement, sans donnée personnelle ni `assertion_id` on-chain :
+
+```text
+status = anchored
+network = sepolia
+tx_hash = 0x689375840199a811fbef64771bc5c1bb060053982e575ab1b009a4878895f5ef
+block_number = 11072832
+verification_status = verified
+verified = True
+```
+
+Lien explorer public du smoke-test :
+
+```text
+https://sepolia.etherscan.io/tx/0x689375840199a811fbef64771bc5c1bb060053982e575ab1b009a4878895f5ef
+```
+
+Les secrets utilisés pour ce déploiement restent uniquement dans `badge83.env` local non versionné. Les fichiers `badge83.env` et `badge83.env.backup*` doivent rester ignorés par Git.
+
 ---
 
 ## 8. Test d'intégration Python local sans lancer l'UI
@@ -413,7 +444,7 @@ La clé privée n'est pas nécessaire pour cette vérification.
 
 ## 12. Limites actuelles
 
-- pas encore de transaction testnet ;
+- Sepolia a été validé par un premier smoke-test, mais l'ancrage EVM reste optionnel et dépend de la disponibilité du RPC, du solde gas du wallet runtime et de la configuration locale ;
 - vérification blockchain publique limitée au dernier ancrage EVM local enregistré ;
 - pas d'indexation externe des événements `CredentialHashAnchored` ;
 - lien explorer optionnel limité au `tx_hash`, sans indexation ni synchronisation externe.
