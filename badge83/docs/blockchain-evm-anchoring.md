@@ -298,6 +298,43 @@ https://sepolia.etherscan.io/tx/0x689375840199a811fbef64771bc5c1bb060053982e575a
 
 Les secrets utilisés pour ce déploiement restent uniquement dans `badge83.env` local non versionné. Les fichiers `badge83.env` et `badge83.env.backup*` doivent rester ignorés par Git.
 
+### Smoke-test Sepolia sans afficher les secrets
+
+Un script local réutilisable permet de contrôler la configuration EVM, le RPC, le code contrat et, sur demande explicite, d'envoyer une transaction de test hash-only :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+../.venv/bin/python scripts/smoke_evm_anchor.py
+```
+
+Cette commande charge `badge83.env` si le fichier existe et affiche seulement des indicateurs sûrs : présence du RPC, chain id, validité de l'adresse contrat, présence de la clé privée, réseau, résultat `eth_chainId` et présence de bytecode contrat. Elle n'affiche pas le RPC complet et n'affiche jamais la clé privée.
+
+Pour envoyer une transaction Sepolia de test avec un hash aléatoire, utiliser l'option explicite :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+../.venv/bin/python scripts/smoke_evm_anchor.py --anchor-random-hash
+```
+
+Sortie attendue :
+
+```text
+anchor.status= anchored
+anchor.network= sepolia
+anchor.tx_hash= 0x...
+anchor.block_number= ...
+verification.status= verified
+verification.verified= True
+```
+
+Pour une vérification read-only sans transaction :
+
+```bash
+../.venv/bin/python scripts/smoke_evm_anchor.py --verify-hash sha256:<64-hex>
+```
+
+Attention : `--anchor-random-hash` consomme du Sepolia ETH et publie définitivement un hash opaque sur le contrat. Ne jamais utiliser de hash dérivé d'une donnée personnelle brute.
+
 ---
 
 ## 8. Test d'intégration Python local sans lancer l'UI
