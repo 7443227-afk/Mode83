@@ -205,6 +205,70 @@ curl "http://127.0.0.1:8000/api/badges/<assertion_id>/anchoring" \
 
 ---
 
+## 7 bis. Préparer un déploiement Sepolia testnet
+
+Sepolia permet de tester Badge83 sur un réseau EVM public sans passer directement en production. Le provider Python reste le même (`provider="evm"`) : seule la configuration change.
+
+### Variables pour déployer le contrat
+
+Le sous-projet Hardhat lit les variables suivantes depuis l'environnement local :
+
+```bash
+export SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/votre-projet
+export SEPOLIA_DEPLOYER_PRIVATE_KEY=0xcle-privee-deployeur-testnet
+```
+
+La clé `SEPOLIA_DEPLOYER_PRIVATE_KEY` sert uniquement au déploiement du contrat. Elle peut être différente de la clé utilisée ensuite par Badge83 pour les transactions d'ancrage.
+
+Déployer sur Sepolia :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83/blockchain
+npm run deploy:sepolia
+```
+
+Sortie attendue :
+
+```text
+Badge83Anchor deploye: 0x...
+```
+
+Conserver l'adresse affichée : elle devient `BADGE83_EVM_CONTRACT_ADDRESS` côté runtime Badge83.
+
+### Variables runtime Badge83 pour Sepolia
+
+Dans `badge83.env` local non versionné, configurer par exemple :
+
+```env
+BADGE83_EVM_RPC_URL=https://sepolia.infura.io/v3/votre-projet
+BADGE83_EVM_CHAIN_ID=11155111
+BADGE83_EVM_CONTRACT_ADDRESS=0xadresse-du-contrat-deploye-sur-sepolia
+BADGE83_EVM_PRIVATE_KEY=0xcle-privee-wallet-ancrage-testnet
+BADGE83_EVM_NETWORK_LABEL=sepolia
+BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=https://sepolia.etherscan.io/tx/{tx_hash}
+BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS=180
+```
+
+Puis redémarrer Badge83 normalement :
+
+```bash
+cd /home/ubuntu/projects/Mode83/badge83
+./badge83.sh restart
+```
+
+### Règles Sepolia
+
+- utiliser un wallet dédié testnet, jamais un wallet personnel ou de production ;
+- prévoir du Sepolia ETH pour le gas ;
+- ne jamais committer `SEPOLIA_RPC_URL`, `SEPOLIA_DEPLOYER_PRIVATE_KEY` ou `BADGE83_EVM_PRIVATE_KEY` ;
+- garder `BADGE83_ANCHORING_PROVIDER=mock` par défaut tant que l'ancrage EVM doit rester explicite dans l'UI ;
+- vérifier les transactions via `https://sepolia.etherscan.io/tx/<tx_hash>` ;
+- ne publier on-chain que `bytes32 credentialHash`, sans nom, email, assertion JSON, PNG ni `assertion_id`.
+
+Pour un lancement Docker futur, le même bloc `BADGE83_EVM_*` devra être fourni au conteneur via `env_file` ou `environment`. Contrairement à Hardhat local, Sepolia ne nécessite pas de nœud local : Badge83 doit seulement pouvoir joindre le RPC configuré.
+
+---
+
 ## 8. Test d'intégration Python local sans lancer l'UI
 
 Pour valider le provider et la persistance SQLite sans passer par le navigateur, utiliser un script ponctuel non versionné ou une commande Python locale qui :

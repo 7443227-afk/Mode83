@@ -1,5 +1,8 @@
 require("@nomicfoundation/hardhat-toolbox");
 
+const sepoliaRpcUrl = process.env.SEPOLIA_RPC_URL || "";
+const sepoliaPrivateKey = process.env.SEPOLIA_DEPLOYER_PRIVATE_KEY || "";
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
@@ -18,6 +21,11 @@ module.exports = {
     localhost: {
       url: "http://127.0.0.1:8545",
       chainId: 31337,
+    },
+    sepolia: {
+      url: sepoliaRpcUrl || "https://rpc.sepolia.org",
+      chainId: 11155111,
+      accounts: sepoliaPrivateKey ? [sepoliaPrivateKey] : [],
     },
   },
 };
