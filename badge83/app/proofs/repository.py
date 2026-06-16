@@ -55,6 +55,15 @@ class ProofRepository:
         finally:
             database.close_connection(conn)
 
+    def mettre_a_jour_statut_ancrage(self, assertion_id: str, anchoring_status: str) -> dict[str, Any] | None:
+        """Met à jour le statut d'ancrage résumé d'une preuve locale."""
+
+        conn = self.initialiser_connexion()
+        try:
+            return mettre_a_jour_statut_ancrage_preuve(conn, assertion_id, anchoring_status)
+        finally:
+            database.close_connection(conn)
+
 
 def sauvegarder_preuve(conn: sqlite3.Connection, preuve: VerificationProof) -> dict[str, Any]:
     """Insère ou met à jour une preuve dans une connexion existante."""
@@ -122,3 +131,24 @@ def trouver_preuve_par_hash(
         (credential_hash,),
     )
     return _ligne_vers_dict(cursor.fetchone())
+
+
+def mettre_a_jour_statut_ancrage_preuve(
+    conn: sqlite3.Connection,
+    assertion_id: str,
+    anchoring_status: str,
+) -> dict[str, Any] | None:
+    """Met à jour uniquement le statut d'ancrage résumé d'une preuve."""
+
+    with conn:
+        conn.execute(
+            '''
+            UPDATE credential_proofs
+            SET anchoring_status = ?,
+                updated_at = ?
+            WHERE assertion_id = ?
+            ''',
+            (anchoring_status, _maintenant_iso(), assertion_id),
+        )
+        conn.commit()
+    return trouver_preuve_par_assertion(conn, assertion_id)

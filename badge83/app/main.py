@@ -657,7 +657,11 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
             "blockchain_verification": _blockchain_verification_not_applicable(),
         }
 
-    latest_status = _anchoring_provider_status(latest, provider=str(latest.get("provider") or "unknown"))
+    summary_transaction = _select_anchoring_summary_transaction(latest_mock, latest_evm, latest)
+    latest_status = _anchoring_provider_status(
+        summary_transaction,
+        provider=str(summary_transaction.get("provider") or "unknown"),
+    )
     evm_status = _anchoring_provider_status(latest_evm, provider="evm")
     return {
         "available": True,
@@ -665,12 +669,14 @@ def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
         "label": latest_status["label"],
         "tone": latest_status["tone"],
         "message": "Dernier statut d'ancrage enregistré dans Badge83. Les statuts mock et EVM restent séparés.",
-        "provider": latest.get("provider"),
-        "network": latest.get("network"),
-        "tx_hash": latest.get("tx_hash"),
-        "explorer_tx_url": _build_evm_explorer_tx_url(latest.get("tx_hash"), latest.get("provider")),
-        "block_number": latest.get("block_number"),
-        "updated_at": latest.get("updated_at"),
+        "provider": summary_transaction.get("provider"),
+        "network": summary_transaction.get("network"),
+        "tx_hash": summary_transaction.get("tx_hash"),
+        "explorer_tx_url": _build_evm_explorer_tx_url(summary_transaction.get("tx_hash"), summary_transaction.get("provider")),
+        "block_number": summary_transaction.get("block_number"),
+        "updated_at": summary_transaction.get("updated_at"),
+        "latest_provider": latest.get("provider"),
+        "latest_status": latest.get("status"),
         "mock": _anchoring_provider_status(latest_mock, provider="mock"),
         "evm": evm_status,
         "blockchain_verification": _build_blockchain_verification_status(latest_evm) if latest_evm else _blockchain_verification_not_applicable(),
@@ -682,6 +688,20 @@ def _latest_transaction_for_provider(transactions: list[dict[str, Any]], provide
         if transaction.get("provider") == provider:
             return transaction
     return None
+
+
+def _select_anchoring_summary_transaction(
+    latest_mock: dict[str, Any] | None,
+    latest_evm: dict[str, Any] | None,
+    latest: dict[str, Any],
+) -> dict[str, Any]:
+    """Choisit le statut résumé sans masquer un mock confirmé par un EVM échoué."""
+
+    if latest_evm and latest_evm.get("status") == "anchored":
+        return latest_evm
+    if latest_mock and latest_mock.get("status") == "anchored":
+        return latest_mock
+    return latest
 
 
 def _anchoring_provider_status(
@@ -1110,9 +1130,15 @@ async def api_get_badge_anchoring(assertion_id: str):
 
     transactions = AnchoringRepository().lister_par_assertion(assertion_id)
     latest = transactions[-1] if transactions else None
+    latest_mock = _latest_transaction_for_provider(transactions, "mock")
+    latest_evm = _latest_transaction_for_provider(transactions, "evm")
+    summary = _select_anchoring_summary_transaction(latest_mock, latest_evm, latest) if latest else None
     return {
         "assertion_id": assertion_id,
-        "latest_status": latest.get("status") if latest else "not_requested",
+        "latest_status": summary.get("status") if summary else "not_requested",
+        "latest_provider": summary.get("provider") if summary else None,
+        "mock": _anchoring_provider_status(latest_mock, provider="mock"),
+        "evm": _anchoring_provider_status(latest_evm, provider="evm"),
         "items": transactions,
     }
 

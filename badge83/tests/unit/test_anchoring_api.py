@@ -146,6 +146,32 @@ def test_api_get_anchoring_retourne_les_transactions(tmp_path, monkeypatch):
     assert data["items"][0]["status"] == "anchored"
 
 
+def test_api_get_anchoring_separe_mock_reussi_et_evm_echoue(tmp_path, monkeypatch):
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, "anchoring-api-mixed")
+    client = _client_admin()
+    client.post(f"/api/badges/{assertion_id}/anchor", json={"provider": "mock"})
+    client.post(f"/api/badges/{assertion_id}/anchor", json={"provider": "evm"})
+
+    response = client.get(f"/api/badges/{assertion_id}/anchoring")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["latest_status"] == "anchored"
+    assert data["latest_provider"] == "mock"
+    assert data["mock"]["status"] == "anchored"
+    assert data["mock"]["tone"] == "success"
+    assert data["evm"]["status"] == "failed"
+    assert data["evm"]["tone"] == "danger"
+    assert len(data["items"]) == 2
+
+    badge_response = client.get(f"/api/badges/{assertion_id}")
+    badge = badge_response.json()
+    assert badge["anchoring"]["status"] == "anchored"
+    assert badge["anchoring"]["provider"] == "mock"
+    assert badge["anchoring"]["evm"]["status"] == "failed"
+    assert badge["proof"]["anchoring_status"] == "anchored"
+
+
 def test_api_anchor_enregistre_les_evenements_audit(tmp_path, monkeypatch):
     assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, "anchoring-api-audit")
     client = _client_admin()

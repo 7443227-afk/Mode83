@@ -1608,7 +1608,7 @@
           const error = item.error || null;
           const provider = item.provider || transaction?.provider || 'mock';
           const title = provider === 'evm' ? 'Ancrage blockchain EVM' : 'Ancrage local mock';
-          if (transaction) {
+          if (transaction?.status === 'anchored') {
             return `
               <div class="alert alert-success py-2 mt-3 mb-0">
                 <div class="fw-semibold">${title} confirmé</div>
@@ -1617,10 +1617,11 @@
               </div>
             `;
           }
+          const transactionError = transaction?.error_message || transaction?.status;
           return `
             <div class="alert alert-warning py-2 mt-3 mb-0">
               <div class="fw-semibold">${title} non confirmé</div>
-              <div class="small">${escapeHtml(error?.detail || error?.error || 'Consultez la sortie système pour les détails.')}</div>
+              <div class="small">${escapeHtml(error?.detail || error?.error || transactionError || 'Consultez la sortie système pour les détails.')}</div>
             </div>
           `;
         }).join('');
@@ -3035,13 +3036,36 @@
         return values;
       }
 
+      function wait(ms) {
+        return new Promise((resolve) => window.setTimeout(resolve, ms));
+      }
+
+      async function fetchJsonWithRetry(url, options = {}, { retries = 2, delayMs = 350 } = {}) {
+        let lastError = null;
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+          try {
+            const response = await fetch(url, {
+              credentials: 'same-origin',
+              cache: 'no-store',
+              ...options,
+            });
+            const data = await response.json().catch(async () => ({ detail: await response.text() }));
+            return { response, data };
+          } catch (error) {
+            lastError = error;
+            if (attempt >= retries) break;
+            await wait(delayMs * (attempt + 1));
+          }
+        }
+        throw lastError || new Error('Network request failed');
+      }
+
       async function requestLocalMockAnchoring(badgeId) {
-        const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
+        const { response, data } = await fetchJsonWithRetry(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ provider: 'mock', actor: 'admin-ui', process: true }),
         });
-        const data = await response.json().catch(async () => ({ detail: await response.text() }));
         if (!response.ok) {
           const message = data.detail || data.error || 'Erreur lors de la demande d’ancrage local';
           const error = new Error(message);
@@ -3052,12 +3076,11 @@
       }
 
       async function requestRealEvmAnchoring(badgeId) {
-        const response = await fetch(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
+        const { response, data } = await fetchJsonWithRetry(`/api/badges/${encodeURIComponent(badgeId)}/anchor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ provider: 'evm', actor: 'admin-ui', process: true }),
         });
-        const data = await response.json().catch(async () => ({ detail: await response.text() }));
         if (!response.ok) {
           const message = data.detail || data.error || 'Erreur lors de la demande d’ancrage blockchain EVM';
           const error = new Error(message);
@@ -3075,6 +3098,7 @@
           return { output: issuePayload, anchored: false };
         }
 
+        await wait(250);
         const results = [];
         for (const item of requestedProviders) {
           const label = item.provider === 'evm' ? 'blockchain EVM' : 'local mock';
@@ -3094,7 +3118,7 @@
           }
         }
 
-        const successCount = results.filter((item) => item.anchoring?.transaction).length;
+        const successCount = results.filter((item) => item.anchoring?.transaction?.status === 'anchored').length;
         const errorCount = results.length - successCount;
         issueStatus.textContent = errorCount
           ? (currentLang === 'fr'
@@ -3366,22 +3390,23 @@
           }
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
           const disposition = response.headers.get('Content-Disposition') || 'attachment; filename="badge.png"';
           const match = disposition.match(/filename="([^"]+)"/);
+          const downloadFilename = match ? match[1] : 'badge.png';
           const assertionId = response.headers.get('X-Badge83-Assertion-Id');
-          a.href = url;
-          a.download = match ? match[1] : 'badge.png';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
           const certificateNumber = response.headers.get('X-Badge83-Certificate-Number');
           issueStatus.textContent = certificateNumber
             ? `PNG baked émis et téléchargé. Numéro de certificat : ${certificateNumber}.`
             : currentLang === 'fr' ? 'PNG baked émis et téléchargé.' : currentLang === 'en' ? 'Baked PNG issued and downloaded.' : 'PNG baked выпущен и скачан.';
-          const issuePayload = { status: 'baked', filename: a.download, assertion_id: assertionId, certificate_number: certificateNumber };
+          const issuePayload = { status: 'baked', filename: downloadFilename, assertion_id: assertionId, certificate_number: certificateNumber };
           const anchoringResult = await maybeAnchorIssuedBadge(assertionId, issuePayload);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = downloadFilename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
           setSystemOutput(anchoringResult.output);
           renderIssueResultCard({
             name,

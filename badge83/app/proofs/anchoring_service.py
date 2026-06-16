@@ -71,6 +71,7 @@ class AnchoringService:
             block_number=result.block_number,
             error_message=result.error_message,
         )
+        self._mettre_a_jour_statut_preuve(updated)
         self._auditer(
             "anchoring_completed" if result.status == "anchored" else "anchoring_failed",
             updated,
@@ -84,6 +85,27 @@ class AnchoringService:
             },
         )
         return updated
+
+    def _mettre_a_jour_statut_preuve(self, transaction: dict[str, Any]) -> None:
+        """Synchronise le résumé de preuve sans écraser un succès par un échec EVM."""
+
+        assertion_id = str(transaction.get("assertion_id") or "")
+        status = str(transaction.get("status") or "")
+        provider = str(transaction.get("provider") or "")
+        if not assertion_id:
+            return
+
+        current = self.proof_repository.trouver_par_assertion(assertion_id)
+        current_status = str(current.get("anchoring_status") or "not_requested") if current else "not_requested"
+        if status == "anchored":
+            next_status = "blockchain_anchored" if provider == "evm" else "anchored"
+        elif status == "failed" and current_status in {"anchored", "blockchain_anchored"}:
+            return
+        elif status:
+            next_status = status
+        else:
+            return
+        self.proof_repository.mettre_a_jour_statut_ancrage(assertion_id, next_status)
 
     def traiter_file(
         self,

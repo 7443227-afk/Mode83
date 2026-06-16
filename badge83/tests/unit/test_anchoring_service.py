@@ -103,6 +103,7 @@ def test_traiter_transaction_mock_passe_de_queued_a_anchored_et_audit(tmp_path):
     ]
     assert evenements[-1]["actor"] == "worker-test"
     assert evenements[-1]["payload"]["status"] == "anchored"
+    assert ProofRepository(db_path).trouver_par_assertion("ancrage-service-2")["anchoring_status"] == "anchored"
 
 
 def test_traiter_transaction_noop_enregistre_un_echec(tmp_path):
@@ -118,6 +119,23 @@ def test_traiter_transaction_noop_enregistre_un_echec(tmp_path):
     assert failed["attempts"] == 1
     assert "Aucun provider" in failed["error_message"]
     assert evenements[-1]["event_type"] == "anchoring_failed"
+
+
+def test_echec_evm_necrase_pas_un_ancrage_mock_reussi(tmp_path):
+    db_path = tmp_path / "registry.db"
+    assertion_id = "ancrage-service-mixed"
+    _sauvegarder_preuve(db_path, assertion_id)
+    service = AnchoringService(db_path)
+
+    mock_transaction = service.demander_ancrage(assertion_id, provider="mock")
+    service.traiter_transaction(mock_transaction["id"], provider="mock")
+    evm_transaction = service.demander_ancrage(assertion_id, provider="evm")
+    failed = service.traiter_transaction(evm_transaction["id"], provider="evm")
+    proof = ProofRepository(db_path).trouver_par_assertion(assertion_id)
+
+    assert failed["status"] == "failed"
+    assert failed["provider"] == "evm"
+    assert proof["anchoring_status"] == "anchored"
 
 
 def test_traiter_file_traite_les_transactions_queued(tmp_path):

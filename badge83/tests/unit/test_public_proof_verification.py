@@ -262,3 +262,40 @@ def test_pages_verification_separent_mock_et_evm_meme_si_mock_est_plus_recent(tm
     assert "https://explorer.test/tx/0xevm123" in qr_response.text
     assert "Hash confirmé sur blockchain" in qr_response.text
     assert verifier_calls == [proof["credential_hash"], proof["credential_hash"]]
+
+
+def test_statut_global_reste_confirme_si_evm_echoue_apres_mock(tmp_path, monkeypatch):
+    assertion = _assertion("preuve-mock-confirme-evm-echec-1")
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, assertion)
+    proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
+    repository = AnchoringRepository(tmp_path / "registry.db")
+    mock_transaction = repository.enqueue(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="mock",
+        network="local-demo",
+    )
+    repository.changer_statut(
+        mock_transaction["id"],
+        "anchored",
+        tx_hash="mock:ok",
+        block_number=1,
+    )
+    evm_transaction = repository.enqueue(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="evm",
+        network="hardhat-unit",
+    )
+    repository.changer_statut(
+        evm_transaction["id"],
+        "failed",
+        error_message="Configuration EVM incomplète.",
+    )
+
+    status = main._build_anchoring_status(assertion_id)
+
+    assert status["status"] == "anchored"
+    assert status["tone"] == "success"
+    assert status["mock"]["status"] == "anchored"
+    assert status["evm"]["status"] == "failed"
