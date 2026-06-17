@@ -141,3 +141,50 @@ def test_admin_index_expose_actions_revocation_locale_et_evm():
     assert "/revoke/blockchain" in response.text
     assert "request_evm_revocation" in response.text
     assert "renderRevocationAdminSummary" in response.text
+    assert "item.credential_status || item.revocation" in response.text
+
+
+
+def test_api_badges_registry_uses_fast_listing_without_status_builders(tmp_path, monkeypatch):
+    import json
+    from app import main
+
+    issued_dir = tmp_path / "issued"
+    baked_dir = tmp_path / "baked"
+    issued_dir.mkdir()
+    baked_dir.mkdir()
+    assertion_id = "fast-registry-1"
+    assertion = {
+        "@context": "https://w3id.org/openbadges/v2",
+        "id": f"https://tests.mode83.local/assertions/{assertion_id}",
+        "type": "Assertion",
+        "recipient": {"type": "email", "hashed": True, "identity": "sha256$abc"},
+        "issuedOn": "2026-06-17T07:00:00+00:00",
+        "verification": {"type": "HostedBadge"},
+        "badge": "https://tests.mode83.local/badges/blockchain-foundations",
+        "issuer": "https://tests.mode83.local/issuers/main",
+        "admin_recipient": {"name": "Fast Registry", "email": "fast@example.test"},
+    }
+    (issued_dir / f"{assertion_id}.json").write_text(json.dumps(assertion), encoding="utf-8")
+    monkeypatch.setattr(main, "ISSUED_DIR", issued_dir)
+    monkeypatch.setattr(main, "BAKED_DIR", baked_dir)
+    monkeypatch.setenv("BADGE83_REGISTRY_DB", str(tmp_path / "registry.db"))
+
+    def fail_status_builder(*args, **kwargs):
+        raise AssertionError("status builder should not run for /api/badges list")
+
+    monkeypatch.setattr(main, "_build_proof_status", fail_status_builder)
+    monkeypatch.setattr(main, "_build_revocation_status", fail_status_builder)
+    monkeypatch.setattr(main, "_build_anchoring_status", fail_status_builder)
+    monkeypatch.setattr(main, "_build_blockchain_revocation_status", fail_status_builder)
+    monkeypatch.setattr(main, "_build_audit_trail", fail_status_builder)
+
+    client = _client_admin()
+    response = client.get("/api/badges")
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["assertion_id"] == assertion_id
+    assert item["proof"] is None
+    assert item["anchoring"] is None
+    assert item["blockchain_revocation"] is None

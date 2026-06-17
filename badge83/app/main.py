@@ -212,9 +212,10 @@ async def verify_badge_page(request: Request, assertion_id: str):
         return templates.TemplateResponse("verify_badge.html", context, status_code=404)
 
     public_assertion_url = record.get("public_assertion_url")
-    status = "valid" if record.get("has_json") else "partial"
-    status_label = "Badge valide" if status == "valid" else "Enregistrement incomplet"
-    status_tone = "success" if status == "valid" else "secondary"
+    is_revoked = bool(record.get("credential_status", {}).get("revoked"))
+    status = "revoked" if is_revoked else ("valid" if record.get("has_json") else "partial")
+    status_label = "Badge révoqué" if is_revoked else ("Badge valide" if status == "valid" else "Enregistrement incomplet")
+    status_tone = "danger" if is_revoked else ("success" if status == "valid" else "secondary")
 
     context = {
         "request": request,
@@ -256,10 +257,16 @@ async def verify_badge_qr_page(request: Request, assertion_id: str):
         if isinstance(record.get("assertion"), dict)
         else {}
     )
-    is_valid = bool(record.get("has_json"))
+    is_revoked = bool(record.get("credential_status", {}).get("revoked"))
+    is_valid = bool(record.get("has_json")) and not is_revoked
     is_mode83 = bool(issuer_check.get("is_local"))
 
-    if is_valid and is_mode83:
+    if is_revoked:
+        hero_tone = "bad"
+        status_icon = "!"
+        status_title = "Badge révoqué"
+        status_message = "Ce credential a été révoqué dans le registre Badge83. Les ancrages prouvent l'historique du hash, pas sa validité actuelle."
+    elif is_valid and is_mode83:
         hero_tone = "ok"
         status_icon = "✓"
         status_title = "Badge vérifié"
@@ -624,6 +631,12 @@ def _build_blockchain_revocation_status(assertion_id: str) -> dict[str, Any]:
     return _blockchain_revocation_summary(latest)
 
 
+def _is_blockchain_revocation_confirmed(assertion_id: str) -> bool:
+    """Indique si la révocation blockchain est déjà confirmée localement."""
+
+    return bool(_build_blockchain_revocation_status(assertion_id).get("revoked"))
+
+
 def _blockchain_revocation_summary(
     revocation: dict[str, Any] | None,
     *,
@@ -920,6 +933,42 @@ def _publish_blockchain_revocation(
     """Publie une révocation blockchain optionnelle et persiste le résultat sans bloquer le local."""
 
     provider_instance = get_anchoring_provider(provider)
+    provider_name = getattr(provider_instance, "name", provider)
+    previous_revocation = BlockchainRevocationRepository().derniere_par_assertion(assertion_id)
+    if previous_revocation and previous_revocation.get("status") == "revoked":
+        return previous_revocation
+
+    if provider_name == "evm" and hasattr(provider_instance, "verifier_hash_revoque"):
+        try:
+            onchain_status = provider_instance.verifier_hash_revoque(credential_hash)  # type: ignore[attr-defined]
+        except Exception:
+            onchain_status = {"available": False, "revoked": False}
+        if onchain_status.get("available") is True and onchain_status.get("revoked") is True:
+            stored = BlockchainRevocationRepository().enregistrer(
+                assertion_id=assertion_id,
+                credential_hash=credential_hash,
+                provider=provider_name,
+                network=getattr(provider_instance, "network", None),
+                status="revoked",
+                tx_hash=None,
+                block_number=None,
+                error_message="Hash déjà révoqué on-chain : transaction de révocation non renvoyée.",
+            )
+            enregistrer_evenement_audit(
+                "blockchain_revocation_completed",
+                assertion_id=assertion_id,
+                credential_hash=credential_hash,
+                actor=actor,
+                payload={
+                    "provider": provider_name,
+                    "network": getattr(provider_instance, "network", None),
+                    "status": "revoked",
+                    "source": "onchain_read_before_revoke",
+                    "error_message": stored.get("error_message"),
+                },
+            )
+            return stored
+
     try:
         result = provider_instance.revoke({"assertion_id": assertion_id, "credential_hash": credential_hash})  # type: ignore[attr-defined]
     except Exception as exc:
@@ -938,7 +987,7 @@ def _publish_blockchain_revocation(
     stored = BlockchainRevocationRepository().enregistrer(
         assertion_id=assertion_id,
         credential_hash=credential_hash,
-        provider=getattr(provider_instance, "name", provider),
+        provider=provider_name,
         network=result.network,
         status=result.status,
         tx_hash=result.tx_hash,
@@ -951,7 +1000,7 @@ def _publish_blockchain_revocation(
         credential_hash=credential_hash,
         actor=actor,
         payload={
-            "provider": getattr(provider_instance, "name", provider),
+            "provider": provider_name,
             "network": result.network,
             "status": result.status,
             "tx_hash": result.tx_hash,
@@ -982,7 +1031,12 @@ def _build_audit_trail(assertion_id: str) -> dict[str, Any]:
     }
 
 
-def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = None) -> dict[str, Any] | None:
+def _collect_badge_record(
+    assertion_id: str,
+    assertion: dict[str, Any] | None = None,
+    *,
+    include_statuses: bool = True,
+) -> dict[str, Any] | None:
     json_path = ISSUED_DIR / f"{assertion_id}.json"
     png_path = BAKED_DIR / f"{assertion_id}.png"
 
@@ -996,11 +1050,20 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     verification = assertion.get("verification", {}) if isinstance(assertion.get("verification"), dict) else {}
     admin_recipient = assertion.get("admin_recipient", {}) if isinstance(assertion.get("admin_recipient"), dict) else {}
     compliance = check_assertion(assertion)
-    proof_status = _build_proof_status(assertion_id, assertion)
-    revocation_status = _build_revocation_status(assertion_id)
-    anchoring_status = _build_anchoring_status(assertion_id)
-    blockchain_revocation_status = _build_blockchain_revocation_status(assertion_id)
-    audit_trail = _build_audit_trail(assertion_id)
+    if include_statuses:
+        proof_status = _build_proof_status(assertion_id, assertion)
+        revocation_status = _build_revocation_status(assertion_id)
+        anchoring_status = _build_anchoring_status(assertion_id)
+        blockchain_revocation_status = _build_blockchain_revocation_status(assertion_id)
+        audit_trail = _build_audit_trail(assertion_id)
+    else:
+        # Fast path for the registry list: avoid per-row SQLite/RPC-heavy proof, anchoring,
+        # blockchain verification and audit summaries. Full data is loaded on badge selection.
+        proof_status = None
+        revocation_status = None
+        anchoring_status = None
+        blockchain_revocation_status = None
+        audit_trail = None
 
     badge_ref = assertion.get("badge", "")
     issuer_ref = assertion.get("issuer", "")
@@ -1030,6 +1093,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
         "compliance": compliance,
         "proof": proof_status,
         "credential_status": revocation_status,
+        "revocation": revocation_status,
         "anchoring": anchoring_status,
         "blockchain_revocation": blockchain_revocation_status,
         "audit": audit_trail,
@@ -1050,7 +1114,7 @@ def _list_badge_records() -> list[dict[str, Any]]:
 
     records: list[dict[str, Any]] = []
     for assertion_id in sorted(assertion_ids):
-        record = _collect_badge_record(assertion_id)
+        record = _collect_badge_record(assertion_id, include_statuses=False)
         if record:
             records.append(record)
 

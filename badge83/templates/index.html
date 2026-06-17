@@ -1784,9 +1784,11 @@
         const txHash = blockchain.tx_hash ? `<div class="small mono text-break mt-1">Référence revoke : ${escapeHtml(blockchain.tx_hash)}</div>` : '';
         const explorer = blockchain.explorer_tx_url ? `<div class="small mt-1"><a href="${escapeHtml(blockchain.explorer_tx_url)}" target="_blank" rel="noopener noreferrer">Explorer transaction revoke</a></div>` : '';
         const error = blockchain.error_message ? `<div class="small text-danger mt-1">${escapeHtml(blockchain.error_message)}</div>` : '';
+        const localMessage = local.message ? `<div class="small text-muted mt-1">${escapeHtml(local.message)}</div>` : '';
         return `
           <div class="mt-2 pt-2 border-top">
             <div><strong>Révocation locale Badge83:</strong> <span class="badge text-bg-${escapeHtml(localTone)}">${escapeHtml(localLabel)}</span></div>
+            ${localMessage}
             ${local.reason_category ? `<div class="small text-muted mt-1">Catégorie : ${escapeHtml(local.reason_category)}</div>` : ''}
             ${local.updated_at ? `<div class="small text-muted mt-1">Mise à jour : ${escapeHtml(local.updated_at)}</div>` : ''}
             <div class="mt-2"><strong>Révocation blockchain EVM:</strong> <span class="badge text-bg-${escapeHtml(blockchainTone)}">${escapeHtml(blockchainLabel)}</span></div>
@@ -1938,6 +1940,7 @@
         }
 
         const item = await response.json();
+        const credentialStatus = item.credential_status || item.revocation || {};
         emptyInspector.classList.add('d-none');
         inspector.classList.remove('d-none');
         currentBadgeStatus.textContent = item.assertion_id;
@@ -1950,7 +1953,7 @@
           <div><strong>Hosted URL:</strong> <a href="${escapeHtml(item.public_assertion_url || '#')}" target="_blank">${escapeHtml(item.public_assertion_url || '—')}</a></div>
           <div><strong>Verification page:</strong> <a href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">/verify/badge/${escapeHtml(item.assertion_id)}</a></div>
           ${renderAnchoringAdminSummary(item.anchoring)}
-          ${renderRevocationAdminSummary(item.revocation, item.blockchain_revocation)}
+          ${renderRevocationAdminSummary(credentialStatus, item.blockchain_revocation)}
           ${renderAuditAdminSummary(item.audit)}
         `;
         downloadJsonBtn.href = item.json_url;
@@ -1960,8 +1963,10 @@
         inspectPngBtn.disabled = !item.has_png;
         anchorLocalBtn.disabled = !item.has_json;
         anchorEvmBtn.disabled = !item.has_json;
-        revokeLocalBtn.disabled = !item.has_json || Boolean(item.revocation?.revoked);
-        revokeEvmBtn.disabled = !item.has_json || !Boolean(item.revocation?.revoked) || Boolean(item.blockchain_revocation?.revoked);
+        const isLocallyRevoked = Boolean(credentialStatus.revoked);
+        const isBlockchainRevoked = Boolean(item.blockchain_revocation?.revoked);
+        revokeLocalBtn.disabled = !item.has_json || isLocallyRevoked;
+        revokeEvmBtn.disabled = !item.has_json || !isLocallyRevoked || isBlockchainRevoked;
         if (revokeAlsoEvm) revokeAlsoEvm.checked = false;
         anchorLocalBtn.dataset.id = item.assertion_id;
         anchorEvmBtn.dataset.id = item.assertion_id;

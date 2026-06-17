@@ -8,6 +8,7 @@ from app import main
 from app.main import app
 from app.proofs import HashService, VerificationProof
 from app.proofs.anchoring_repository import AnchoringRepository
+from app.proofs.blockchain_revocation_repository import BlockchainRevocationRepository
 from app.proofs.repository import ProofRepository
 from app.proofs.revocation_repository import RevocationRepository
 
@@ -299,3 +300,88 @@ def test_statut_global_reste_confirme_si_evm_echoue_apres_mock(tmp_path, monkeyp
     assert status["tone"] == "success"
     assert status["mock"]["status"] == "anchored"
     assert status["evm"]["status"] == "failed"
+
+
+
+def test_pages_verification_signalent_ancrage_historique_si_badge_revoque(tmp_path, monkeypatch):
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, _assertion("preuve-revoquee-ancree-1"))
+    proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
+    RevocationRepository(tmp_path / "registry.db").revoquer(
+        assertion_id,
+        reason_category="erreur_emission",
+        actor="admin-test",
+    )
+    repository = AnchoringRepository(tmp_path / "registry.db")
+    transaction = repository.enqueue(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="evm",
+        network="sepolia",
+    )
+    repository.changer_statut(
+        transaction["id"],
+        "anchored",
+        tx_hash="0xanchorrevoked",
+        block_number=100,
+    )
+    monkeypatch.setattr(
+        main.EvmAnchoringProvider,
+        "verifier_hash_ancre",
+        lambda self, credential_hash: {
+            "available": True,
+            "verified": True,
+            "status": "verified",
+            "provider": "evm",
+            "network": "sepolia",
+            "error_message": None,
+        },
+    )
+    client = TestClient(app)
+
+    full_response = client.get(f"/verify/badge/{assertion_id}")
+    qr_response = client.get(f"/verify/qr/{assertion_id}")
+
+    assert full_response.status_code == 200
+    assert qr_response.status_code == 200
+    assert "Badge révoqué" in full_response.text
+    assert "credential révoqué" in full_response.text
+    assert "l'ancrage confirme l'historique du hash, pas une validité actuelle" in full_response.text
+    assert "Badge révoqué localement. Révocation blockchain non publiée ou non confirmée." in full_response.text
+    assert "Badge révoqué" in qr_response.text
+    assert "Révoqué · ancrage historique" in qr_response.text
+    assert "Credential révoqué" in qr_response.text
+
+
+def test_pages_verification_affichent_revocation_blockchain_confirmee(tmp_path, monkeypatch):
+    monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "https://explorer.test/tx/{tx_hash}")
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, _assertion("preuve-revoquee-evm-1"))
+    proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
+    RevocationRepository(tmp_path / "registry.db").revoquer(
+        assertion_id,
+        reason_category="erreur_emission",
+        actor="admin-test",
+    )
+    BlockchainRevocationRepository(tmp_path / "registry.db").enregistrer(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="evm",
+        network="sepolia",
+        status="revoked",
+        tx_hash="0xrevoked123",
+        block_number=101,
+    )
+    client = TestClient(app)
+
+    full_response = client.get(f"/verify/badge/{assertion_id}")
+    qr_response = client.get(f"/verify/qr/{assertion_id}")
+
+    assert full_response.status_code == 200
+    assert qr_response.status_code == 200
+    assert "Révocation blockchain EVM" in full_response.text
+    assert "Révocation blockchain confirmée" in full_response.text
+    assert "Badge révoqué localement. Révocation blockchain confirmée." in full_response.text
+    assert "0xrevoked123" in full_response.text
+    assert "https://explorer.test/tx/0xrevoked123" in full_response.text
+    assert "Révocation blockchain EVM" in qr_response.text
+    assert "Révocation blockchain confirmée" in qr_response.text
+    assert "Ouvrir la transaction de révocation" in qr_response.text

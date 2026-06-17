@@ -224,8 +224,8 @@
             <div class="chip {{ 'bad' if badge.credential_status.revoked else 'ok' }}">
               Statut : {{ badge.credential_status.public_label }}
             </div>
-            <div class="chip {{ 'ok' if badge.anchoring.status == 'anchored' else 'warn' }}">
-              Ancrage : {{ badge.anchoring.status }}
+            <div class="chip {{ 'bad' if badge.credential_status.revoked else ('ok' if badge.anchoring.status == 'anchored' else 'warn') }}">
+              {{ 'Révoqué · ancrage historique' if badge.credential_status.revoked else 'Ancrage : ' ~ badge.anchoring.status }}
             </div>
             <div class="chip {{ 'ok' if badge.proof.status == 'matches' else 'warn' }}">
               {{ badge.proof.label }}
@@ -252,7 +252,7 @@
             <div class="label">Ancrage blockchain EVM</div>
             <div class="value">{{ badge.anchoring.evm.label }}</div>
             <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
-              Provider EVM réel, optionnel et hash-only.{% if badge.anchoring.evm.tx_hash %} Transaction : {{ badge.anchoring.evm.tx_hash }}.{% endif %}
+              Provider EVM réel, optionnel et hash-only.{% if badge.credential_status.revoked %} Credential révoqué : l'ancrage prouve l'historique du hash, pas sa validité actuelle.{% endif %}{% if badge.anchoring.evm.tx_hash %} Transaction : {{ badge.anchoring.evm.tx_hash }}.{% endif %}
             </div>
             {% if badge.anchoring.evm.explorer_tx_url %}
             <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
@@ -261,6 +261,27 @@
             {% endif %}
           </div>
 
+
+          <div class="fact">
+            <div class="label">Révocation blockchain EVM</div>
+            <div class="value">{{ badge.blockchain_revocation.label }}</div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              {% if badge.credential_status.revoked and badge.blockchain_revocation.revoked %}
+              Badge révoqué localement. Révocation blockchain confirmée.
+              {% elif badge.credential_status.revoked %}
+              Badge révoqué localement. Révocation blockchain non publiée ou non confirmée.
+              {% elif badge.blockchain_revocation.revoked %}
+              Alerte : révocation blockchain détectée mais révocation locale absente.
+              {% else %}
+              Aucune révocation blockchain confirmée.
+              {% endif %}
+            </div>
+            {% if badge.blockchain_revocation.explorer_tx_url %}
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              <a href="{{ badge.blockchain_revocation.explorer_tx_url }}" target="_blank" rel="noopener noreferrer">Ouvrir la transaction de révocation</a>
+            </div>
+            {% endif %}
+          </div>
           {% if badge.anchoring.blockchain_verification.status != 'not_applicable' %}
           <div class="fact">
             <div class="label">Vérification blockchain publique</div>
