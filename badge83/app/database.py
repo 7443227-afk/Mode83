@@ -123,6 +123,34 @@ def create_tables(conn: sqlite3.Connection):
         ''')
 
         conn.execute('''
+            CREATE TABLE IF NOT EXISTS blockchain_revocations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                assertion_id TEXT NOT NULL,
+                credential_hash TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                network TEXT,
+                status TEXT NOT NULL,
+                tx_hash TEXT,
+                block_number INTEGER,
+                error_message TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_blockchain_revocations_assertion_id
+            ON blockchain_revocations(assertion_id)
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_blockchain_revocations_hash
+            ON blockchain_revocations(credential_hash)
+        ''')
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_blockchain_revocations_status
+            ON blockchain_revocations(status)
+        ''')
+
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS audit_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_id TEXT UNIQUE NOT NULL,

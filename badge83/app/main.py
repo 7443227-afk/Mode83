@@ -25,8 +25,9 @@ from app.openbadges_checks import check_assertion
 from app.proofs import HashService
 from app.proofs.anchoring_repository import AnchoringRepository
 from app.proofs.anchoring_service import AnchoringService
-from app.proofs.anchoring_providers import EvmAnchoringProvider
+from app.proofs.anchoring_providers import EvmAnchoringProvider, get_anchoring_provider
 from app.proofs.audit_repository import AuditRepository
+from app.proofs.blockchain_revocation_repository import BlockchainRevocationRepository
 from app.proofs.repository import ProofRepository
 from app.proofs.revocation_repository import RevocationRepository
 from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
@@ -612,6 +613,77 @@ def _build_revocation_status(assertion_id: str) -> dict[str, Any]:
     }
 
 
+def _build_blockchain_revocation_status(assertion_id: str) -> dict[str, Any]:
+    """Construit un résumé public de la révocation blockchain, séparé de la révocation locale."""
+
+    try:
+        latest = BlockchainRevocationRepository().derniere_par_assertion(assertion_id)
+    except Exception:
+        return _blockchain_revocation_summary(None, unavailable=True)
+
+    return _blockchain_revocation_summary(latest)
+
+
+def _blockchain_revocation_summary(
+    revocation: dict[str, Any] | None,
+    *,
+    unavailable: bool = False,
+) -> dict[str, Any]:
+    labels = {
+        "revoked": "Révocation blockchain confirmée",
+        "failed": "Révocation blockchain échouée",
+        "not_configured": "Révocation blockchain non configurée",
+        "not_requested": "Révocation blockchain non demandée",
+        "unavailable": "Révocation blockchain indisponible",
+    }
+    tones = {
+        "revoked": "success",
+        "failed": "danger",
+        "not_configured": "warning",
+        "not_requested": "secondary",
+        "unavailable": "warning",
+    }
+    if unavailable:
+        status = "unavailable"
+        provider = "evm"
+        network = None
+        tx_hash = None
+        block_number = None
+        updated_at = None
+        error_message = None
+    elif revocation is None:
+        status = "not_requested"
+        provider = "evm"
+        network = None
+        tx_hash = None
+        block_number = None
+        updated_at = None
+        error_message = None
+    else:
+        status = str(revocation.get("status") or "not_requested")
+        provider = str(revocation.get("provider") or "evm")
+        network = revocation.get("network")
+        tx_hash = revocation.get("tx_hash")
+        block_number = revocation.get("block_number")
+        updated_at = revocation.get("updated_at")
+        error_message = revocation.get("error_message")
+
+    return {
+        "available": not unavailable,
+        "provider": provider,
+        "status": status,
+        "revoked": status == "revoked",
+        "label": labels.get(status, "Révocation blockchain inconnue"),
+        "tone": tones.get(status, "secondary"),
+        "network": network,
+        "tx_hash": tx_hash,
+        "explorer_tx_url": _build_evm_explorer_tx_url(tx_hash, provider),
+        "block_number": block_number,
+        "updated_at": updated_at,
+        "error_message": error_message,
+    }
+
+
 def _build_anchoring_status(assertion_id: str) -> dict[str, Any]:
     """Construit un résumé public des ancrages locaux et EVM sans les opposer."""
 
@@ -838,6 +910,57 @@ def _build_blockchain_verification_status(transaction: dict[str, Any]) -> dict[s
     }
 
 
+def _publish_blockchain_revocation(
+    assertion_id: str,
+    credential_hash: str,
+    *,
+    provider: str = "evm",
+    actor: str | None = None,
+) -> dict[str, Any]:
+    """Publie une révocation blockchain optionnelle et persiste le résultat sans bloquer le local."""
+
+    provider_instance = get_anchoring_provider(provider)
+    try:
+        result = provider_instance.revoke({"assertion_id": assertion_id, "credential_hash": credential_hash})  # type: ignore[attr-defined]
+    except Exception as exc:
+        result = type(
+            "FailedRevocationResult",
+            (),
+            {
+                "status": "failed",
+                "tx_hash": None,
+                "block_number": None,
+                "error_message": f"Erreur révocation blockchain : {exc}",
+                "network": getattr(provider_instance, "network", None),
+            },
+        )()
+
+    stored = BlockchainRevocationRepository().enregistrer(
+        assertion_id=assertion_id,
+        credential_hash=credential_hash,
+        provider=getattr(provider_instance, "name", provider),
+        network=result.network,
+        status=result.status,
+        tx_hash=result.tx_hash,
+        block_number=result.block_number,
+        error_message=result.error_message,
+    )
+    enregistrer_evenement_audit(
+        "blockchain_revocation_completed" if result.status == "revoked" else "blockchain_revocation_failed",
+        assertion_id=assertion_id,
+        credential_hash=credential_hash,
+        actor=actor,
+        payload={
+            "provider": getattr(provider_instance, "name", provider),
+            "network": result.network,
+            "status": result.status,
+            "tx_hash": result.tx_hash,
+            "error_message": result.error_message,
+        },
+    )
+    return stored
+
+
 def _build_audit_trail(assertion_id: str) -> dict[str, Any]:
     """Construit un résumé admin des événements d'audit associés à un badge."""
 
@@ -876,6 +999,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
     proof_status = _build_proof_status(assertion_id, assertion)
     revocation_status = _build_revocation_status(assertion_id)
     anchoring_status = _build_anchoring_status(assertion_id)
+    blockchain_revocation_status = _build_blockchain_revocation_status(assertion_id)
     audit_trail = _build_audit_trail(assertion_id)
 
     badge_ref = assertion.get("badge", "")
@@ -907,6 +1031,7 @@ def _collect_badge_record(assertion_id: str, assertion: dict[str, Any] | None = 
         "proof": proof_status,
         "credential_status": revocation_status,
         "anchoring": anchoring_status,
+        "blockchain_revocation": blockchain_revocation_status,
         "audit": audit_trail,
         "search": {
             "has_name_hash": bool(assertion.get("search", {}).get("name_hash")) if isinstance(assertion.get("search"), dict) else False,
@@ -1051,7 +1176,7 @@ async def api_get_badge_proof(assertion_id: str):
 
 @app.post("/api/badges/{assertion_id}/revoke", dependencies=[Depends(require_admin)])
 async def api_revoke_badge(assertion_id: str, payload: dict[str, Any] | None = Body(default=None)):
-    """Marque un badge comme révoqué dans le registre local."""
+    """Marque un badge comme révoqué localement, avec publication blockchain optionnelle."""
 
     if _collect_badge_record(assertion_id) is None:
         raise HTTPException(status_code=404, detail="Badge introuvable")
@@ -1070,6 +1195,23 @@ async def api_revoke_badge(assertion_id: str, payload: dict[str, Any] | None = B
         actor=revocation.get("actor"),
         payload={"reason_category": revocation.get("reason_category")},
     )
+    blockchain_revocation = None
+    if payload.get("request_evm_revocation") is True:
+        if proof and proof.get("credential_hash"):
+            blockchain_revocation = _publish_blockchain_revocation(
+                assertion_id,
+                str(proof["credential_hash"]),
+                provider=str(payload.get("blockchain_provider") or "evm"),
+                actor=revocation.get("actor"),
+            )
+        else:
+            blockchain_revocation = BlockchainRevocationRepository().enregistrer(
+                assertion_id=assertion_id,
+                credential_hash="",
+                provider=str(payload.get("blockchain_provider") or "evm"),
+                status="failed",
+                error_message="Preuve locale introuvable : révocation blockchain impossible.",
+            )
     return {
         "assertion_id": revocation["assertion_id"],
         "revoked": revocation["revoked"],
@@ -1077,6 +1219,7 @@ async def api_revoke_badge(assertion_id: str, payload: dict[str, Any] | None = B
         "actor": revocation["actor"],
         "created_at": revocation["created_at"],
         "updated_at": revocation["updated_at"],
+        "blockchain_revocation": _blockchain_revocation_summary(blockchain_revocation),
     }
 
 
@@ -1091,6 +1234,32 @@ async def api_get_badge_revocation(assertion_id: str):
     return {
         "assertion_id": assertion_id,
         **revocation_status,
+        "blockchain_revocation": _build_blockchain_revocation_status(assertion_id),
+    }
+
+
+@app.post("/api/badges/{assertion_id}/revoke/blockchain", dependencies=[Depends(require_admin)])
+async def api_revoke_badge_blockchain(assertion_id: str, payload: dict[str, Any] | None = Body(default=None)):
+    """Publie explicitement la révocation EVM d'un badge déjà révoqué localement."""
+
+    if _collect_badge_record(assertion_id) is None:
+        raise HTTPException(status_code=404, detail="Badge introuvable")
+    if not RevocationRepository().est_revoque(assertion_id):
+        raise HTTPException(status_code=409, detail="Révocation locale requise avant publication blockchain")
+    proof = ProofRepository().trouver_par_assertion(assertion_id)
+    if not proof:
+        raise HTTPException(status_code=404, detail="Preuve locale introuvable")
+
+    payload = payload or {}
+    stored = _publish_blockchain_revocation(
+        assertion_id,
+        str(proof["credential_hash"]),
+        provider=str(payload.get("provider") or "evm"),
+        actor=payload.get("actor") or "admin",
+    )
+    return {
+        "assertion_id": assertion_id,
+        "blockchain_revocation": _blockchain_revocation_summary(stored),
     }
 
 

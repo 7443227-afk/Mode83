@@ -111,6 +111,29 @@ def _anchor_and_verify(credential_hash: str) -> int:
     return 0 if verification.get("verified") is True else 1
 
 
+def _revoke_and_status(credential_hash: str) -> int:
+    provider = EvmAnchoringProvider()
+    result = provider.revoke({"credential_hash": credential_hash})
+    print("revoke.credential_hash_prefix=", _short_hash(credential_hash))
+    print("revoke.status=", result.status)
+    print("revoke.network=", result.network)
+    print("revoke.tx_hash=", result.tx_hash)
+    print("revoke.block_number=", result.block_number)
+    print("revoke.error_message=", result.error_message)
+
+    if result.status != "revoked":
+        return 1
+
+    return _status_only(credential_hash, require_available=True, require_revoked=True)
+
+
+def _anchor_revoke_and_status(credential_hash: str) -> int:
+    anchor_exit = _anchor_and_verify(credential_hash)
+    if anchor_exit != 0:
+        return anchor_exit
+    return _revoke_and_status(credential_hash)
+
+
 def _verify_only(credential_hash: str) -> int:
     provider = EvmAnchoringProvider()
     verification = provider.verifier_hash_ancre(credential_hash)
@@ -120,6 +143,22 @@ def _verify_only(credential_hash: str) -> int:
     print("verification.network=", verification.get("network"))
     print("verification.error_message=", verification.get("error_message"))
     return 0 if verification.get("available") is True else 1
+
+
+def _status_only(credential_hash: str, *, require_available: bool = True, require_revoked: bool = False) -> int:
+    provider = EvmAnchoringProvider()
+    status = provider.get_hash_status(credential_hash)
+    print("status.credential_hash_prefix=", _short_hash(credential_hash))
+    print("status.status=", status.get("status"))
+    print("status.anchored=", status.get("anchored"))
+    print("status.revoked=", status.get("revoked"))
+    print("status.network=", status.get("network"))
+    print("status.error_message=", status.get("error_message"))
+    if require_revoked:
+        return 0 if status.get("anchored") is True and status.get("revoked") is True else 1
+    if require_available:
+        return 0 if status.get("available") is True else 1
+    return 0
 
 
 def main() -> int:
@@ -140,6 +179,19 @@ def main() -> int:
         "--verify-hash",
         help="Hash sha256:<64 hex> à vérifier en lecture seule, sans transaction.",
     )
+    parser.add_argument(
+        "--revoke-hash",
+        help="Hash sha256:<64 hex> à révoquer. Envoie une transaction EVM revoke(bytes32).",
+    )
+    parser.add_argument(
+        "--status-hash",
+        help="Hash sha256:<64 hex> à lire via getStatus(bytes32), sans transaction.",
+    )
+    parser.add_argument(
+        "--anchor-and-revoke-random-hash",
+        action="store_true",
+        help="Ancre puis révoque un hash aléatoire sha256:<64 hex>.",
+    )
     args = parser.parse_args()
 
     _load_env_file(Path(args.env_file))
@@ -152,8 +204,25 @@ def main() -> int:
             return 2
         return _verify_only(args.verify_hash)
 
+    if args.status_hash:
+        if not SHA256_CREDENTIAL_HASH_RE.match(args.status_hash):
+            print("error= invalid --status-hash, expected sha256:<64 hex>")
+            return 2
+        return _status_only(args.status_hash)
+
+    if args.revoke_hash:
+        if not SHA256_CREDENTIAL_HASH_RE.match(args.revoke_hash):
+            print("error= invalid --revoke-hash, expected sha256:<64 hex>")
+            return 2
+        if not config_ok or not rpc_ok:
+            print("error= EVM configuration or contract RPC check is not ready for revocation")
+            return 1
+        return _revoke_and_status(args.revoke_hash)
+
     credential_hash = args.credential_hash
     if args.anchor_random_hash:
+        credential_hash = "sha256:" + secrets.token_hex(32)
+    if args.anchor_and_revoke_random_hash:
         credential_hash = "sha256:" + secrets.token_hex(32)
 
     if credential_hash:
@@ -163,9 +232,11 @@ def main() -> int:
         if not config_ok or not rpc_ok:
             print("error= EVM configuration or contract RPC check is not ready for anchoring")
             return 1
+        if args.anchor_and_revoke_random_hash:
+            return _anchor_revoke_and_status(credential_hash)
         return _anchor_and_verify(credential_hash)
 
-    print("action= no transaction sent; use --anchor-random-hash to run a full EVM smoke-test")
+    print("action= no transaction sent; use --anchor-random-hash or --anchor-and-revoke-random-hash")
     return 0 if config_ok and rpc_ok else 1
 
 
