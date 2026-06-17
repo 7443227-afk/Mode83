@@ -10,6 +10,17 @@ from typing import List, Optional, Dict, Any
 from app.config import get_registry_db_path
 
 
+SQLITE_BUSY_TIMEOUT_MS = 10_000
+_INITIALIZED_SCHEMA_PATHS: set[Path] = set()
+
+
+def _configure_sqlite_connection(conn: sqlite3.Connection) -> None:
+    """Applique les réglages SQLite communs aux connexions Badge83."""
+    conn.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA journal_mode=WAL")
+
+
 def _normalize_db_path(db_path: str | Path | None = None) -> Path:
     if db_path is None:
         return get_registry_db_path()
@@ -43,6 +54,7 @@ def init_database(db_path: str | Path | None = None) -> sqlite3.Connection:
         timeout=10,
         check_same_thread=False,
     )
+    _configure_sqlite_connection(conn)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -301,16 +313,22 @@ def create_tables(conn: sqlite3.Connection):
     conn.commit()
 
 
-def get_database_connection():
+def get_database_connection(db_path: str | Path | None = None):
     """Retourne une connexion à la base du registre."""
-    conn = init_database()
+    resolved_path = _normalize_db_path(db_path).resolve()
+    conn = init_database(resolved_path)
+    if resolved_path not in _INITIALIZED_SCHEMA_PATHS:
+        create_tables(conn)
+        _INITIALIZED_SCHEMA_PATHS.add(resolved_path)
     return conn
 
 
 def init_db_schema(db_path: str | Path | None = None):
     """Initialise le schéma de la base de données."""
-    conn = init_database(db_path)
+    resolved_path = _normalize_db_path(db_path).resolve()
+    conn = init_database(resolved_path)
     create_tables(conn)
+    _INITIALIZED_SCHEMA_PATHS.add(resolved_path)
     return conn
 
 

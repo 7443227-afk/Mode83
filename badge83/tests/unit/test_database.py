@@ -86,6 +86,17 @@ def test_import_assertions_from_directory_imports_existing_json(tmp_path):
     assert row["email_hash"] == "sha256$e"
 
 
+def test_init_database_applies_sqlite_performance_pragmas(tmp_path):
+    db_path = tmp_path / "registry.db"
+    conn = database.init_database(db_path)
+    try:
+        assert conn.execute("PRAGMA busy_timeout").fetchone()[0] == database.SQLITE_BUSY_TIMEOUT_MS
+        assert conn.execute("PRAGMA synchronous").fetchone()[0] == 1  # NORMAL
+        assert conn.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+    finally:
+        database.close_connection(conn)
+
+
 def test_batch_session_helpers_persist_session_and_items(tmp_path):
     db_path = tmp_path / "registry.db"
     conn = database.init_db_schema(db_path)

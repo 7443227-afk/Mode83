@@ -4,7 +4,7 @@ import sqlite3
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 
-from app.database import init_db_schema, close_connection
+from app.database import get_database_connection, close_connection
 from app.database import (
     add_badge_schema, get_badge_schema_by_id, get_all_badge_schemas,
     update_badge_schema, delete_badge_schema
@@ -16,7 +16,7 @@ router = APIRouter()
 
 def get_db():
     """Dépendance FastAPI fournissant une connexion à la base de données."""
-    conn = init_db_schema()
+    conn = get_database_connection()
     try:
         yield conn
     finally:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from io import BytesIO
 import re
 
@@ -76,6 +77,18 @@ def make_blockchain_verification_url(
         return None
 
     return f"{normalized_base}/#/evm/{normalized_chain_id}/{normalized_contract}/{credential_hash_bytes32}"
+
+
+@lru_cache(maxsize=64)
+def _load_text_overlay_font(font_family: str, font_size: int):
+    """Charge et met en cache les polices utilisées par les overlays texte."""
+    try:
+        return ImageFont.truetype(f"{font_family}.ttf", font_size)
+    except OSError:
+        try:
+            return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+        except OSError:
+            return ImageFont.load_default()
 
 
 def overlay_qr_on_badge(
@@ -229,17 +242,7 @@ def overlay_text_on_badge(
         outline_width = overlay.get("outline_width", 0)
         outline_color = overlay.get("outline_color", "#FFFFFF")
         
-        # Tente de charger la police, puis utilise une police par défaut si nécessaire
-        try:
-            # Tente de charger une police TrueType
-            font = ImageFont.truetype(f"{font_family}.ttf", font_size)
-        except OSError:
-            try:
-                # Tente les chemins de polices courants
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
-            except OSError:
-                # Repli sur la police par défaut
-                font = ImageFont.load_default()
+        font = _load_text_overlay_font(str(font_family), int(font_size))
         
         # Les styles gras/italique nécessiteraient des variantes de police dédiées
         

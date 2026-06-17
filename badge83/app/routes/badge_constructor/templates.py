@@ -16,7 +16,7 @@ from typing import List
 import base64
 
 from app.config import BACKGROUND_IMAGES_DIR, BADGE_PNG, DATA_BASE, ISSUED_DIR, get_max_csv_upload_bytes, get_max_png_upload_bytes
-from app.database import init_db_schema, close_connection
+from app.database import get_database_connection, close_connection
 from app.database import (
     add_badge_template, get_badge_template_by_id, get_all_badge_templates,
     update_badge_template, delete_badge_template, get_badge_schema_by_id,
@@ -34,7 +34,7 @@ router = APIRouter()
 
 def get_db():
     """Dépendance FastAPI fournissant une connexion à la base de données."""
-    conn = init_db_schema()
+    conn = get_database_connection()
     try:
         yield conn
     finally:

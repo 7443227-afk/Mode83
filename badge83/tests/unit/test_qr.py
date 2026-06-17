@@ -9,6 +9,7 @@ from app.qr import (
     credential_hash_to_bytes32_hex,
     make_blockchain_verification_url,
     overlay_qr_on_badge,
+    _load_text_overlay_font,
 )
 
 
@@ -131,3 +132,13 @@ def test_overlay_qr_on_badge_custom_position_is_clamped_to_badge_bounds():
     assert _rgb_difference_bbox(
         Image.new("RGBA", bottom_right_area.size, (255, 255, 255, 255)), bottom_right_area
     ) is not None
+
+
+def test_text_overlay_font_loader_caches_fonts():
+    _load_text_overlay_font.cache_clear()
+
+    first = _load_text_overlay_font("DejaVuSans", 16)
+    second = _load_text_overlay_font("DejaVuSans", 16)
+
+    assert first is second
+    assert _load_text_overlay_font.cache_info().hits == 1
