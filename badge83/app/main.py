@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_default_anchoring_provider, get_evm_explorer_tx_url_template, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
+from app.config import BAKED_DIR, DATA_BASE, ISSUED_DIR, get_auth_password, get_auth_secret, get_auth_username, get_blockchain_verify_base_url, get_default_anchoring_provider, get_evm_chain_id, get_evm_contract_address, get_evm_explorer_tx_url_template, get_max_png_upload_bytes, get_public_base_url, validate_production_security_config
 from app.database import delete_assertion_record, import_assertions_from_directory, sync_assertion_record
 from app.issuer import issue_badge, issue_baked_badge, normalize_email, normalize_name, make_search_hash, enregistrer_evenement_audit
 from app.openbadges_checks import check_assertion
@@ -33,6 +33,7 @@ from app.proofs.revocation_repository import RevocationRepository
 from app.security import MAX_REMOTE_JSON_BYTES, MAX_REMOTE_REDIRECTS, SSRFProtectionError, validate_public_http_url
 from app.upload_limits import ensure_image_pixels_within_limit, read_upload_limited
 from app.verifier import deep_verify_baked_badge, verify_badge, verify_baked_badge
+from app.qr import credential_hash_to_bytes32_hex, make_blockchain_verification_url
 from app.routes.badge_constructor import router as badge_constructor_router
 
 
@@ -228,6 +229,7 @@ async def verify_badge_page(request: Request, assertion_id: str):
             **record,
             "verification_page_url": str(request.url),
             "raw_assertion_url": public_assertion_url,
+            "blockchain_fallback": _build_blockchain_fallback(record),
         },
     }
     return templates.TemplateResponse("verify_badge.html", context)
@@ -299,6 +301,7 @@ async def verify_badge_qr_page(request: Request, assertion_id: str):
             "recipient_name": admin_recipient.get("name") or "Non disponible",
             "recipient_email": _mask_email(admin_recipient.get("email")),
             "full_verification_url": f"/verify/badge/{assertion_id}" if is_valid and is_mode83 else None,
+            "blockchain_fallback": _build_blockchain_fallback(record),
         },
     }
     return templates.TemplateResponse("verify_qr.html", context)
@@ -881,6 +884,36 @@ def _blockchain_verification_not_applicable() -> dict[str, Any]:
         "provider": None,
         "network": None,
         "error_message": None,
+    }
+
+
+def _build_blockchain_fallback(record: dict[str, Any]) -> dict[str, Any]:
+    """Construit les métadonnées de lien vers le vérificateur blockchain indépendant."""
+
+    proof = record.get("proof") if isinstance(record.get("proof"), dict) else {}
+    credential_hash = str(proof.get("credential_hash") or "")
+    chain_id = get_evm_chain_id()
+    contract_address = get_evm_contract_address()
+    credential_hash_bytes32 = credential_hash_to_bytes32_hex(credential_hash)
+    verification_url = make_blockchain_verification_url(
+        get_blockchain_verify_base_url(),
+        chain_id,
+        contract_address,
+        credential_hash,
+    )
+
+    return {
+        "available": verification_url is not None,
+        "url": verification_url,
+        "chain_id": chain_id,
+        "contract_address": contract_address or None,
+        "credential_hash": credential_hash or None,
+        "credential_hash_bytes32": credential_hash_bytes32,
+        "message": (
+            "Ce lien permet une vérification blockchain minimale sans dépendre du backend Badge83 principal."
+            if verification_url
+            else "Lien de vérification blockchain autonome indisponible : configuration EVM ou hash credential incomplet."
+        ),
     }
 
 

@@ -292,6 +292,19 @@
           </div>
           {% endif %}
 
+          {% if badge.blockchain_fallback and badge.blockchain_fallback.available %}
+          <div class="fact">
+            <div class="label">Secours blockchain autonome</div>
+            <div class="value">Vérification indépendante disponible</div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              {{ badge.blockchain_fallback.message }}
+            </div>
+            <div class="label" style="margin-top: 6px; text-transform: none; letter-spacing: 0;">
+              <a href="{{ badge.blockchain_fallback.url }}" target="_blank" rel="noopener noreferrer">Ouvrir le vérificateur blockchain indépendant</a>
+            </div>
+          </div>
+          {% endif %}
+
           <div class="fact">
             <div class="label">Preuve locale Badge83</div>
             <div class="value">{{ badge.proof.label }}</div>

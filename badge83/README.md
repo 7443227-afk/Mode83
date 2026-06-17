@@ -672,7 +672,7 @@ GET /verify/qr/{assertion_id}
 | `missing` | aucune preuve locale n'existe pour ce badge |
 | `unavailable` | le registre local de preuve n'est pas accessible |
 
-La blockchain reste désactivable et optionnelle. Aucune donnée personnelle n'est stockée on-chain ; le provider EVM ne transmet que le digest opaque `sha256:<64 hex>` converti en `bytes32`.
+- La blockchain reste désactivable et optionnelle. Aucune donnée personnelle n'est stockée on-chain ; le provider EVM ne transmet que le digest opaque `sha256:<64 hex>` converti en `bytes32` au contrat `Badge83Registry`.
 
 L'ancrage local `mock` et l'ancrage blockchain `evm` ne sont pas mutuellement exclusifs. L'interface les affiche séparément : `mock` sert au workflow local de démonstration, tandis que `evm` correspond à la publication réelle du hash sur un contrat EVM. Un interrupteur de l'écran d'émission individuelle permet de demander l'ancrage EVM juste après la création du badge ; cette étape reste optionnelle et non bloquante.
 
@@ -694,6 +694,8 @@ Puis renseigner localement, sans committer de secret :
 BADGE83_EVM_RPC_URL=
 BADGE83_EVM_CHAIN_ID=
 BADGE83_EVM_CONTRACT_ADDRESS=
+BADGE83_EVM_CONTRACT_VERSION=registry
+BADGE83_BLOCKCHAIN_VERIFY_BASE_URL=https://verify.mode83.org
 BADGE83_EVM_PRIVATE_KEY=
 BADGE83_EVM_NETWORK_LABEL=hardhat-local
 BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=
@@ -705,6 +707,19 @@ Le smart contract Hardhat isolé se trouve dans `blockchain/` et les tests se la
 ```bash
 cd blockchain
 npm test
+```
+
+Le contrat cible actuel est `Badge83Registry`. Il expose `anchor`, `revoke`, `getStatus` et `isValid`, avec une protection par propriétaire et opérateurs autorisés. Les scripts de déploiement dédiés sont :
+
+```bash
+npm run deploy:registry:local
+npm run deploy:registry:sepolia
+```
+
+Les pages publiques peuvent aussi afficher une URL de vérification blockchain autonome au format :
+
+```text
+https://verify.mode83.org/#/evm/<chainId>/<contractAddress>/<credentialHashBytes32>
 ```
 
 Documentation détaillée :

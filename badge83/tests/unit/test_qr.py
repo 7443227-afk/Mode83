@@ -4,7 +4,12 @@ from io import BytesIO
 
 from PIL import Image, ImageChops
 
-from app.qr import QR_SAFE_MARGIN_PX, overlay_qr_on_badge
+from app.qr import (
+    QR_SAFE_MARGIN_PX,
+    credential_hash_to_bytes32_hex,
+    make_blockchain_verification_url,
+    overlay_qr_on_badge,
+)
 
 
 def _make_plain_png(size: tuple[int, int] = (400, 300), color=(255, 255, 255, 255)) -> bytes:
@@ -16,6 +21,42 @@ def _make_plain_png(size: tuple[int, int] = (400, 300), color=(255, 255, 255, 25
 
 def _rgb_difference_bbox(left: Image.Image, right: Image.Image):
     return ImageChops.difference(left.convert("RGB"), right.convert("RGB")).getbbox()
+
+
+def test_credential_hash_to_bytes32_hex_accepts_sha256_prefix():
+    assert credential_hash_to_bytes32_hex("sha256:" + "AB" * 32) == "0x" + "ab" * 32
+
+
+def test_credential_hash_to_bytes32_hex_accepts_existing_bytes32():
+    assert credential_hash_to_bytes32_hex("0x" + "CD" * 32) == "0x" + "cd" * 32
+
+
+def test_credential_hash_to_bytes32_hex_rejects_invalid_values():
+    assert credential_hash_to_bytes32_hex("sha256:not-hex") is None
+    assert credential_hash_to_bytes32_hex("0x1234") is None
+    assert credential_hash_to_bytes32_hex("") is None
+
+
+def test_make_blockchain_verification_url_builds_static_verifier_url():
+    url = make_blockchain_verification_url(
+        "https://verify.mode83.org/",
+        11155111,
+        "0x0000000000000000000000000000000000000001",
+        "sha256:" + "ab" * 32,
+    )
+
+    assert url == (
+        "https://verify.mode83.org/#/evm/11155111/"
+        "0x0000000000000000000000000000000000000001/"
+        "0x" + "ab" * 32
+    )
+
+
+def test_make_blockchain_verification_url_rejects_incomplete_or_invalid_values():
+    assert make_blockchain_verification_url("", 11155111, "0x0000000000000000000000000000000000000001", "sha256:" + "ab" * 32) is None
+    assert make_blockchain_verification_url("https://verify.mode83.org", None, "0x0000000000000000000000000000000000000001", "sha256:" + "ab" * 32) is None
+    assert make_blockchain_verification_url("https://verify.mode83.org", 11155111, "not-an-address", "sha256:" + "ab" * 32) is None
+    assert make_blockchain_verification_url("https://verify.mode83.org", 11155111, "0x0000000000000000000000000000000000000001", "bad-hash") is None
 
 
 def test_overlay_qr_on_badge_custom_position_returns_modified_png():

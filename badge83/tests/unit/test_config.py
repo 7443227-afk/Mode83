@@ -113,6 +113,8 @@ def test_evm_config_defaults_keep_blockchain_optional(monkeypatch):
     monkeypatch.delenv("BADGE83_EVM_RPC_URL", raising=False)
     monkeypatch.delenv("BADGE83_EVM_CHAIN_ID", raising=False)
     monkeypatch.delenv("BADGE83_EVM_CONTRACT_ADDRESS", raising=False)
+    monkeypatch.delenv("BADGE83_EVM_CONTRACT_VERSION", raising=False)
+    monkeypatch.delenv("BADGE83_BLOCKCHAIN_VERIFY_BASE_URL", raising=False)
     monkeypatch.delenv("BADGE83_EVM_PRIVATE_KEY", raising=False)
     monkeypatch.delenv("BADGE83_EVM_NETWORK_LABEL", raising=False)
     monkeypatch.delenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", raising=False)
@@ -122,6 +124,8 @@ def test_evm_config_defaults_keep_blockchain_optional(monkeypatch):
     assert config.get_evm_rpc_url() == ""
     assert config.get_evm_chain_id() is None
     assert config.get_evm_contract_address() == ""
+    assert config.get_evm_contract_version() == "registry"
+    assert config.get_blockchain_verify_base_url() == "https://verify.mode83.org"
     assert config.get_evm_private_key() == ""
     assert config.get_evm_network_label() == "hardhat-local"
     assert config.get_evm_explorer_tx_url_template() == ""
@@ -133,6 +137,8 @@ def test_evm_config_can_be_overridden(monkeypatch):
     monkeypatch.setenv("BADGE83_EVM_RPC_URL", " http://127.0.0.1:8545 ")
     monkeypatch.setenv("BADGE83_EVM_CHAIN_ID", "31337")
     monkeypatch.setenv("BADGE83_EVM_CONTRACT_ADDRESS", " 0x0000000000000000000000000000000000000001 ")
+    monkeypatch.setenv("BADGE83_EVM_CONTRACT_VERSION", " v2 ")
+    monkeypatch.setenv("BADGE83_BLOCKCHAIN_VERIFY_BASE_URL", " https://verify.example.test/ ")
     monkeypatch.setenv("BADGE83_EVM_PRIVATE_KEY", " 0xabc ")
     monkeypatch.setenv("BADGE83_EVM_NETWORK_LABEL", " hardhat-test ")
     monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", " https://explorer.test/tx/{tx_hash} ")
@@ -142,6 +148,8 @@ def test_evm_config_can_be_overridden(monkeypatch):
     assert config.get_evm_rpc_url() == "http://127.0.0.1:8545"
     assert config.get_evm_chain_id() == 31337
     assert config.get_evm_contract_address() == "0x0000000000000000000000000000000000000001"
+    assert config.get_evm_contract_version() == "v2"
+    assert config.get_blockchain_verify_base_url() == "https://verify.example.test"
     assert config.get_evm_private_key() == "0xabc"
     assert config.get_evm_network_label() == "hardhat-test"
     assert config.get_evm_explorer_tx_url_template() == "https://explorer.test/tx/{tx_hash}"

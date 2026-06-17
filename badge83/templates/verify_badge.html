@@ -245,6 +245,27 @@
             {% endif %}
           </div>
           {% endif %}
+          {% if badge.blockchain_fallback and badge.blockchain_fallback.available %}
+          <div class="border-top pt-3 mt-3">
+            <div class="label mb-2">Secours blockchain autonome</div>
+            <div class="text-muted small mb-2">{{ badge.blockchain_fallback.message }}</div>
+            <a class="btn btn-outline-dark btn-sm" href="{{ badge.blockchain_fallback.url }}" target="_blank" rel="noopener noreferrer">Ouvrir le vérificateur blockchain indépendant</a>
+            <div class="row g-2 mt-2">
+              <div class="col-12 col-lg-4">
+              <div class="label mb-1">Identifiant de chaîne</div>
+                <div class="mono small">{{ badge.blockchain_fallback.chain_id }}</div>
+              </div>
+              <div class="col-12 col-lg-8">
+                <div class="label mb-1">Contrat</div>
+                <div class="mono small text-break">{{ badge.blockchain_fallback.contract_address }}</div>
+              </div>
+              <div class="col-12">
+                <div class="label mb-1">Hash bytes32</div>
+                <div class="mono small text-break">{{ badge.blockchain_fallback.credential_hash_bytes32 }}</div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
         </div>
 
         <div class="info-card p-3 mt-3">
@@ -331,6 +352,12 @@
               <div class="label mb-1">Vérification blockchain publique</div>
               <div class="mono small">{{ badge.anchoring.blockchain_verification.status }}</div>
             </div>
+            {% if badge.blockchain_fallback and badge.blockchain_fallback.available %}
+            <div class="col-12">
+              <div class="label mb-1">URL de secours blockchain autonome</div>
+              <a class="mono small text-break" href="{{ badge.blockchain_fallback.url }}" target="_blank" rel="noopener noreferrer">{{ badge.blockchain_fallback.url }}</a>
+            </div>
+            {% endif %}
             <div class="col-12">
               <div class="label mb-1">Statut de la preuve locale</div>
               <div class="mono small">{{ badge.proof.status }} · {{ badge.proof.anchoring_status }}</div>

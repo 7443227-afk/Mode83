@@ -124,7 +124,10 @@ def test_evm_ne_transmet_aucune_donnee_personnelle(monkeypatch):
 
 def test_evm_verification_hash_ancre_read_only(monkeypatch):
     _configure_evm(monkeypatch)
-    recorder: dict[str, object] = {"anchored_result": True}
+    recorder: dict[str, object] = {
+        "status_result": (True, False, 1_717_171_717, 0, "0xAnchor", "0x0000000000000000000000000000000000000000"),
+        "valid_result": True,
+    }
     fake_web3_module = _fake_web3_module(recorder)
     monkeypatch.setitem(sys.modules, "web3", fake_web3_module)
 
@@ -133,9 +136,34 @@ def test_evm_verification_hash_ancre_read_only(monkeypatch):
     assert result["available"] is True
     assert result["verified"] is True
     assert result["status"] == "verified"
+    assert result["anchored"] is True
+    assert result["revoked"] is False
+    assert result["valid"] is True
+    assert result["anchored_at"] == 1_717_171_717
+    assert result["revoked_at"] == 0
+    assert result["anchored_by"] == "0xAnchor"
     assert result["provider"] == "evm"
-    assert recorder["anchored_digest"] == bytes.fromhex("ab" * 32)
+    assert recorder["status_digest"] == bytes.fromhex("ab" * 32)
+    assert recorder["valid_digest"] == bytes.fromhex("ab" * 32)
     assert "private_key_used" not in recorder
+
+
+def test_evm_get_hash_status_compatible_anchor_v2(monkeypatch):
+    _configure_evm(monkeypatch)
+    monkeypatch.setenv("BADGE83_EVM_CONTRACT_VERSION", "v2")
+    recorder: dict[str, object] = {"status_result": (True, True)}
+    fake_web3_module = _fake_web3_module(recorder)
+    monkeypatch.setitem(sys.modules, "web3", fake_web3_module)
+
+    result = EvmAnchoringProvider().get_hash_status(VALID_HASH)
+
+    assert result["available"] is True
+    assert result["anchored"] is True
+    assert result["revoked"] is True
+    assert result["valid"] is False
+    assert result["status"] == "revoked"
+    assert result["anchored_at"] is None
+    assert result["revoked_at"] is None
 
 
 def test_evm_verification_sans_configuration_ne_demande_pas_de_cle_privee(monkeypatch):
@@ -201,6 +229,22 @@ def _fake_web3_module(recorder: dict[str, object]):
             recorder["anchored_digest"] = self.digest
             return recorder.get("anchored_result", False)
 
+    class FakeStatusFunction:
+        def __init__(self, digest: bytes) -> None:
+            self.digest = digest
+
+        def call(self):
+            recorder["status_digest"] = self.digest
+            return recorder.get("status_result", (recorder.get("anchored_result", False), False, 0, 0, "0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"))
+
+    class FakeIsValidFunction:
+        def __init__(self, digest: bytes) -> None:
+            self.digest = digest
+
+        def call(self):
+            recorder["valid_digest"] = self.digest
+            return recorder.get("valid_result", False)
+
     class FakeFunctions:
         def anchor(self, credential_hash: bytes):
             recorder.setdefault("contract_calls", []).append(credential_hash)
@@ -209,6 +253,14 @@ def _fake_web3_module(recorder: dict[str, object]):
         def anchored(self, credential_hash: bytes):
             recorder.setdefault("contract_read_calls", []).append(credential_hash)
             return FakeAnchoredFunction(credential_hash)
+
+        def getStatus(self, credential_hash: bytes):
+            recorder.setdefault("contract_status_calls", []).append(credential_hash)
+            return FakeStatusFunction(credential_hash)
+
+        def isValid(self, credential_hash: bytes):
+            recorder.setdefault("contract_valid_calls", []).append(credential_hash)
+            return FakeIsValidFunction(credential_hash)
 
     class FakeContract:
         functions = FakeFunctions()

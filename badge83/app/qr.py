@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import re
 
 import qrcode
 from PIL import Image, ImageOps, ImageDraw, ImageFont
@@ -8,6 +9,9 @@ from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, 
 
 
 QR_SAFE_MARGIN_PX = 12
+SHA256_CREDENTIAL_HASH_RE = re.compile(r"^sha256:([0-9a-fA-F]{64})$")
+BYTES32_HEX_RE = re.compile(r"^0x[0-9a-fA-F]{64}$")
+EVM_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
 
 def _qr_safe_margin(width: int, height: int, panel_width: int, panel_height: int) -> int:
@@ -36,6 +40,42 @@ def _clamp_qr_position(
 def make_verification_qr_url(base_url: str, assertion_id: str) -> str:
     normalized_base = base_url.rstrip("/")
     return f"{normalized_base}/verify/qr/{assertion_id}"
+
+
+def credential_hash_to_bytes32_hex(credential_hash: str) -> str | None:
+    """Convertit `sha256:<64 hex>` vers le format EVM compact `0x<64 hex>`."""
+    raw_value = str(credential_hash or "").strip()
+    if BYTES32_HEX_RE.fullmatch(raw_value):
+        return raw_value.lower()
+    digest_match = SHA256_CREDENTIAL_HASH_RE.fullmatch(raw_value)
+    if not digest_match:
+        return None
+    return f"0x{digest_match.group(1).lower()}"
+
+
+def make_blockchain_verification_url(
+    verify_base_url: str,
+    chain_id: int | str | None,
+    contract_address: str,
+    credential_hash: str,
+) -> str | None:
+    """Construit l'URL du vérificateur blockchain indépendant pour un hash Badge83."""
+    normalized_base = str(verify_base_url or "").strip().rstrip("/")
+    normalized_contract = str(contract_address or "").strip()
+    credential_hash_bytes32 = credential_hash_to_bytes32_hex(credential_hash)
+    try:
+        normalized_chain_id = int(str(chain_id or "").strip())
+    except Exception:
+        return None
+
+    if not normalized_base or normalized_chain_id <= 0:
+        return None
+    if not EVM_ADDRESS_RE.fullmatch(normalized_contract):
+        return None
+    if credential_hash_bytes32 is None:
+        return None
+
+    return f"{normalized_base}/#/evm/{normalized_chain_id}/{normalized_contract}/{credential_hash_bytes32}"
 
 
 def overlay_qr_on_badge(

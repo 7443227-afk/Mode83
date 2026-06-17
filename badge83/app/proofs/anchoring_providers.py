@@ -9,6 +9,7 @@ from app.config import (
     get_evm_chain_id,
     get_evm_confirmation_timeout_seconds,
     get_evm_contract_address,
+    get_evm_contract_version,
     get_evm_network_label,
     get_evm_private_key,
     get_evm_rpc_url,
@@ -18,7 +19,7 @@ from app.config import (
 
 SHA256_CREDENTIAL_HASH_RE = re.compile(r"^sha256:([0-9a-fA-F]{64})$")
 
-BADGE83_ANCHOR_ABI = [
+BADGE83_ANCHOR_V2_ABI = [
     {
         "inputs": [{"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}],
         "name": "anchor",
@@ -58,6 +59,46 @@ BADGE83_ANCHOR_ABI = [
         "type": "function",
     },
 ]
+
+BADGE83_REGISTRY_ABI = [
+    {
+        "inputs": [{"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}],
+        "name": "anchor",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [{"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}],
+        "name": "revoke",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [{"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}],
+        "name": "getStatus",
+        "outputs": [
+            {"internalType": "bool", "name": "anchored", "type": "bool"},
+            {"internalType": "bool", "name": "revoked", "type": "bool"},
+            {"internalType": "uint64", "name": "anchoredAt", "type": "uint64"},
+            {"internalType": "uint64", "name": "revokedAt", "type": "uint64"},
+            {"internalType": "address", "name": "anchoredBy", "type": "address"},
+            {"internalType": "address", "name": "revokedBy", "type": "address"},
+        ],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [{"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}],
+        "name": "isValid",
+        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+]
+
+BADGE83_ANCHOR_ABI = BADGE83_REGISTRY_ABI
 
 
 @dataclass(frozen=True)
@@ -144,69 +185,11 @@ class EvmAnchoringProvider:
     def verifier_hash_ancre(self, credential_hash: str) -> dict[str, object]:
         """Vérifie en lecture seule si le digest est marqué comme ancré on-chain."""
 
-        digest_match = SHA256_CREDENTIAL_HASH_RE.match(str(credential_hash or ""))
-        if not digest_match:
-            return self._verification_result(
-                available=False,
-                verified=False,
-                status="invalid_hash",
-                error_message="Hash credential invalide : format sha256:<64 hex> attendu.",
-            )
-
-        rpc_url = get_evm_rpc_url()
-        contract_address = get_evm_contract_address()
-        if not rpc_url or not contract_address:
-            return self._verification_result(
-                available=False,
-                verified=False,
-                status="configuration_incomplete",
-                error_message="Configuration EVM de vérification incomplète.",
-            )
-        if not is_valid_evm_address(contract_address):
-            return self._verification_result(
-                available=False,
-                verified=False,
-                status="invalid_contract_address",
-                error_message="Adresse de contrat EVM invalide.",
-            )
-
-        try:
-            web3_module = importlib.import_module("web3")
-        except ImportError:
-            return self._verification_result(
-                available=False,
-                verified=False,
-                status="dependency_missing",
-                error_message="Dépendance optionnelle web3 non installée.",
-            )
-
-        try:
-            web3_class = web3_module.Web3
-            w3 = web3_class(web3_class.HTTPProvider(rpc_url))
-            if hasattr(w3, "is_connected") and not w3.is_connected():
-                return self._verification_result(
-                    available=False,
-                    verified=False,
-                    status="rpc_unavailable",
-                    error_message="RPC EVM indisponible.",
-                )
-
-            checksum_address = web3_class.to_checksum_address(contract_address)
-            contract = w3.eth.contract(address=checksum_address, abi=BADGE83_ANCHOR_ABI)
-            digest_bytes = bytes.fromhex(digest_match.group(1))
-            is_anchored = bool(contract.functions.anchored(digest_bytes).call())
-            return self._verification_result(
-                available=True,
-                verified=is_anchored,
-                status="verified" if is_anchored else "not_found_on_chain",
-            )
-        except Exception as exc:
-            return self._verification_result(
-                available=False,
-                verified=False,
-                status="verification_failed",
-                error_message=f"Erreur vérification EVM : {exc}",
-            )
+        status = self.get_hash_status(credential_hash)
+        if status.get("available") is not True:
+            return {**status, "verified": False}
+        anchored = bool(status.get("anchored"))
+        return {**status, "verified": anchored, "status": "verified" if anchored else "not_found_on_chain"}
 
     def verifier_hash_revoque(self, credential_hash: str) -> dict[str, object]:
         """Vérifie en lecture seule si le digest est marqué comme révoqué on-chain."""
@@ -235,18 +218,26 @@ class EvmAnchoringProvider:
         try:
             contract = read_context["contract"]
             digest_bytes = read_context["digest_bytes"]
-            anchored, revoked = contract.functions.getStatus(digest_bytes).call()
+            status_values = contract.functions.getStatus(digest_bytes).call()
+            anchored, revoked, anchored_at, revoked_at, anchored_by, revoked_by = self._normalize_contract_status(status_values)
+            valid = bool(contract.functions.isValid(digest_bytes).call()) if self._is_registry_contract() else bool(anchored and not revoked)
             return self._status_result(
                 available=True,
                 anchored=bool(anchored),
                 revoked=bool(revoked),
-                status="revoked" if revoked else "anchored" if anchored else "not_found_on_chain",
+                valid=valid,
+                anchored_at=anchored_at,
+                revoked_at=revoked_at,
+                anchored_by=anchored_by,
+                revoked_by=revoked_by,
+                status="revoked" if revoked else "valid" if valid else "not_found_on_chain",
             )
         except Exception as exc:
             return self._status_result(
                 available=False,
                 anchored=False,
                 revoked=False,
+                valid=False,
                 status="status_failed",
                 error_message=f"Erreur statut EVM : {exc}",
             )
@@ -342,7 +333,7 @@ class EvmAnchoringProvider:
                 )
 
             checksum_address = web3_class.to_checksum_address(contract_address)
-            contract = w3.eth.contract(address=checksum_address, abi=BADGE83_ANCHOR_ABI)
+            contract = w3.eth.contract(address=checksum_address, abi=self._contract_abi())
             return {
                 "w3": w3,
                 "contract": contract,
@@ -364,6 +355,7 @@ class EvmAnchoringProvider:
                 available=False,
                 anchored=False,
                 revoked=False,
+                valid=False,
                 status=status,
                 error_message=message,
             )
@@ -378,6 +370,11 @@ class EvmAnchoringProvider:
         available: bool,
         anchored: bool,
         revoked: bool,
+        valid: bool | None = None,
+        anchored_at: int | None = None,
+        revoked_at: int | None = None,
+        anchored_by: str | None = None,
+        revoked_by: str | None = None,
         status: str,
         error_message: str | None = None,
     ) -> dict[str, object]:
@@ -385,11 +382,34 @@ class EvmAnchoringProvider:
             "available": available,
             "anchored": anchored,
             "revoked": revoked,
+            "valid": bool(anchored and not revoked) if valid is None else valid,
+            "anchored_at": anchored_at,
+            "revoked_at": revoked_at,
+            "anchored_by": anchored_by,
+            "revoked_by": revoked_by,
             "status": status,
             "provider": self.name,
             "network": self.network,
             "error_message": error_message,
         }
+
+    @staticmethod
+    def _normalize_contract_status(status_values: object) -> tuple[bool, bool, int | None, int | None, str | None, str | None]:
+        values = list(status_values) if isinstance(status_values, (list, tuple)) else []
+        if len(values) >= 6:
+            return bool(values[0]), bool(values[1]), int(values[2]), int(values[3]), str(values[4]), str(values[5])
+        if len(values) >= 2:
+            return bool(values[0]), bool(values[1]), None, None, None, None
+        return False, False, None, None, None, None
+
+    @staticmethod
+    def _is_registry_contract() -> bool:
+        return get_evm_contract_version() not in {"v2", "anchorv2", "badge83anchorv2"}
+
+    def _contract_abi(self) -> list[dict[str, object]]:
+        if self._is_registry_contract():
+            return BADGE83_REGISTRY_ABI
+        return BADGE83_ANCHOR_V2_ABI
 
     def _verification_result(
         self,

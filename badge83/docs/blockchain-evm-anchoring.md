@@ -1,16 +1,16 @@
-# Badge83 — Ancrage blockchain EVM local
+# Badge83 — Ancrage blockchain EVM avec Badge83Registry
 
-Date : 15/06/2026  
+Date : 17/06/2026  
 Projet : Badge83  
-Objet : procédure d'intégration locale Hardhat pour le provider d'ancrage EVM optionnel
+Objet : procédure d'intégration Hardhat/Sepolia pour le provider EVM optionnel basé sur `Badge83Registry`
 
 ---
 
 ## 1. Objectif
 
-Cette page décrit le flux de test local permettant de valider l'ancrage EVM réel de Badge83 sur un nœud Hardhat local.
+Cette page décrit le flux permettant de valider l'ancrage EVM réel de Badge83 avec le contrat `Badge83Registry`, en local Hardhat ou sur Sepolia.
 
-L'objectif est limité : vérifier que le provider `evm` peut publier uniquement le digest `bytes32` du badge, récupérer un `tx_hash` réel local et enregistrer le `block_number` dans SQLite.
+L'objectif est limité : vérifier que le provider `evm` peut publier uniquement le digest `bytes32` du badge, récupérer un `tx_hash`, enregistrer le `block_number` dans SQLite et relire le statut public via `getStatus(bytes32)` / `isValid(bytes32)`.
 
 Badge83 doit continuer à fonctionner sans blockchain. Cette procédure est donc optionnelle et ne doit pas modifier le runtime principal.
 
@@ -18,7 +18,7 @@ Badge83 doit continuer à fonctionner sans blockchain. Cette procédure est donc
 
 ## 2. Règles de sécurité et de confidentialité
 
-Le contrat `Badge83Anchor` ne reçoit qu'une seule donnée :
+Le contrat `Badge83Registry` ne reçoit qu'une seule donnée métier :
 
 ```text
 bytes32 credentialHash
@@ -31,6 +31,12 @@ sha256:<64 hex>
 ```
 
 Le provider EVM convertit les 64 caractères hexadécimaux en `bytes32` avant l'appel au contrat.
+
+Le registre conserve uniquement un statut technique :
+
+```text
+anchored / revoked / anchoredAt / revokedAt / anchoredBy / revokedBy
+```
 
 Ne jamais envoyer on-chain :
 
@@ -109,19 +115,22 @@ Dans un autre terminal :
 
 ```bash
 cd /home/ubuntu/projects/Mode83/badge83/blockchain
-npx hardhat run scripts/deploy.js --network localhost
+npm run deploy:registry:local
 ```
 
 Sortie attendue :
 
 ```text
-Badge83Anchor deploye: 0x...
+Badge83Registry déployé : 0x...
+network: localhost
+chainId: 31337
 ```
 
 Conserver cette adresse uniquement dans l'environnement local, par exemple :
 
 ```bash
 export BADGE83_EVM_CONTRACT_ADDRESS=0x...
+export BADGE83_EVM_CONTRACT_VERSION=registry
 ```
 
 ---
@@ -134,6 +143,8 @@ Exemple de configuration locale Hardhat :
 export BADGE83_EVM_RPC_URL=http://127.0.0.1:8545
 export BADGE83_EVM_CHAIN_ID=31337
 export BADGE83_EVM_CONTRACT_ADDRESS=0x...
+export BADGE83_EVM_CONTRACT_VERSION=registry
+export BADGE83_BLOCKCHAIN_VERIFY_BASE_URL=https://verify.mode83.org
 export BADGE83_EVM_PRIVATE_KEY=0x...
 export BADGE83_EVM_NETWORK_LABEL=hardhat-local
 export BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=
@@ -143,6 +154,8 @@ export BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS=120
 Règles de durcissement appliquées par Badge83 :
 
 - `BADGE83_EVM_CONTRACT_ADDRESS` doit être au format `0x` + 40 caractères hexadécimaux ;
+- `BADGE83_EVM_CONTRACT_VERSION=registry` utilise le nouveau contrat `Badge83Registry` ; `v2` reste disponible pour l'ancien `Badge83AnchorV2` ;
+- `BADGE83_BLOCKCHAIN_VERIFY_BASE_URL` prépare l'URL du vérificateur blockchain statique indépendant ;
 - une adresse invalide bloque l'ancrage EVM et la vérification read-only avant tout import de `web3` ;
 - `BADGE83_EVM_CONFIRMATION_TIMEOUT_SECONDS` doit être strictement positif ; une valeur vide, invalide, nulle ou négative retombe sur la valeur par défaut `120` ;
 - ces contrôles restent locaux et ne rendent pas la blockchain obligatoire.
@@ -224,13 +237,15 @@ Déployer sur Sepolia :
 
 ```bash
 cd /home/ubuntu/projects/Mode83/badge83/blockchain
-npm run deploy:sepolia
+npm run deploy:registry:sepolia
 ```
 
 Sortie attendue :
 
 ```text
-Badge83Anchor deploye: 0x...
+Badge83Registry déployé : 0x...
+network: sepolia
+chainId: 11155111
 ```
 
 Conserver l'adresse affichée : elle devient `BADGE83_EVM_CONTRACT_ADDRESS` côté runtime Badge83.
@@ -243,6 +258,8 @@ Dans `badge83.env` local non versionné, configurer par exemple :
 BADGE83_EVM_RPC_URL=https://sepolia.infura.io/v3/votre-projet
 BADGE83_EVM_CHAIN_ID=11155111
 BADGE83_EVM_CONTRACT_ADDRESS=0xadresse-du-contrat-deploye-sur-sepolia
+BADGE83_EVM_CONTRACT_VERSION=registry
+BADGE83_BLOCKCHAIN_VERIFY_BASE_URL=https://verify.mode83.org
 BADGE83_EVM_PRIVATE_KEY=0xcle-privee-wallet-ancrage-testnet
 BADGE83_EVM_NETWORK_LABEL=sepolia
 BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE=https://sepolia.etherscan.io/tx/{tx_hash}
@@ -263,7 +280,8 @@ cd /home/ubuntu/projects/Mode83/badge83
 - ne jamais committer `SEPOLIA_RPC_URL`, `SEPOLIA_DEPLOYER_PRIVATE_KEY` ou `BADGE83_EVM_PRIVATE_KEY` ;
 - garder `BADGE83_ANCHORING_PROVIDER=mock` par défaut tant que l'ancrage EVM doit rester explicite dans l'UI ;
 - vérifier les transactions via `https://sepolia.etherscan.io/tx/<tx_hash>` ;
-- ne publier on-chain que `bytes32 credentialHash`, sans nom, email, assertion JSON, PNG ni `assertion_id`.
+- ne publier on-chain que `bytes32 credentialHash`, sans nom, email, assertion JSON, PNG ni `assertion_id` ;
+- le portefeuille d'exécution doit être propriétaire du contrat ou être autorisé par `setOperator(address,true)`.
 
 Pour un lancement Docker futur, le même bloc `BADGE83_EVM_*` devra être fourni au conteneur via `env_file` ou `environment`. Contrairement à Hardhat local, Sepolia ne nécessite pas de nœud local : Badge83 doit seulement pouvoir joindre le RPC configuré.
 
@@ -307,7 +325,7 @@ cd /home/ubuntu/projects/Mode83/badge83
 ../.venv/bin/python scripts/smoke_evm_anchor.py
 ```
 
-Cette commande charge `badge83.env` si le fichier existe et affiche seulement des indicateurs sûrs : présence du RPC, chain id, validité de l'adresse contrat, présence de la clé privée, réseau, résultat `eth_chainId` et présence de bytecode contrat. Elle n'affiche pas le RPC complet et n'affiche jamais la clé privée.
+Cette commande charge `badge83.env` si le fichier existe et affiche seulement des indicateurs sûrs : présence du RPC, identifiant de chaîne, validité de l'adresse contrat, présence de la clé privée, réseau, résultat `eth_chainId` et présence de bytecode contrat. Elle n'affiche pas le RPC complet et n'affiche jamais la clé privée.
 
 Pour envoyer une transaction Sepolia de test avec un hash aléatoire, utiliser l'option explicite :
 
@@ -371,7 +389,7 @@ Cette vérification :
 - utilise le dernier ancrage local dont `provider=evm` et `status=anchored` ;
 - relit uniquement le `credential_hash` local ;
 - convertit `sha256:<64 hex>` en `bytes32` ;
-- appelle la fonction view `anchored(bytes32)` du contrat ;
+- appelle `getStatus(bytes32)` et, pour `Badge83Registry`, `isValid(bytes32)` ;
 - n'utilise pas `BADGE83_EVM_PRIVATE_KEY` ;
 - ne publie aucune donnée personnelle et ne crée aucune transaction.
 
@@ -401,6 +419,21 @@ Si le template ne contient pas `{tx_hash}`, Badge83 ajoute le hash à la fin de 
 
 Si `web3` ou la configuration RPC est absente, Badge83 continue de fonctionner. La page affiche alors un statut informatif, par exemple `Vérification blockchain non configurée` ou `Dépendance blockchain absente`.
 
+En complément, Badge83 prépare une URL de secours vers un vérificateur blockchain indépendant :
+
+```text
+https://verify.mode83.org/#/evm/<chainId>/<contractAddress>/<credentialHashBytes32>
+```
+
+Cette URL est affichée sur :
+
+```text
+GET /verify/badge/<assertion_id>
+GET /verify/qr/<assertion_id>
+```
+
+Elle permet à terme de vérifier le hash directement depuis un site statique, même si le backend Badge83 principal est indisponible.
+
 Les pages concernées sont :
 
 ```text
@@ -428,11 +461,11 @@ cd /home/ubuntu/projects/Mode83/badge83/blockchain
 npm test
 ```
 
-Résultat de référence après intégration locale du 15/06/2026 :
+Résultat de référence après intégration `Badge83Registry` du 17/06/2026 :
 
 ```text
-Python unit suite : 158 passed, 12 warnings
-Hardhat tests : 6 passing
+Python tests ciblés : 46 passed, 15 warnings
+Hardhat tests : 37 passing
 ```
 
 ---
@@ -465,6 +498,10 @@ Vérifier que le nœud Hardhat est lancé sur `127.0.0.1:8545`.
 
 Le contrat refuse deux appels `anchor(bytes32)` avec le même hash. Pour refaire un test, utiliser une assertion différente ou redéployer le contrat sur un nœud Hardhat réinitialisé.
 
+### `NOT_AUTHORIZED` lors de l'ancrage ou de la révocation
+
+Avec `Badge83Registry`, seuls le propriétaire du contrat et les opérateurs autorisés peuvent appeler `anchor` et `revoke`. Vérifier que l'adresse correspondant à `BADGE83_EVM_PRIVATE_KEY` est propriétaire ou a été autorisée avec `setOperator(address,true)`.
+
 ### Vérification blockchain publique non disponible
 
 La vérification publique est read-only. Elle peut être indisponible même si Badge83 fonctionne correctement. Vérifier :
@@ -481,7 +518,7 @@ La clé privée n'est pas nécessaire pour cette vérification.
 
 ## 12. Limites actuelles
 
-- Sepolia a été validé par un premier smoke-test, mais l'ancrage EVM reste optionnel et dépend de la disponibilité du RPC, du solde gas du wallet runtime et de la configuration locale ;
+- Sepolia reste optionnel et dépend de la disponibilité du RPC, du solde gas du wallet runtime et de la configuration locale ;
 - vérification blockchain publique limitée au dernier ancrage EVM local enregistré ;
-- pas d'indexation externe des événements `CredentialHashAnchored` ;
+- pas encore d'indexation externe des événements `CredentialAnchored` / `CredentialRevoked` ;
 - lien explorer optionnel limité au `tx_hash`, sans indexation ni synchronisation externe.

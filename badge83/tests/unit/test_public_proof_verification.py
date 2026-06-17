@@ -155,6 +155,9 @@ def test_url_explorer_evm_refuse_un_template_non_http(monkeypatch):
 
 def test_pages_verification_affichent_la_verification_blockchain_evm(tmp_path, monkeypatch):
     monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "https://explorer.test/tx/{tx_hash}")
+    monkeypatch.setenv("BADGE83_EVM_CHAIN_ID", "11155111")
+    monkeypatch.setenv("BADGE83_EVM_CONTRACT_ADDRESS", "0x0000000000000000000000000000000000000001")
+    monkeypatch.setenv("BADGE83_BLOCKCHAIN_VERIFY_BASE_URL", "https://verify.example.test")
     assertion = _assertion("preuve-evm-verifiee-1")
     assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, assertion)
     proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
@@ -192,11 +195,15 @@ def test_pages_verification_affichent_la_verification_blockchain_evm(tmp_path, m
     assert qr_response.status_code == 200
     assert "Vérification blockchain publique" in full_response.text
     assert "Hash confirmé sur blockchain" in full_response.text
+    assert "Secours blockchain autonome" in full_response.text
+    assert "https://verify.example.test/#/evm/11155111/0x0000000000000000000000000000000000000001/0x" in full_response.text
     assert "0xabc123" in full_response.text
     assert "https://explorer.test/tx/0xabc123" in full_response.text
     assert "Bloc" in full_response.text
     assert "Vérification blockchain publique" in qr_response.text
     assert "Hash confirmé sur blockchain" in qr_response.text
+    assert "Secours blockchain autonome" in qr_response.text
+    assert "Ouvrir le vérificateur blockchain indépendant" in qr_response.text
     assert "https://explorer.test/tx/0xabc123" in qr_response.text
 
 
