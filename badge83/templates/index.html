@@ -651,12 +651,19 @@
                         <img id="badgePreview" class="badge-preview" alt="Badge preview" />
                       </div>
                       <div class="small text-muted" id="badgeMeta"></div>
+                      <div class="form-check form-switch mt-3">
+                        <input id="revokeAlsoEvm" class="form-check-input" type="checkbox" />
+                        <label id="revokeAlsoEvmLabel" class="form-check-label small" for="revokeAlsoEvm">Publier aussi la révocation sur blockchain EVM</label>
+                        <div id="revokeAlsoEvmHelp" class="form-text">Optionnel. Action publique et irréversible ; aucune raison de révocation n’est publiée on-chain.</div>
+                      </div>
                       <div class="d-flex gap-2 mt-3 flex-wrap">
                         <a id="downloadJsonBtn" class="btn btn-outline-primary btn-sm" target="_blank">Télécharger JSON</a>
                         <a id="downloadPngBtn" class="btn btn-outline-success btn-sm" target="_blank">Télécharger PNG</a>
                         <a id="openVerifyPageBtn" class="btn btn-outline-secondary btn-sm" target="_blank">Open verification page</a>
                         <button id="anchorLocalBtn" class="btn btn-outline-warning btn-sm">Demander un ancrage local</button>
                         <button id="anchorEvmBtn" class="btn btn-outline-info btn-sm">Demander un ancrage blockchain réel</button>
+                        <button id="revokeLocalBtn" class="btn btn-outline-danger btn-sm">Révoquer le badge</button>
+                        <button id="revokeEvmBtn" class="btn btn-outline-danger btn-sm">Publier révocation EVM</button>
                         <button id="inspectPngBtn" class="btn btn-outline-dark btn-sm">Analyser les champs PNG</button>
                         <button id="deleteBtn" class="btn btn-outline-danger btn-sm">Supprimer</button>
                       </div>
@@ -1125,6 +1132,9 @@
       const openVerifyPageBtn = document.getElementById('openVerifyPageBtn');
       const anchorLocalBtn = document.getElementById('anchorLocalBtn');
       const anchorEvmBtn = document.getElementById('anchorEvmBtn');
+      const revokeLocalBtn = document.getElementById('revokeLocalBtn');
+      const revokeEvmBtn = document.getElementById('revokeEvmBtn');
+      const revokeAlsoEvm = document.getElementById('revokeAlsoEvm');
       const inspectPngBtn = document.getElementById('inspectPngBtn');
       const deleteBtn = document.getElementById('deleteBtn');
       const assertionEditor = document.getElementById('assertionEditor');
@@ -1223,6 +1233,10 @@
           openVerifyPageBtn: 'Ouvrir la page de vérification',
           anchorLocalBtn: 'Demander un ancrage local',
           anchorEvmBtn: 'Demander un ancrage blockchain réel',
+          revokeLocalBtn: 'Révoquer le badge',
+          revokeEvmBtn: 'Publier révocation EVM',
+          revokeAlsoEvmLabel: 'Publier aussi la révocation sur blockchain EVM',
+          revokeAlsoEvmHelp: 'Optionnel. Action publique et irréversible ; aucune raison de révocation n’est publiée on-chain.',
           inspectPngBtn: 'Analyser les champs PNG',
           deleteBtn: 'Supprimer',
           editorTitle: 'JSON d’assertion éditable',
@@ -1301,6 +1315,10 @@
           openVerifyPageBtn: 'Open verification page',
           anchorLocalBtn: 'Request local anchoring',
           anchorEvmBtn: 'Request real blockchain anchoring',
+          revokeLocalBtn: 'Revoke badge',
+          revokeEvmBtn: 'Publish EVM revocation',
+          revokeAlsoEvmLabel: 'Also publish revocation on EVM blockchain',
+          revokeAlsoEvmHelp: 'Optional. Public and irreversible action; no revocation reason is published on-chain.',
           inspectPngBtn: 'Parse PNG fields',
           deleteBtn: 'Delete',
           editorTitle: 'Editable assertion JSON',
@@ -1379,6 +1397,10 @@
           openVerifyPageBtn: 'Открыть страницу проверки',
           anchorLocalBtn: 'Запросить локальное anchoring',
           anchorEvmBtn: 'Запросить реальный blockchain-анкеринг',
+          revokeLocalBtn: 'Отозвать badge',
+          revokeEvmBtn: 'Опубликовать EVM-отзыв',
+          revokeAlsoEvmLabel: 'Также опубликовать отзыв в blockchain EVM',
+          revokeAlsoEvmHelp: 'Опционально. Публичное и необратимое действие; причина отзыва on-chain не публикуется.',
           inspectPngBtn: 'Распарсить поля PNG',
           deleteBtn: 'Удалить',
           editorTitle: 'Редактируемый assertion JSON',
@@ -1441,7 +1463,7 @@
           'pageTitle','pageSubtitle','labelCurrentBadge','labelCurrentView','labelSystem','sidebarTitle','searchLabel',
           'filterLabel','filterJsonLabel','filterPngLabel','filterHostedLabel',
           'registryTitle','registryDesc','inspectorTitle','inspectorDesc','emptyInspector','previewTitle','downloadJsonBtn',
-          'downloadPngBtn','openVerifyPageBtn','anchorLocalBtn','anchorEvmBtn','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
+          'downloadPngBtn','openVerifyPageBtn','anchorLocalBtn','anchorEvmBtn','revokeLocalBtn','revokeEvmBtn','revokeAlsoEvmLabel','revokeAlsoEvmHelp','inspectPngBtn','deleteBtn','editorTitle','saveEditBtn','inspectionTitle','issueTitle','issueDesc',
           'issueNameLabel','issueEmailLabel','issueModeLabel','issueAnchorLocalLabel','issueAnchorLocalHelp','issueAnchorEvmLabel','issueAnchorEvmHelp','issueBadgeImageLabel','issueBadgeImageHelp','issueSubmitBtn','batchIssueTitle','batchIssueDesc',
           'verifyTitle','verifyDesc','verifyBadgeIdLabel','verifyAssertionUrlLabel','verifyPngFileLabel','verifyIdBtn','verifyUrlBtn',
           'systemTitle','systemDesc','refreshBtn'
@@ -1751,6 +1773,29 @@
         `;
       }
 
+      function renderRevocationAdminSummary(revocation, blockchainRevocation) {
+        const local = revocation || {};
+        const blockchain = blockchainRevocation || {};
+        const localLabel = local.label || (local.revoked ? 'Credential révoqué' : 'Credential actif');
+        const localTone = local.tone || (local.revoked ? 'danger' : 'success');
+        const blockchainLabel = blockchain.label || 'Révocation blockchain non demandée';
+        const blockchainTone = blockchain.tone || 'secondary';
+        const network = blockchain.network ? `<span class="badge text-bg-secondary me-1">Réseau : ${escapeHtml(blockchain.network)}</span>` : '';
+        const txHash = blockchain.tx_hash ? `<div class="small mono text-break mt-1">Référence revoke : ${escapeHtml(blockchain.tx_hash)}</div>` : '';
+        const explorer = blockchain.explorer_tx_url ? `<div class="small mt-1"><a href="${escapeHtml(blockchain.explorer_tx_url)}" target="_blank" rel="noopener noreferrer">Explorer transaction revoke</a></div>` : '';
+        const error = blockchain.error_message ? `<div class="small text-danger mt-1">${escapeHtml(blockchain.error_message)}</div>` : '';
+        return `
+          <div class="mt-2 pt-2 border-top">
+            <div><strong>Révocation locale Badge83:</strong> <span class="badge text-bg-${escapeHtml(localTone)}">${escapeHtml(localLabel)}</span></div>
+            ${local.reason_category ? `<div class="small text-muted mt-1">Catégorie : ${escapeHtml(local.reason_category)}</div>` : ''}
+            ${local.updated_at ? `<div class="small text-muted mt-1">Mise à jour : ${escapeHtml(local.updated_at)}</div>` : ''}
+            <div class="mt-2"><strong>Révocation blockchain EVM:</strong> <span class="badge text-bg-${escapeHtml(blockchainTone)}">${escapeHtml(blockchainLabel)}</span></div>
+            <div class="mt-1"><span class="badge text-bg-secondary me-1">Provider : ${escapeHtml(blockchain.provider || 'evm')}</span>${network}</div>
+            ${txHash}${explorer}${error}
+          </div>
+        `;
+      }
+
       function renderAuditAdminSummary(audit) {
         const data = audit || {};
         if (data.available === false) {
@@ -1905,6 +1950,7 @@
           <div><strong>Hosted URL:</strong> <a href="${escapeHtml(item.public_assertion_url || '#')}" target="_blank">${escapeHtml(item.public_assertion_url || '—')}</a></div>
           <div><strong>Verification page:</strong> <a href="/verify/badge/${encodeURIComponent(item.assertion_id)}" target="_blank">/verify/badge/${escapeHtml(item.assertion_id)}</a></div>
           ${renderAnchoringAdminSummary(item.anchoring)}
+          ${renderRevocationAdminSummary(item.revocation, item.blockchain_revocation)}
           ${renderAuditAdminSummary(item.audit)}
         `;
         downloadJsonBtn.href = item.json_url;
@@ -1914,8 +1960,13 @@
         inspectPngBtn.disabled = !item.has_png;
         anchorLocalBtn.disabled = !item.has_json;
         anchorEvmBtn.disabled = !item.has_json;
+        revokeLocalBtn.disabled = !item.has_json || Boolean(item.revocation?.revoked);
+        revokeEvmBtn.disabled = !item.has_json || !Boolean(item.revocation?.revoked) || Boolean(item.blockchain_revocation?.revoked);
+        if (revokeAlsoEvm) revokeAlsoEvm.checked = false;
         anchorLocalBtn.dataset.id = item.assertion_id;
         anchorEvmBtn.dataset.id = item.assertion_id;
+        revokeLocalBtn.dataset.id = item.assertion_id;
+        revokeEvmBtn.dataset.id = item.assertion_id;
         deleteBtn.dataset.id = item.assertion_id;
         saveEditBtn.dataset.id = item.assertion_id;
         inspectPngBtn.dataset.id = item.assertion_id;
@@ -3090,6 +3141,41 @@
         return data;
       }
 
+      async function requestLocalRevocation(badgeId, requestEvmRevocation = false) {
+        const { response, data } = await fetchJsonWithRetry(`/api/badges/${encodeURIComponent(badgeId)}/revoke`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reason_category: 'admin_request',
+            actor: 'admin-ui',
+            request_evm_revocation: Boolean(requestEvmRevocation),
+            blockchain_provider: 'evm',
+          }),
+        });
+        if (!response.ok) {
+          const message = data.detail || data.error || 'Erreur lors de la révocation locale';
+          const error = new Error(message);
+          error.payload = data;
+          throw error;
+        }
+        return data;
+      }
+
+      async function requestEvmRevocation(badgeId) {
+        const { response, data } = await fetchJsonWithRetry(`/api/badges/${encodeURIComponent(badgeId)}/revoke/blockchain`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'evm', actor: 'admin-ui' }),
+        });
+        if (!response.ok) {
+          const message = data.detail || data.error || 'Erreur lors de la publication de la révocation EVM';
+          const error = new Error(message);
+          error.payload = data;
+          throw error;
+        }
+        return data;
+      }
+
       async function maybeAnchorIssuedBadge(assertionId, issuePayload) {
         const requestedProviders = [];
         if (issueAnchorLocal?.checked) requestedProviders.push({ provider: 'mock', request: requestLocalMockAnchoring });
@@ -3521,6 +3607,56 @@
         } finally {
           anchorEvmBtn.textContent = previousText || t('anchorEvmBtn');
           anchorEvmBtn.disabled = false;
+        }
+      });
+
+      revokeLocalBtn.addEventListener('click', async () => {
+        const badgeId = revokeLocalBtn.dataset.id;
+        if (!badgeId) return;
+        const withEvm = Boolean(revokeAlsoEvm?.checked);
+        const confirmText = withEvm
+          ? 'Révoquer localement ce badge et publier aussi la révocation EVM ? Action blockchain publique et irréversible.'
+          : 'Révoquer localement ce badge ?';
+        if (!window.confirm(confirmText)) return;
+
+        revokeLocalBtn.disabled = true;
+        const previousText = revokeLocalBtn.textContent;
+        revokeLocalBtn.textContent = withEvm ? 'Révocation locale + EVM…' : 'Révocation locale…';
+
+        try {
+          const data = await requestLocalRevocation(badgeId, withEvm);
+          setSystemOutput(data);
+          await loadDashboard(badgeId);
+          switchView('inspectorView');
+        } catch (error) {
+          setSystemOutput({ error: 'Erreur lors de la révocation du badge', details: String(error), payload: error.payload || null });
+          switchView('systemView');
+        } finally {
+          revokeLocalBtn.textContent = previousText || t('revokeLocalBtn');
+          revokeLocalBtn.disabled = false;
+        }
+      });
+
+      revokeEvmBtn.addEventListener('click', async () => {
+        const badgeId = revokeEvmBtn.dataset.id;
+        if (!badgeId) return;
+        if (!window.confirm('Publier la révocation EVM pour ce badge déjà révoqué localement ? Action publique et irréversible.')) return;
+
+        revokeEvmBtn.disabled = true;
+        const previousText = revokeEvmBtn.textContent;
+        revokeEvmBtn.textContent = 'Publication révocation EVM…';
+
+        try {
+          const data = await requestEvmRevocation(badgeId);
+          setSystemOutput(data);
+          await loadDashboard(badgeId);
+          switchView('inspectorView');
+        } catch (error) {
+          setSystemOutput({ error: 'Erreur lors de la publication de la révocation EVM', details: String(error), payload: error.payload || null });
+          switchView('systemView');
+        } finally {
+          revokeEvmBtn.textContent = previousText || t('revokeEvmBtn');
+          revokeEvmBtn.disabled = false;
         }
       });
 

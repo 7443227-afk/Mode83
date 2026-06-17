@@ -120,3 +120,24 @@ def test_admin_index_expose_resume_ancrage_apres_emission():
     assert "Ancrage local mock" in response.text
     assert "Ancrage blockchain EVM" in response.text
     assert "non confirmé" in response.text
+
+
+
+def test_admin_index_expose_actions_revocation_locale_et_evm():
+    client = _client_admin()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'id="revokeLocalBtn"' in response.text
+    assert 'id="revokeEvmBtn"' in response.text
+    assert 'id="revokeAlsoEvm"' in response.text
+    assert "Révoquer le badge" in response.text
+    assert "Publier révocation EVM" in response.text
+    assert "Revoke badge" in response.text
+    assert "Отозвать badge" in response.text
+    assert "requestLocalRevocation" in response.text
+    assert "requestEvmRevocation" in response.text
+    assert "/revoke/blockchain" in response.text
+    assert "request_evm_revocation" in response.text
+    assert "renderRevocationAdminSummary" in response.text
