@@ -125,7 +125,7 @@ def test_evm_config_defaults_keep_blockchain_optional(monkeypatch):
     assert config.get_evm_chain_id() is None
     assert config.get_evm_contract_address() == ""
     assert config.get_evm_contract_version() == "registry"
-    assert config.get_blockchain_verify_base_url() == "https://verify.mode83.org"
+    assert config.get_blockchain_verify_base_url() == "https://mode83.ddns.net/blockchain/verify"
     assert config.get_evm_private_key() == ""
     assert config.get_evm_network_label() == "hardhat-local"
     assert config.get_evm_explorer_tx_url_template() == ""

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Badge83 — Vérificateur blockchain indépendant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body { background: #eef3f9; color: #0f172a; }
+      .shell { max-width: 960px; }
+      .card-panel { background: #fff; border: 1px solid #dbe5f0; border-radius: 1rem; box-shadow: 0 .75rem 2rem rgba(15,23,42,.06); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .label { font-size: .78rem; color: #5b6b80; text-transform: uppercase; letter-spacing: .04em; }
+    </style>
+  </head>
+  <body>
+    <main class="container shell py-4 py-md-5">
+      <div class="mb-4">
+        <span class="badge text-bg-dark">Badge83</span>
+        <span class="badge text-bg-primary">Blockchain</span>
+        <h1 class="fw-bold mt-3">Vérificateur blockchain indépendant</h1>
+        <p class="text-muted mb-0">Cette page lit les paramètres depuis l’URL et peut vérifier le hash via un wallet navigateur compatible EVM.</p>
+        <p class="text-muted small mt-2 mb-0">Format attendu : <code>#/evm/&lt;chainId&gt;/&lt;contract&gt;/&lt;hashBytes32&gt;</code></p>
+      </div>
+
+      <section class="card-panel p-4 mb-4">
+        <div class="label mb-2">Statut</div>
+        <div id="status" class="alert alert-secondary mb-0">Lecture des paramètres…</div>
+      </section>
+
+      <section class="card-panel p-4 mb-4">
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="label mb-1">Identifiant de chaîne</div>
+            <div id="chainId" class="mono text-break">—</div>
+          </div>
+          <div class="col-12 col-md-8">
+            <div class="label mb-1">Contrat</div>
+            <div id="contract" class="mono text-break">—</div>
+          </div>
+          <div class="col-12">
+            <div class="label mb-1">Hash credential bytes32</div>
+            <div id="hash" class="mono text-break">—</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mt-4">
+          <button id="verifyBtn" class="btn btn-primary" type="button" disabled>Vérifier avec le wallet</button>
+          <button id="copyBtn" class="btn btn-outline-secondary" type="button">Copier l’URL</button>
+        </div>
+      </section>
+
+      <section class="card-panel p-4">
+        <div class="label mb-2">Résultat technique</div>
+        <pre id="output" class="mono small mb-0 text-break">En attente.</pre>
+      </section>
+    </main>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const outputEl = document.getElementById('output');
+      const verifyBtn = document.getElementById('verifyBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const bytes32Re = /^0x[0-9a-fA-F]{64}$/;
+      const addressRe = /^0x[0-9a-fA-F]{40}$/;
+
+      function setStatus(kind, text) {
+        statusEl.className = `alert alert-${kind} mb-0`;
+        statusEl.textContent = text;
+      }
+
+      function parseHashRoute() {
+        const parts = window.location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+        if (parts.length !== 4 || parts[0] !== 'evm') return null;
+        const chainId = Number(parts[1]);
+        const contract = parts[2];
+        const hash = parts[3];
+        if (!Number.isSafeInteger(chainId) || chainId <= 0 || !addressRe.test(contract) || !bytes32Re.test(hash)) return null;
+        return { chainId, contract, hash };
+      }
+
+      function renderParams(params) {
+        document.getElementById('chainId').textContent = params?.chainId || '—';
+        document.getElementById('contract').textContent = params?.contract || '—';
+        document.getElementById('hash').textContent = params?.hash || '—';
+      }
+
+      async function verifyWithWallet(params) {
+        if (!window.ethereum) {
+          setStatus('warning', 'Wallet EVM non détecté. Installez ou ouvrez un navigateur avec MetaMask/Rabby pour effectuer la lecture on-chain.');
+          return;
+        }
+        const chainHex = `0x${params.chainId.toString(16)}`;
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainHex }] });
+
+        // getStatus(bytes32) selector: first 4 bytes of keccak256("getStatus(bytes32)") = 0x6d4ce63c
+        const data = `0x6d4ce63c${params.hash.slice(2)}`;
+        const raw = await window.ethereum.request({ method: 'eth_call', params: [{ to: params.contract, data }, 'latest'] });
+        outputEl.textContent = JSON.stringify({ rawReturnData: raw }, null, 2);
+
+        if (typeof raw === 'string' && raw.length >= 130) {
+          const anchored = BigInt(`0x${raw.slice(2, 66)}`) === 1n;
+          const revoked = BigInt(`0x${raw.slice(66, 130)}`) === 1n;
+          setStatus(anchored ? (revoked ? 'danger' : 'success') : 'warning', anchored ? (revoked ? 'Hash ancré mais révoqué on-chain.' : 'Hash ancré et non révoqué selon le contrat.') : 'Hash absent ou non ancré selon le contrat.');
+        } else {
+          setStatus('warning', 'Réponse blockchain inattendue. Les données brutes sont affichées ci-dessous.');
+        }
+      }
+
+      const params = parseHashRoute();
+      renderParams(params);
+      if (params) {
+        verifyBtn.disabled = false;
+        setStatus('info', 'Paramètres EVM détectés. Cliquez sur « Vérifier avec le wallet » pour lire le contrat.');
+        outputEl.textContent = JSON.stringify(params, null, 2);
+      } else {
+        setStatus('warning', 'URL incomplète. Format attendu : /blockchain/verify/#/evm/<chainId>/<contract>/<hashBytes32>');
+      }
+      verifyBtn.addEventListener('click', () => verifyWithWallet(params).catch((error) => setStatus('danger', String(error && error.message ? error.message : error))));
+      copyBtn.addEventListener('click', () => navigator.clipboard?.writeText(window.location.href));
+    </script>
+  </body>
+</html>

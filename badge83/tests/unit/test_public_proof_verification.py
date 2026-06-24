@@ -207,6 +207,37 @@ def test_pages_verification_affichent_la_verification_blockchain_evm(tmp_path, m
     assert "https://explorer.test/tx/0xabc123" in qr_response.text
 
 
+def test_verificateur_blockchain_autonome_local_est_servi(tmp_path, monkeypatch):
+    monkeypatch.delenv("BADGE83_BLOCKCHAIN_VERIFY_BASE_URL", raising=False)
+    monkeypatch.setenv("BADGE83_EVM_CHAIN_ID", "11155111")
+    monkeypatch.setenv("BADGE83_EVM_CONTRACT_ADDRESS", "0x0000000000000000000000000000000000000001")
+    assertion = _assertion("preuve-evm-fallback-local-1")
+    assertion_id = _sauvegarder_assertion_et_preuve(tmp_path, monkeypatch, assertion)
+    proof = ProofRepository(tmp_path / "registry.db").trouver_par_assertion(assertion_id)
+    transaction = AnchoringRepository(tmp_path / "registry.db").enqueue(
+        assertion_id=assertion_id,
+        credential_hash=proof["credential_hash"],
+        provider="evm",
+        network="sepolia",
+    )
+    AnchoringRepository(tmp_path / "registry.db").changer_statut(transaction["id"], "anchored", tx_hash="0xabc123")
+    monkeypatch.setattr(
+        main.EvmAnchoringProvider,
+        "verifier_hash_ancre",
+        lambda self, credential_hash: {"available": True, "verified": True, "status": "verified", "provider": "evm", "network": "sepolia"},
+    )
+    client = TestClient(app)
+
+    full_response = client.get(f"/verify/badge/{assertion_id}")
+    verifier_response = client.get("/blockchain/verify")
+
+    assert full_response.status_code == 200
+    assert "/blockchain/verify/#/evm/11155111/0x0000000000000000000000000000000000000001/0x" in full_response.text
+    assert verifier_response.status_code == 200
+    assert "Vérificateur blockchain indépendant" in verifier_response.text
+    assert "#/evm/&lt;chainId&gt;/&lt;contract&gt;/&lt;hashBytes32&gt;" in verifier_response.text
+
+
 def test_pages_verification_separent_mock_et_evm_meme_si_mock_est_plus_recent(tmp_path, monkeypatch):
     monkeypatch.setenv("BADGE83_EVM_EXPLORER_TX_URL_TEMPLATE", "https://explorer.test/tx/{tx_hash}")
     assertion = _assertion("preuve-mock-evm-separes-1")

@@ -313,6 +313,16 @@ async def verify_desk_page(request: Request):
     return templates.TemplateResponse("verify_desk.html", {"request": request})
 
 
+@app.get("/blockchain/verify", response_class=HTMLResponse)
+async def blockchain_verify_page(request: Request):
+    """Affiche le vérificateur blockchain autonome servi par Badge83.
+
+    La page est volontairement statique côté navigateur : les paramètres EVM
+    restent dans le fragment `#/evm/...` et ne sont pas envoyés au backend.
+    """
+    return templates.TemplateResponse("blockchain_verify.html", {"request": request})
+
+
 @app.get("/legacy", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
 async def legacy_index(request: Request):
     """Affiche l'ancienne interface pour rollback rapide."""
@@ -505,6 +515,33 @@ def _mask_email(value: Any) -> str:
 
     visible_local = local_part[:2] if len(local_part) > 2 else local_part[:1]
     return f"{visible_local}…@{domain}"
+
+
+def _load_registry_private_recipient(assertion_id: str) -> dict[str, Any]:
+    """Charge les coordonnées opérateur privées depuis SQLite pour l'admin.
+
+    Les assertions publiques minimisent volontairement `admin_recipient` et ne
+    contiennent généralement pas l'email en clair. Le registre administrateur
+    peut toutefois l'afficher depuis la table locale `assertions.email`, remplie
+    au moment de l'émission via `private_recipient`.
+    """
+
+    try:
+        from app.database import close_connection, get_assertion_by_id, get_batch_session_item_by_badge_id, init_db_schema
+
+        conn = init_db_schema()
+        try:
+            stored = get_assertion_by_id(conn, assertion_id) or {}
+            batch_item = get_batch_session_item_by_badge_id(conn, assertion_id) or {}
+        finally:
+            close_connection(conn)
+    except Exception:
+        return {}
+
+    return {
+        "name": stored.get("name") or batch_item.get("recipient_name"),
+        "email": stored.get("email") or batch_item.get("recipient_email"),
+    }
 
 
 def _build_issuer_check(assertion: dict[str, Any]) -> dict[str, Any]:
@@ -1082,6 +1119,7 @@ def _collect_badge_record(
     recipient = assertion.get("recipient", {}) if isinstance(assertion.get("recipient"), dict) else {}
     verification = assertion.get("verification", {}) if isinstance(assertion.get("verification"), dict) else {}
     admin_recipient = assertion.get("admin_recipient", {}) if isinstance(assertion.get("admin_recipient"), dict) else {}
+    private_recipient = _load_registry_private_recipient(assertion_id)
     compliance = check_assertion(assertion)
     if include_statuses:
         proof_status = _build_proof_status(assertion_id, assertion)
@@ -1107,8 +1145,8 @@ def _collect_badge_record(
         "assertion_id": assertion_id,
         "issued_on": assertion.get("issuedOn"),
         "issued_on_display": _format_display_date(assertion.get("issuedOn")),
-        "name": admin_recipient.get("name"),
-        "email": admin_recipient.get("email"),
+        "name": private_recipient.get("name") or admin_recipient.get("name"),
+        "email": private_recipient.get("email") or admin_recipient.get("email"),
         "has_json": json_path.exists(),
         "has_png": png_path.exists(),
         "json_url": f"/api/badges/{assertion_id}/json",

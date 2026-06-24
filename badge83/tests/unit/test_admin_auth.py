@@ -148,6 +148,7 @@ def test_admin_index_expose_actions_revocation_locale_et_evm():
 def test_api_badges_registry_uses_fast_listing_without_status_builders(tmp_path, monkeypatch):
     import json
     from app import main
+    from app.database import sync_assertion_record
 
     issued_dir = tmp_path / "issued"
     baked_dir = tmp_path / "baked"
@@ -169,6 +170,11 @@ def test_api_badges_registry_uses_fast_listing_without_status_builders(tmp_path,
     monkeypatch.setattr(main, "ISSUED_DIR", issued_dir)
     monkeypatch.setattr(main, "BAKED_DIR", baked_dir)
     monkeypatch.setenv("BADGE83_REGISTRY_DB", str(tmp_path / "registry.db"))
+    sync_assertion_record(
+        assertion_id,
+        {**assertion, "admin_recipient": {"name": "Fast Registry"}},
+        private_recipient={"name": "Fast Registry", "email": "fast@example.test"},
+    )
 
     def fail_status_builder(*args, **kwargs):
         raise AssertionError("status builder should not run for /api/badges list")
@@ -185,6 +191,8 @@ def test_api_badges_registry_uses_fast_listing_without_status_builders(tmp_path,
     assert response.status_code == 200
     item = response.json()["items"][0]
     assert item["assertion_id"] == assertion_id
+    assert item["name"] == "Fast Registry"
+    assert item["email"] == "fast@example.test"
     assert item["proof"] is None
     assert item["anchoring"] is None
     assert item["blockchain_revocation"] is None

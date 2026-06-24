@@ -216,11 +216,14 @@ class EvmAnchoringProvider:
             return read_context["error"]
 
         try:
-            contract = read_context["contract"]
             digest_bytes = read_context["digest_bytes"]
-            status_values = contract.functions.getStatus(digest_bytes).call()
+            status_values, is_registry_contract = self._read_contract_status(read_context)
             anchored, revoked, anchored_at, revoked_at, anchored_by, revoked_by = self._normalize_contract_status(status_values)
-            valid = bool(contract.functions.isValid(digest_bytes).call()) if self._is_registry_contract() else bool(anchored and not revoked)
+            valid = (
+                bool(read_context["contract"].functions.isValid(digest_bytes).call())
+                if is_registry_contract
+                else bool(anchored and not revoked)
+            )
             return self._status_result(
                 available=True,
                 anchored=bool(anchored),
@@ -337,6 +340,7 @@ class EvmAnchoringProvider:
             return {
                 "w3": w3,
                 "contract": contract,
+                "contract_address": checksum_address,
                 "digest_bytes": bytes.fromhex(digest_match.group(1)),
                 "private_key": private_key,
             }
@@ -401,6 +405,35 @@ class EvmAnchoringProvider:
         if len(values) >= 2:
             return bool(values[0]), bool(values[1]), None, None, None, None
         return False, False, None, None, None, None
+
+    def _read_contract_status(self, read_context: dict[str, object]) -> tuple[object, bool]:
+        """Lit getStatus avec compatibilité automatique Registry/V2.
+
+        Les déploiements historiques Badge83AnchorV2 retournent seulement
+        (bool anchored, bool revoked). Si la configuration pointe encore vers
+        un tel contrat alors que la version par défaut attend Badge83Registry
+        (6 valeurs), web3 échoue au décodage. Dans ce cas précis, on relit le
+        même contrat avec l'ABI V2 au lieu d'afficher une erreur publique.
+        """
+
+        contract = read_context["contract"]
+        digest_bytes = read_context["digest_bytes"]
+        try:
+            return contract.functions.getStatus(digest_bytes).call(), self._is_registry_contract()
+        except Exception as exc:
+            if not self._is_registry_contract() or not self._is_contract_decode_error(exc):
+                raise
+
+            fallback_contract = read_context["w3"].eth.contract(  # type: ignore[attr-defined]
+                address=read_context["contract_address"],
+                abi=BADGE83_ANCHOR_V2_ABI,
+            )
+            return fallback_contract.functions.getStatus(digest_bytes).call(), False
+
+    @staticmethod
+    def _is_contract_decode_error(exc: Exception) -> bool:
+        message = str(exc).lower()
+        return "could not decode contract function call" in message or "decode" in message and "output_types" in message
 
     @staticmethod
     def _is_registry_contract() -> bool:

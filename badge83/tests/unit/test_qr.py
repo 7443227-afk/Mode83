@@ -40,14 +40,14 @@ def test_credential_hash_to_bytes32_hex_rejects_invalid_values():
 
 def test_make_blockchain_verification_url_builds_static_verifier_url():
     url = make_blockchain_verification_url(
-        "https://verify.mode83.org/",
+        "https://mode83.ddns.net/blockchain/verify/",
         11155111,
         "0x0000000000000000000000000000000000000001",
         "sha256:" + "ab" * 32,
     )
 
     assert url == (
-        "https://verify.mode83.org/#/evm/11155111/"
+        "https://mode83.ddns.net/blockchain/verify/#/evm/11155111/"
         "0x0000000000000000000000000000000000000001/"
         "0x" + "ab" * 32
     )

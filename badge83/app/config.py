@@ -35,7 +35,7 @@ DEFAULT_MAX_IMAGE_PIXELS = 50_000_000
 DEFAULT_ANCHORING_PROVIDER = "mock"
 DEFAULT_EVM_NETWORK_LABEL = "hardhat-local"
 DEFAULT_EVM_CONFIRMATION_TIMEOUT_SECONDS = 120
-DEFAULT_BLOCKCHAIN_VERIFY_BASE_URL = "https://verify.mode83.org"
+DEFAULT_BLOCKCHAIN_VERIFY_PATH = "/blockchain/verify"
 EVM_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 PRODUCTION_ENV_VALUES = {"prod", "production"}
 
@@ -172,7 +172,10 @@ def get_evm_contract_version() -> str:
 
 def get_blockchain_verify_base_url() -> str:
     """URL de base du vérificateur blockchain statique indépendant."""
-    return os.environ.get("BADGE83_BLOCKCHAIN_VERIFY_BASE_URL", DEFAULT_BLOCKCHAIN_VERIFY_BASE_URL).strip().rstrip("/") or DEFAULT_BLOCKCHAIN_VERIFY_BASE_URL
+    configured_url = os.environ.get("BADGE83_BLOCKCHAIN_VERIFY_BASE_URL", "").strip().rstrip("/")
+    if configured_url:
+        return configured_url
+    return f"{get_public_base_url().rstrip('/')}{DEFAULT_BLOCKCHAIN_VERIFY_PATH}"
 
 
 def is_valid_evm_address(address: str) -> bool:

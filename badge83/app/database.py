@@ -379,8 +379,8 @@ def upsert_assertion(conn: sqlite3.Connection, assertion_data: Dict[str, Any]) -
             ON CONFLICT(assertion_id) DO UPDATE SET
                 assertion_data = excluded.assertion_data,
                 issued_on = excluded.issued_on,
-                name = excluded.name,
-                email = excluded.email,
+                name = COALESCE(excluded.name, assertions.name),
+                email = COALESCE(excluded.email, assertions.email),
                 name_hash = excluded.name_hash,
                 email_hash = excluded.email_hash
         ''', (
@@ -577,6 +577,21 @@ def get_batch_session_items(conn: sqlite3.Connection, session_id: str) -> List[D
         (session_id,),
     )
     return [dict(row) for row in cursor.fetchall()]
+
+
+def get_batch_session_item_by_badge_id(conn: sqlite3.Connection, badge_id: str) -> Optional[Dict[str, Any]]:
+    """Retourne les coordonnées privées d'une émission groupée pour un badge donné."""
+    cursor = conn.execute(
+        '''
+        SELECT * FROM batch_session_items
+        WHERE badge_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        ''',
+        (badge_id,),
+    )
+    row = cursor.fetchone()
+    return dict(row) if row else None
 
 
 def import_assertions_from_directory(directory: str | Path, db_path: str | Path | None = None) -> dict[str, int]:

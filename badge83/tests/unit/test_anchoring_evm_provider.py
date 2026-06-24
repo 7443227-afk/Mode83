@@ -166,6 +166,33 @@ def test_evm_get_hash_status_compatible_anchor_v2(monkeypatch):
     assert result["revoked_at"] is None
 
 
+def test_evm_get_hash_status_fallback_abi_v2_si_registry_decode_echoue(monkeypatch):
+    _configure_evm(monkeypatch)
+    recorder: dict[str, object] = {
+        "status_result_by_abi": {
+            "registry": RuntimeError(
+                "Could not decode contract function call to getStatus(bytes32) with return data: "
+                "b'\\x00...', output_types: ['bool', 'bool', 'uint64', 'uint64', 'address', 'address']"
+            ),
+            "v2": (True, True),
+        }
+    }
+    fake_web3_module = _fake_web3_module(recorder)
+    monkeypatch.setitem(sys.modules, "web3", fake_web3_module)
+
+    result = EvmAnchoringProvider().get_hash_status(VALID_HASH)
+
+    assert result["available"] is True
+    assert result["anchored"] is True
+    assert result["revoked"] is True
+    assert result["valid"] is False
+    assert result["status"] == "revoked"
+    assert result["anchored_at"] is None
+    assert result["revoked_at"] is None
+    assert recorder["contract_abis"] == ["registry", "v2"]
+    assert "valid_digest" not in recorder
+
+
 def test_evm_verification_sans_configuration_ne_demande_pas_de_cle_privee(monkeypatch):
     monkeypatch.setenv("BADGE83_EVM_NETWORK_LABEL", "hardhat-unit")
     monkeypatch.delenv("BADGE83_EVM_RPC_URL", raising=False)
@@ -230,11 +257,18 @@ def _fake_web3_module(recorder: dict[str, object]):
             return recorder.get("anchored_result", False)
 
     class FakeStatusFunction:
-        def __init__(self, digest: bytes) -> None:
+        def __init__(self, digest: bytes, abi_kind: str) -> None:
             self.digest = digest
+            self.abi_kind = abi_kind
 
         def call(self):
             recorder["status_digest"] = self.digest
+            status_result_by_abi = recorder.get("status_result_by_abi")
+            if isinstance(status_result_by_abi, dict) and self.abi_kind in status_result_by_abi:
+                result = status_result_by_abi[self.abi_kind]
+                if isinstance(result, Exception):
+                    raise result
+                return result
             return recorder.get("status_result", (recorder.get("anchored_result", False), False, 0, 0, "0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"))
 
     class FakeIsValidFunction:
@@ -246,6 +280,9 @@ def _fake_web3_module(recorder: dict[str, object]):
             return recorder.get("valid_result", False)
 
     class FakeFunctions:
+        def __init__(self, abi_kind: str = "registry") -> None:
+            self.abi_kind = abi_kind
+
         def anchor(self, credential_hash: bytes):
             recorder.setdefault("contract_calls", []).append(credential_hash)
             return FakeAnchorFunction(credential_hash)
@@ -256,14 +293,15 @@ def _fake_web3_module(recorder: dict[str, object]):
 
         def getStatus(self, credential_hash: bytes):
             recorder.setdefault("contract_status_calls", []).append(credential_hash)
-            return FakeStatusFunction(credential_hash)
+            return FakeStatusFunction(credential_hash, self.abi_kind)
 
         def isValid(self, credential_hash: bytes):
             recorder.setdefault("contract_valid_calls", []).append(credential_hash)
             return FakeIsValidFunction(credential_hash)
 
     class FakeContract:
-        functions = FakeFunctions()
+        def __init__(self, abi_kind: str = "registry") -> None:
+            self.functions = FakeFunctions(abi_kind)
 
     class FakeEth:
         account = FakeEthAccount()
@@ -272,7 +310,9 @@ def _fake_web3_module(recorder: dict[str, object]):
         def contract(address: str, abi: list):
             recorder["contract_address"] = address
             recorder["contract_abi"] = abi
-            return FakeContract()
+            abi_kind = "v2" if abi and abi[2].get("name") == "anchored" else "registry"
+            recorder.setdefault("contract_abis", []).append(abi_kind)
+            return FakeContract(abi_kind)
 
         @staticmethod
         def get_transaction_count(address: str):
